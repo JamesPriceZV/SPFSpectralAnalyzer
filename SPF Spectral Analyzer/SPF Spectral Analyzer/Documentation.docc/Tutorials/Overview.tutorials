@@ -1,0 +1,7 @@
+@Tutorials(name: "Getting Started") {
+    @Intro(title: "Shimadzu Data Analyser Tutorials") {
+        Use these tutorials to learn the full workflow from import to export, including AI analysis and reporting.
+    }
+
+    @TutorialReference(destination: "tutorials/Workflow")
+}

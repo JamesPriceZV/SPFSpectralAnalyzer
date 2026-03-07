@@ -1,0 +1,56 @@
+@Tutorial(time: 20, title: "From Import to Export") {
+    @Intro {
+        This tutorial walks through the complete workflow: import SPC files, validate and analyze spectra, run AI analysis, combine results, and export reports.
+    }
+
+    @Section(title: "Import and Load") {
+        @ContentAndMedia {
+            @Content {
+                1. Open the Import tab in ``ContentView``.
+                2. Use the file picker to select one or more `.spc` files.
+                3. Review the parsed metadata and any warnings.
+                4. Confirm the loaded spectra list in the sidebar.
+
+                Imported files are parsed by the SPC parser and stored with metadata in ``StoredDataset`` for faster reloading.
+            }
+        }
+    }
+
+    @Section(title: "Analyze and Combine") {
+        @ContentAndMedia {
+            @Content {
+                1. Switch to the Analyze tab.
+                2. Choose a processing pipeline: alignment, smoothing, baseline correction, and normalization.
+                3. Toggle overlays and averages to compare multiple spectra.
+                4. Inspect metrics like critical wavelength and UVA/UVB ratio from ``SpectralMetrics``.
+
+                Use ``ProcessingSettings`` to keep analysis repeatable across sessions.
+            }
+        }
+    }
+
+    @Section(title: "AI Analysis") {
+        @ContentAndMedia {
+            @Content {
+                1. Open Settings and enable AI Analysis in ``SettingsView``.
+                2. Choose a prompt preset (``AIPromptPreset``) and scope (``AISelectionScope``).
+                3. Run AI Analysis in the AI Analysis tab to generate summaries or comparisons.
+
+                AI analysis sends selected spectral data to your configured endpoint or OpenAI. API keys are stored securely via ``KeychainStore``.
+            }
+        }
+    }
+
+    @Section(title: "Export and Report") {
+        @ContentAndMedia {
+            @Content {
+                1. Open the Export tab.
+                2. Choose an ``ExportFormat`` (CSV, JCAMP, Excel, or Word).
+                3. Add operator details and notes.
+                4. Export and share the report.
+
+                Exported outputs include spectrum data, optional processing settings, and metadata depending on your selections.
+            }
+        }
+    }
+}
