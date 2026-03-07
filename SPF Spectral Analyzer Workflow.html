@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SPF Spectral Analyzer — App Workflow</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d26;
+      --border: #2a2f3e;
+      --accent: #4f8ef7;
+      --accent2: #7c5cbf;
+      --accent3: #3aa87e;
+      --accent4: #e0874a;
+      --accent5: #d95f6e;
+      --text: #e2e6f0;
+      --text-muted: #8891a8;
+      --arrow: #4a5068;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 32px 24px 60px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      margin-bottom: 4px;
+    }
+    .subtitle { color: var(--text-muted); font-size: 12px; margin-bottom: 36px; }
+
+    /* ── Layout ── */
+    .diagram {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* ── Row ── */
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    /* ── Connector rows ── */
+    .connector-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      height: 28px;
+    }
+    .arrow-down {
+      width: 2px;
+      height: 28px;
+      background: var(--arrow);
+      position: relative;
+      flex-shrink: 0;
+    }
+    .arrow-down::after {
+      content: '';
+      position: absolute;
+      bottom: -5px;
+      left: -4px;
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--arrow);
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      flex: 1;
+      min-width: 0;
+    }
+    .card.full { flex: none; width: 100%; }
+    .card.wide { flex: 2; }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
+    }
+    .card-title .icon { margin-right: 6px; }
+
+    .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 500;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    /* Accent colours */
+    .c-blue  { color: var(--accent); border-color: #4f8ef740; background: #4f8ef712; }
+    .c-purple{ color: var(--accent2); border-color: #7c5cbf40; background: #7c5cbf12; }
+    .c-green { color: var(--accent3); border-color: #3aa87e40; background: #3aa87e12; }
+    .c-orange{ color: var(--accent4); border-color: #e0874a40; background: #e0874a12; }
+    .c-red   { color: var(--accent5); border-color: #d95f6e40; background: #d95f6e12; }
+
+    .card.accent-blue   { border-color: #4f8ef740; }
+    .card.accent-purple { border-color: #7c5cbf40; }
+    .card.accent-green  { border-color: #3aa87e40; }
+    .card.accent-orange { border-color: #e0874a40; }
+    .card.accent-red    { border-color: #d95f6e40; }
+
+    .card-header-blue   { color: var(--accent); }
+    .card-header-purple { color: var(--accent2); }
+    .card-header-green  { color: var(--accent3); }
+    .card-header-orange { color: var(--accent4); }
+    .card-header-red    { color: var(--accent5); }
+
+    .item {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 3px 0;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .item .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+    .item strong { color: var(--text); font-weight: 600; }
+
+    /* top-level launch card */
+    .launch-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      background: linear-gradient(135deg, #1e2237, #232843);
+      border: 1px solid #3b4260;
+      border-radius: 12px;
+      padding: 18px 24px;
+    }
+    .launch-card .app-icon {
+      width: 52px; height: 52px;
+      background: linear-gradient(145deg, #4f8ef7, #7c5cbf);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .launch-card h2 { font-size: 17px; font-weight: 700; }
+    .launch-card p  { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Horizontal flow for tabs ── */
+    .tabs-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    /* ── Sections divider ── */
+    .section-label {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin: 4px 0 2px;
+    }
+
+    /* ── Horizontal connector ── */
+    .hline {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      border-top: 1px dashed var(--border);
+      position: relative;
+    }
+
+    /* ── Bottom services row ── */
+    .services-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    sub-item { display: block; }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+      margin-top: 36px;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--text-muted);
+    }
+    .legend-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+
+<h1>SPF Spectral Analyzer — Application Workflow</h1>
+<p class="subtitle">macOS SwiftUI app · SwiftData persistence · CloudKit sync · OpenAI integration · Generated 2026-03-26</p>
+
+<div class="diagram">
+
+  <!-- ── App Launch ── -->
+  <div class="row">
+    <div class="launch-card card full">
+      <div class="app-icon">🌞</div>
+      <div>
+        <h2>SPF Spectral Analyzer</h2>
+        <p>macOS app (SwiftUI + SwiftData) — Shimadzu SPC file importer, SPF calculator, HDRS analyzer &amp; reporting tool</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector-row"><div class="arrow-down"></div></div>
+
+  <!-- ── App Delegate / Bootstrap ── -->
+  <div class="row">
+    <div class="card accent-blue" style="max-width:720px;margin:0 auto;width:100%">
+      <div class="card-title card-header-blue"><span class="icon">⚙️</span>App Bootstrap (Shimadzu_Data_AnalyserApp)</div>
+      <div class="tag-row">
+        <span class="tag c-blue">DataStoreController</span>
+        <span class="tag c-blue">InstrumentManager</span>
+        <span class="tag c-blue">SwiftData ModelContainer</span>
+        <span class="tag c-blue">CloudKit / iCloud Sync</span>
+        <span class="tag c-blue">Keychain (API Keys)</span>
+        <span class="tag c-blue">ConsoleCapture (diagnostics)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector-row"><div class="arrow-down"></div></div>
+
+  <!-- ── Mode Picker ── -->
+  <div class="row">
+    <div class="card full" style="text-align:center;max-width:720px;margin:0 auto;">
+      <div class="card-title" style="text-align:center">ContentView — Segmented Mode Picker</div>
+      <div class="tag-row" style="justify-content:center">
+        <span class="tag c-blue">Data Management</span>
+        <span class="tag c-green">Analysis</span>
+        <span class="tag c-orange">Reporting</span>
+        <span class="tag c-purple">Settings</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector-row"><div class="arrow-down"></div></div>
+
+  <!-- ── 4 Tabs ── -->
+  <div class="tabs-row">
+
+    <!-- DATA MANAGEMENT -->
+    <div class="card accent-blue">
+      <div class="card-title card-header-blue"><span class="icon">📁</span>Data Management</div>
+      <div class="item"><span class="dot"></span><span><strong>Import Panel</strong> — drag-drop or open .SPC files</span></div>
+      <div class="item"><span class="dot"></span><span><strong>ShimadzuSPCParser</strong> — reads Shimadzu binary SPC format</span></div>
+      <div class="item"><span class="dot"></span><span><strong>CompoundFile</strong> — Microsoft OLE2 container parser</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SpectrumParsingWorker</strong> — async parse dispatch</span></div>
+      <div class="item"><span class="dot"></span><span><strong>ValidationService</strong> — checks x/y range, NaN, duplicates</span></div>
+      <div class="item"><span class="dot"></span><span><strong>DatasetPersistenceService</strong> — saves to SwiftData</span></div>
+      <div class="item"><span class="dot"></span><span><strong>Sidebar</strong> — list with sort, search &amp; filter</span></div>
+      <div class="item"><span class="dot"></span><span><strong>StoredDataset / StoredInstrument</strong> — SwiftData models</span></div>
+      <div class="item"><span class="dot"></span><span><strong>Assign Instrument Sheet</strong> — link dataset to instrument</span></div>
+      <div class="item"><span class="dot"></span><span><strong>iCloud Sync</strong> — DataStoreController + CloudAvailabilityMonitor</span></div>
+    </div>
+
+    <!-- ANALYSIS -->
+    <div class="card accent-green">
+      <div class="card-title card-header-green"><span class="icon">📊</span>Analysis</div>
+      <div class="item"><span class="dot"></span><span><strong>AnalysisViewModel</strong> — selected spectra, pipeline state</span></div>
+      <div class="item"><span class="dot"></span><span><strong>DatasetViewModel</strong> — dataset selection &amp; search</span></div>
+      <div class="item"><span class="dot"></span><span><strong>Processing Pipeline (SpectralProcessingService)</strong></span></div>
+      <div class="item" style="padding-left:12px"><span class="dot"></span><span>Baseline correction (None / Min-Subtract / Poly Fit)</span></div>
+      <div class="item" style="padding-left:12px"><span class="dot"></span><span>Normalization (Min-Max / Area / Peak)</span></div>
+      <div class="item" style="padding-left:12px"><span class="dot"></span><span>Smoothing (Moving Avg / Savitzky-Golay)</span></div>
+      <div class="item" style="padding-left:12px"><span class="dot"></span><span>Alignment (axis resampling)</span></div>
+      <div class="item"><span class="dot"></span><span><strong>CacheComputationService</strong> — SpectralMetrics cache</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SpectralMetricsWorker</strong> — UVA/UVB integrals, critical λ, peak</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SPFCalibration</strong> — reference matching &amp; calibration curve</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SPFEstimationResolver</strong> — COLIPA SPF, C-factor, substrate</span></div>
+      <div class="item"><span class="dot"></span><span><strong>HDRSComputationService</strong> — ISO 23675:2024 HDRS</span></div>
+      <div class="item"><span class="dot"></span><span><strong>Chart</strong> — Swift Charts overlay, zoom, palette, labels</span></div>
+      <div class="item"><span class="dot"></span><span><strong>Analysis Panel</strong> — metrics table, SPF math details</span></div>
+      <div class="item"><span class="dot"></span><span><strong>Dashboard</strong> — compliance stats &amp; trend summary</span></div>
+      <div class="item"><span class="dot"></span><span><strong>AI Analysis</strong> — AIViewModel → OpenAI API</span></div>
+    </div>
+
+    <!-- REPORTING -->
+    <div class="card accent-orange">
+      <div class="card-title card-header-orange"><span class="icon">📄</span>Reporting</div>
+      <div class="item"><span class="dot"></span><span><strong>Reporting Panel</strong> — configure &amp; preview export</span></div>
+      <div class="item"><span class="dot"></span><span><strong>Export formats:</strong></span></div>
+      <div class="item" style="padding-left:12px"><span class="dot"></span><span><strong>CSV</strong> — raw spectral data table</span></div>
+      <div class="item" style="padding-left:12px"><span class="dot"></span><span><strong>PDF</strong> — PDFReportRenderer (Core Graphics)</span></div>
+      <div class="item" style="padding-left:12px"><span class="dot"></span><span><strong>HTML</strong> — HTMLReportWriter (interactive chart)</span></div>
+      <div class="item" style="padding-left:12px"><span class="dot"></span><span><strong>Excel</strong> — OOXMLWriter (.xlsx)</span></div>
+      <div class="item"><span class="dot"></span><span><strong>ExportOptions</strong> — title, operator, notes, flags</span></div>
+      <div class="item"><span class="dot"></span><span><strong>PDFReportModels</strong> — data snapshot for renderer</span></div>
+      <div class="item"><span class="dot"></span><span>Includes SPF estimation, key metrics, spectral charts</span></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="card accent-purple">
+      <div class="card-title card-header-purple"><span class="icon">⚙️</span>Settings</div>
+      <div class="item"><span class="dot"></span><span><strong>SPF Configuration</strong> — C-factor, substrate correction, adjustment factor, calc method (COLIPA / …)</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SPF Display Mode</strong> — raw / calibrated</span></div>
+      <div class="item"><span class="dot"></span><span><strong>AI Settings</strong> — OpenAI endpoint, model, temperature, tokens, prompt preset</span></div>
+      <div class="item"><span class="dot"></span><span><strong>KeychainStore</strong> — secure API key storage</span></div>
+      <div class="item"><span class="dot"></span><span><strong>Instrument Registry</strong> — add / edit / assign instruments</span></div>
+      <div class="item"><span class="dot"></span><span><strong>iCloud Sync toggle</strong> — local vs. cloud store</span></div>
+      <div class="item"><span class="dot"></span><span><strong>AppStorage</strong> — persisted preferences (@AppStorage)</span></div>
+    </div>
+
+  </div><!-- /tabs-row -->
+
+  <div style="height:20px"></div>
+
+  <!-- ── Shared Infrastructure ── -->
+  <div class="section-label">── Shared Infrastructure ──</div>
+  <div style="height:12px"></div>
+
+  <div class="services-row">
+
+    <!-- Storage & Sync -->
+    <div class="card">
+      <div class="card-title card-header-blue"><span class="icon">💾</span>Storage &amp; Sync</div>
+      <div class="item"><span class="dot"></span><span><strong>SwiftData</strong> — ModelContainer / ModelContext</span></div>
+      <div class="item"><span class="dot"></span><span><strong>StoredDataset</strong> — dataset model (archived / active)</span></div>
+      <div class="item"><span class="dot"></span><span><strong>StoredInstrument</strong> — instrument records</span></div>
+      <div class="item"><span class="dot"></span><span><strong>CloudKit / NSPersistentCloudKitContainer</strong></span></div>
+      <div class="item"><span class="dot"></span><span><strong>ICloudSyncCoordinator</strong> — phase management</span></div>
+      <div class="item"><span class="dot"></span><span><strong>CloudKitSyncMonitor</strong> — notification observer</span></div>
+      <div class="item"><span class="dot"></span><span><strong>DataStoreController</strong> — store mode switching</span></div>
+      <div class="item"><span class="dot"></span><span><strong>StoreResetHistory</strong> — migration tracking</span></div>
+    </div>
+
+    <!-- Spectral Engine -->
+    <div class="card">
+      <div class="card-title card-header-green"><span class="icon">🔬</span>Spectral Engine (SPC/)</div>
+      <div class="item"><span class="dot"></span><span><strong>ShimadzuSPCParser</strong> — binary SPC file reader</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SPCHeaderParser</strong> — header metadata extraction</span></div>
+      <div class="item"><span class="dot"></span><span><strong>CompoundFile</strong> — OLE2 container decoder</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SpectrumBinaryCodec</strong> — encode/decode spectra</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SpectraProcessing</strong> — DSP algorithms</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SpectralMetrics</strong> — UVA/UVB/SPF integrals</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SPFCalibration</strong> — reference label matching</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SPFEstimationConfig / SPFLabelMap</strong></span></div>
+      <div class="item"><span class="dot"></span><span><strong>ColipaSpectralData</strong> — COLIPA reference tables</span></div>
+      <div class="item"><span class="dot"></span><span><strong>CIEErythemalSpectrum</strong> — erythema action spectrum</span></div>
+      <div class="item"><span class="dot"></span><span><strong>HDRSCalculator</strong> — ISO 23675:2024 HDRS formula</span></div>
+      <div class="item"><span class="dot"></span><span><strong>HDRSModels</strong> — plate types, irradiation states, product types</span></div>
+    </div>
+
+    <!-- AI & Diagnostics -->
+    <div class="card">
+      <div class="card-title card-header-purple"><span class="icon">🤖</span>AI &amp; Diagnostics</div>
+      <div class="item"><span class="dot"></span><span><strong>AIViewModel</strong> — prompt builder, response parser</span></div>
+      <div class="item"><span class="dot"></span><span><strong>AINetworkModels</strong> — OpenAI request/response types</span></div>
+      <div class="item"><span class="dot"></span><span><strong>AIHistoryEntry</strong> — conversation log</span></div>
+      <div class="item"><span class="dot"></span><span><strong>AISettings</strong> — model, temperature, tokens</span></div>
+      <div class="item"><span class="dot"></span><span><strong>KeychainStore</strong> — API key (openai_api_key)</span></div>
+      <div class="item"><span class="dot"></span><span><strong>Instrumentation</strong> — structured in-app logging</span></div>
+      <div class="item"><span class="dot"></span><span><strong>ConsoleCapture</strong> — captures stdout/stderr</span></div>
+      <div class="item"><span class="dot"></span><span><strong>DiagnosticsConsoleView</strong> — floating debug window</span></div>
+      <div class="item"><span class="dot"></span><span><strong>ValidationLogEntry</strong> — per-spectrum validation results</span></div>
+      <div class="item"><span class="dot"></span><span><strong>SpectrumValidation</strong> — rule-based spectrum checks</span></div>
+    </div>
+
+  </div><!-- /services-row -->
+
+  <div style="height:20px"></div>
+
+  <!-- ── Data Flow ── -->
+  <div class="section-label">── Core Data Flow ──</div>
+  <div style="height:12px"></div>
+
+  <div class="row">
+    <div class="card full" style="max-width:1100px">
+      <div class="card-title" style="text-align:center">End-to-End Data Flow</div>
+      <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; justify-content:center; padding-top:8px; font-size:12px;">
+        <span class="tag c-blue">📂 .SPC File Drop</span>
+        <span style="color:var(--arrow)">→</span>
+        <span class="tag c-blue">ShimadzuSPCParser<br>CompoundFile</span>
+        <span style="color:var(--arrow)">→</span>
+        <span class="tag c-blue">ValidationService</span>
+        <span style="color:var(--arrow)">→</span>
+        <span class="tag c-blue">StoredDataset<br>(SwiftData)</span>
+        <span style="color:var(--arrow)">→</span>
+        <span class="tag c-green">AnalysisViewModel<br>loads spectra</span>
+        <span style="color:var(--arrow)">→</span>
+        <span class="tag c-green">Processing Pipeline<br>(baseline/norm/smooth)</span>
+        <span style="color:var(--arrow)">→</span>
+        <span class="tag c-green">SpectralMetrics<br>SPF Calibration<br>HDRS</span>
+        <span style="color:var(--arrow)">→</span>
+        <span class="tag c-green">Swift Charts<br>Analysis Panel</span>
+        <span style="color:var(--arrow)">→</span>
+        <span class="tag c-purple">AI Analysis<br>(optional)</span>
+        <span style="color:var(--arrow)">→</span>
+        <span class="tag c-orange">Export<br>(CSV/PDF/HTML/Excel)</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:20px"></div>
+
+  <!-- ── UI Chrome ── -->
+  <div class="section-label">── Persistent UI Chrome ──</div>
+  <div style="height:12px"></div>
+
+  <div class="row">
+    <div class="card">
+      <div class="card-title"><span class="icon">🔽</span>Bottom Tray</div>
+      <div class="tag-row">
+        <span class="tag">Status message</span>
+        <span class="tag">Warning badge</span>
+        <span class="tag">Spectrum count</span>
+        <span class="tag">iCloud sync indicator</span>
+        <span class="tag">Diagnostics console button</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">🔍</span>Search &amp; Filter</div>
+      <div class="tag-row">
+        <span class="tag">Full-text search (SearchQuery)</span>
+        <span class="tag">DatasetSearchRecord</span>
+        <span class="tag">SpectrumSearchRecord</span>
+        <span class="tag">SearchSyntaxHelpView</span>
+        <span class="tag">Sort modes (import order, name, date)</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">☁️</span>Cloud Sync Views</div>
+      <div class="tag-row">
+        <span class="tag">CloudSyncProgressView</span>
+        <span class="tag">CloudSyncViews</span>
+        <span class="tag">Sync phase badge</span>
+        <span class="tag">History log</span>
+        <span class="tag">CloudKitSyncMonitor</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /diagram -->
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Data Management / Storage</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent3)"></div> Analysis / Signal Processing</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent4)"></div> Reporting / Export</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div> Settings / AI / Diagnostics</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--arrow)"></div> Data flow direction</div>
+</div>
+
+</body>
+</html>

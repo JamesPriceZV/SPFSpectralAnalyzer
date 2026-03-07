@@ -1,0 +1,1442 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5540A80E2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FC2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc */; };
+		5540A80F2F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B02F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc */; };
+		5540A8102F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A80C2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc */; };
+		5540A8112F5CD077009D2826 /* File_260226_144246. 30 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EA2F5CD077009D2826 /* File_260226_144246. 30 commercial formula spc.spc */; };
+		5540A8122F5CD077009D2826 /* File_260217_131803. 24 15.8 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CD2F5CD077009D2826 /* File_260217_131803. 24 15.8 mgspc.spc */; };
+		5540A8132F5CD077009D2826 /* File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D62F5CD077009D2826 /* File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc */; };
+		5540A8142F5CD077009D2826 /* File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C32F5CD077009D2826 /* File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc */; };
+		5540A8152F5CD077009D2826 /* File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B82F5CD077009D2826 /* File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc */; };
+		5540A8162F5CD077009D2826 /* File_260226_144710. 10 (rerun) in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7ED2F5CD077009D2826 /* File_260226_144710. 10 (rerun) in house formula spc.spc */; };
+		5540A8172F5CD077009D2826 /* File_260226_155103. 10 (rerun) in house formula after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8022F5CD077009D2826 /* File_260226_155103. 10 (rerun) in house formula after incubationspc.spc */; };
+		5540A8182F5CD077009D2826 /* File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BC2F5CD077009D2826 /* File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc */; };
+		5540A8192F5CD077009D2826 /* File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D82F5CD077009D2826 /* File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc */; };
+		5540A81A2F5CD077009D2826 /* File_260217_144323.Base 012726 15.1mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DB2F5CD077009D2826 /* File_260217_144323.Base 012726 15.1mg after incubationspc.spc */; };
+		5540A81B2F5CD077009D2826 /* File_260226_145428. 20 in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F22F5CD077009D2826 /* File_260226_145428. 20 in house formula spc.spc */; };
+		5540A81C2F5CD077009D2826 /* File_260217_145524.20 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E32F5CD077009D2826 /* File_260217_145524.20 14.5 mg after incubationspc.spc */; };
+		5540A81D2F5CD077009D2826 /* File_260226_150121. project 26 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F72F5CD077009D2826 /* File_260226_150121. project 26 spc.spc */; };
+		5540A81E2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A80B2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc */; };
+		5540A81F2F5CD077009D2826 /* File_260226_154029. 50 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FB2F5CD077009D2826 /* File_260226_154029. 50 commercial formula after incubation spc.spc */; };
+		5540A8202F5CD077009D2826 /* File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C52F5CD077009D2826 /* File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc */; };
+		5540A8212F5CD077009D2826 /* File_260226_155243. 10 (rerun) in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8032F5CD077009D2826 /* File_260226_155243. 10 (rerun) in house formula after incubation spc.spc */; };
+		5540A8222F5CD077009D2826 /* File_260226_155540. 20 in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8052F5CD077009D2826 /* File_260226_155540. 20 in house formula after incubation spc.spc */; };
+		5540A8232F5CD077009D2826 /* File_260217_131031.Base 012726 15.1 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C82F5CD077009D2826 /* File_260217_131031.Base 012726 15.1 mgspc.spc */; };
+		5540A8242F5CD077009D2826 /* File_260226_143941. 50 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E82F5CD077009D2826 /* File_260226_143941. 50 commercial formula spc.spc */; };
+		5540A8252F5CD077009D2826 /* File_260217_144455. 020426 15.2 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DC2F5CD077009D2826 /* File_260217_144455. 020426 15.2 mg after incubationspc.spc */; };
+		5540A8262F5CD077009D2826 /* File_260226_150240. project 26 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F82F5CD077009D2826 /* File_260226_150240. project 26 spc.spc */; };
+		5540A8272F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A80A2F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc */; };
+		5540A8282F5CD077009D2826 /* File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B72F5CD077009D2826 /* File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc */; };
+		5540A8292F5CD077009D2826 /* File_260226_150000. project 26 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F62F5CD077009D2826 /* File_260226_150000. project 26 spc.spc */; };
+		5540A82A2F5CD077009D2826 /* File_260217_131926.24 14.9 mfspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CE2F5CD077009D2826 /* File_260217_131926.24 14.9 mfspc.spc */; };
+		5540A82B2F5CD077009D2826 /* File_260217_144147.base 012726 15.1 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DA2F5CD077009D2826 /* File_260217_144147.base 012726 15.1 mg after incubationspc.spc */; };
+		5540A82C2F5CD077009D2826 /* File_260226_154631. 30 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FF2F5CD077009D2826 /* File_260226_154631. 30 commercial formula after incubation spc.spc */; };
+		5540A82D2F5CD077009D2826 /* File_260226_144844. 10 (rerun) in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EE2F5CD077009D2826 /* File_260226_144844. 10 (rerun) in house formula spc.spc */; };
+		5540A82E2F5CD077009D2826 /* File_260226_145551. Project 24 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F32F5CD077009D2826 /* File_260226_145551. Project 24 spc.spc */; };
+		5540A82F2F5CD077009D2826 /* File_260217_144016.Base 012726 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D92F5CD077009D2826 /* File_260217_144016.Base 012726 14.5 mg after incubationspc.spc */; };
+		5540A8302F5CD077009D2826 /* File_260226_144118. 50 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E92F5CD077009D2826 /* File_260226_144118. 50 commercial formula spc.spc */; };
+		5540A8312F5CD077009D2826 /* File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BF2F5CD077009D2826 /* File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc */; };
+		5540A8322F5CD077009D2826 /* File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B92F5CD077009D2826 /* File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A8332F5CD077009D2826 /* File_260226_154802. 30 commercial formula after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8002F5CD077009D2826 /* File_260226_154802. 30 commercial formula after incubationspc.spc */; };
+		5540A8342F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7AF2F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc */; };
+		5540A8352F5CD077009D2826 /* File_260217_132513.20 14.8 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D22F5CD077009D2826 /* File_260217_132513.20 14.8 mgspc.spc */; };
+		5540A8362F5CD077009D2826 /* File_260217_144943. 24 15.8 mf after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DF2F5CD077009D2826 /* File_260217_144943. 24 15.8 mf after incubationspc.spc */; };
+		5540A8372F5CD077009D2826 /* File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B42F5CD077009D2826 /* File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc */; };
+		5540A8382F5CD077009D2826 /* File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C22F5CD077009D2826 /* File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc */; };
+		5540A8392F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B12F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc */; };
+		5540A83A2F5CD077009D2826 /* File_260226_154504. 30 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FE2F5CD077009D2826 /* File_260226_154504. 30 commercial formula after incubation spc.spc */; };
+		5540A83B2F5CD077009D2826 /* File_260217_145400.20 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E22F5CD077009D2826 /* File_260217_145400.20 15.5 mg after incubationspc.spc */; };
+		5540A83C2F5CD077009D2826 /* File_260226_144539. 30 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EC2F5CD077009D2826 /* File_260226_144539. 30 commercial formula spc.spc */; };
+		5540A83D2F5CD077009D2826 /* File_260226_154334. 50 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FD2F5CD077009D2826 /* File_260226_154334. 50 commercial formula after incubation spc.spc */; };
+		5540A83E2F5CD077009D2826 /* File_260226_163422. project 24 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8092F5CD077009D2826 /* File_260226_163422. project 24 after incubation spc.spc */; };
+		5540A83F2F5CD077009D2826 /* File_260217_145106. 24 14.9 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E02F5CD077009D2826 /* File_260217_145106. 24 14.9 mg after incubationspc.spc */; };
+		5540A8402F5CD077009D2826 /* File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BD2F5CD077009D2826 /* File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc */; };
+		5540A8412F5CD077009D2826 /* File_260226_153844. Glycerin control after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FA2F5CD077009D2826 /* File_260226_153844. Glycerin control after incubation spc.spc */; };
+		5540A8422F5CD077009D2826 /* File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C42F5CD077009D2826 /* File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc */; };
+		5540A8432F5CD077009D2826 /* File_260226_145013. 10 (rerun) in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EF2F5CD077009D2826 /* File_260226_145013. 10 (rerun) in house formula spc.spc */; };
+		5540A8442F5CD077009D2826 /* File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B22F5CD077009D2826 /* File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc */; };
+		5540A8452F5CD077009D2826 /* File_260217_145646. 20 14.8 mh after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E42F5CD077009D2826 /* File_260217_145646. 20 14.8 mh after incubationspc.spc */; };
+		5540A8462F5CD077009D2826 /* File_260217_145233. 24 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E12F5CD077009D2826 /* File_260217_145233. 24 14.5 mg after incubationspc.spc */; };
+		5540A8472F5CD077009D2826 /* File_260217_131630.020426 15.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CC2F5CD077009D2826 /* File_260217_131630.020426 15.5 mgspc.spc */; };
+		5540A8482F5CD077009D2826 /* File_260226_154931. 10 (rerun) in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8012F5CD077009D2826 /* File_260226_154931. 10 (rerun) in house formula after incubation spc.spc */; };
+		5540A8492F5CD077009D2826 /* File_260217_132056. 24 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CF2F5CD077009D2826 /* File_260217_132056. 24 14.5 mgspc.spc */; };
+		5540A84A2F5CD077009D2826 /* File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B32F5CD077009D2826 /* File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc */; };
+		5540A84B2F5CD077009D2826 /* File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D42F5CD077009D2826 /* File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc */; };
+		5540A84C2F5CD077009D2826 /* File_260217_132350.20 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D12F5CD077009D2826 /* File_260217_132350.20 14.5 mgspc.spc */; };
+		5540A84D2F5CD077009D2826 /* File_260226_155415. 20 in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8042F5CD077009D2826 /* File_260226_155415. 20 in house formula after incubation spc.spc */; };
+		5540A84E2F5CD077009D2826 /* File_260217_131509.020426 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CB2F5CD077009D2826 /* File_260217_131509.020426 14.5 mgspc.spc */; };
+		5540A84F2F5CD077009D2826 /* File_260217_131204.Base 012726 15.1 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C92F5CD077009D2826 /* File_260217_131204.Base 012726 15.1 mgspc.spc */; };
+		5540A8502F5CD077009D2826 /* File_260226_145303. 20 in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F12F5CD077009D2826 /* File_260226_145303. 20 in house formula spc.spc */; };
+		5540A8512F5CD077009D2826 /* File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D52F5CD077009D2826 /* File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc */; };
+		5540A8522F5CD077009D2826 /* File_260226_145714. project 24 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F42F5CD077009D2826 /* File_260226_145714. project 24 spc.spc */; };
+		5540A8532F5CD077009D2826 /* File_260226_144415. 30 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EB2F5CD077009D2826 /* File_260226_144415. 30 commercial formula spc.spc */; };
+		5540A8542F5CD077009D2826 /* File_260217_130904.Base 012726 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C72F5CD077009D2826 /* File_260217_130904.Base 012726 14.5 mgspc.spc */; };
+		5540A8552F5CD077009D2826 /* File_260226_143305. blank spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E52F5CD077009D2826 /* File_260226_143305. blank spc.spc */; };
+		5540A8562F5CD077009D2826 /* File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D32F5CD077009D2826 /* File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc */; };
+		5540A8572F5CD077009D2826 /* File_260226_145840. project 24 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F52F5CD077009D2826 /* File_260226_145840. project 24 spc.spc */; };
+		5540A8582F5CD077009D2826 /* File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B62F5CD077009D2826 /* File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc */; };
+		5540A8592F5CD077009D2826 /* File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BB2F5CD077009D2826 /* File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc */; };
+		5540A85A2F5CD077009D2826 /* File_260226_155835. project 24 after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8072F5CD077009D2826 /* File_260226_155835. project 24 after incubationspc.spc */; };
+		5540A85B2F5CD077009D2826 /* File_260226_143812. 50 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E72F5CD077009D2826 /* File_260226_143812. 50 commercial formula spc.spc */; };
+		5540A85C2F5CD077009D2826 /* File_260217_132223.20 15.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D02F5CD077009D2826 /* File_260217_132223.20 15.5 mgspc.spc */; };
+		5540A85D2F5CD077009D2826 /* File_260226_143634. Glycerin controlspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E62F5CD077009D2826 /* File_260226_143634. Glycerin controlspc.spc */; };
+		5540A85E2F5CD077009D2826 /* File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BA2F5CD077009D2826 /* File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A85F2F5CD077009D2826 /* File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C12F5CD077009D2826 /* File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc */; };
+		5540A8602F5CD077009D2826 /* File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BE2F5CD077009D2826 /* File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A8612F5CD077009D2826 /* File_260226_153718. blank after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F92F5CD077009D2826 /* File_260226_153718. blank after incubationspc.spc */; };
+		5540A8622F5CD077009D2826 /* File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C62F5CD077009D2826 /* File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc */; };
+		5540A8632F5CD077009D2826 /* File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C02F5CD077009D2826 /* File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A8642F5CD077009D2826 /* File_260226_163245. project 24 after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8082F5CD077009D2826 /* File_260226_163245. project 24 after incubationspc.spc */; };
+		5540A8652F5CD077009D2826 /* File_260217_144628. 020426 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DD2F5CD077009D2826 /* File_260217_144628. 020426 14.5 mg after incubationspc.spc */; };
+		5540A8662F5CD077009D2826 /* File_260217_131335.020426 15.2 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CA2F5CD077009D2826 /* File_260217_131335.020426 15.2 mgspc.spc */; };
+		5540A8672F5CD077009D2826 /* File_260226_155708. 20 in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8062F5CD077009D2826 /* File_260226_155708. 20 in house formula after incubation spc.spc */; };
+		5540A8682F5CD077009D2826 /* File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B52F5CD077009D2826 /* File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc */; };
+		5540A8692F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D72F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc */; };
+		5540A86A2F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DE2F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc */; };
+		5540A86B2F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F02F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc */; };
+		5540A86C2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FC2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc */; };
+		5540A86D2F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B02F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc */; };
+		5540A86E2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A80C2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc */; };
+		5540A86F2F5CD077009D2826 /* File_260226_144246. 30 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EA2F5CD077009D2826 /* File_260226_144246. 30 commercial formula spc.spc */; };
+		5540A8702F5CD077009D2826 /* File_260217_131803. 24 15.8 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CD2F5CD077009D2826 /* File_260217_131803. 24 15.8 mgspc.spc */; };
+		5540A8712F5CD077009D2826 /* File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D62F5CD077009D2826 /* File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc */; };
+		5540A8722F5CD077009D2826 /* File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C32F5CD077009D2826 /* File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc */; };
+		5540A8732F5CD077009D2826 /* File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B82F5CD077009D2826 /* File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc */; };
+		5540A8742F5CD077009D2826 /* File_260226_144710. 10 (rerun) in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7ED2F5CD077009D2826 /* File_260226_144710. 10 (rerun) in house formula spc.spc */; };
+		5540A8752F5CD077009D2826 /* File_260226_155103. 10 (rerun) in house formula after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8022F5CD077009D2826 /* File_260226_155103. 10 (rerun) in house formula after incubationspc.spc */; };
+		5540A8762F5CD077009D2826 /* File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BC2F5CD077009D2826 /* File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc */; };
+		5540A8772F5CD077009D2826 /* File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D82F5CD077009D2826 /* File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc */; };
+		5540A8782F5CD077009D2826 /* File_260217_144323.Base 012726 15.1mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DB2F5CD077009D2826 /* File_260217_144323.Base 012726 15.1mg after incubationspc.spc */; };
+		5540A8792F5CD077009D2826 /* File_260226_145428. 20 in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F22F5CD077009D2826 /* File_260226_145428. 20 in house formula spc.spc */; };
+		5540A87A2F5CD077009D2826 /* File_260217_145524.20 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E32F5CD077009D2826 /* File_260217_145524.20 14.5 mg after incubationspc.spc */; };
+		5540A87B2F5CD077009D2826 /* File_260226_150121. project 26 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F72F5CD077009D2826 /* File_260226_150121. project 26 spc.spc */; };
+		5540A87C2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A80B2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc */; };
+		5540A87D2F5CD077009D2826 /* File_260226_154029. 50 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FB2F5CD077009D2826 /* File_260226_154029. 50 commercial formula after incubation spc.spc */; };
+		5540A87E2F5CD077009D2826 /* File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C52F5CD077009D2826 /* File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc */; };
+		5540A87F2F5CD077009D2826 /* File_260226_155243. 10 (rerun) in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8032F5CD077009D2826 /* File_260226_155243. 10 (rerun) in house formula after incubation spc.spc */; };
+		5540A8802F5CD077009D2826 /* File_260226_155540. 20 in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8052F5CD077009D2826 /* File_260226_155540. 20 in house formula after incubation spc.spc */; };
+		5540A8812F5CD077009D2826 /* File_260217_131031.Base 012726 15.1 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C82F5CD077009D2826 /* File_260217_131031.Base 012726 15.1 mgspc.spc */; };
+		5540A8822F5CD077009D2826 /* File_260226_143941. 50 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E82F5CD077009D2826 /* File_260226_143941. 50 commercial formula spc.spc */; };
+		5540A8832F5CD077009D2826 /* File_260217_144455. 020426 15.2 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DC2F5CD077009D2826 /* File_260217_144455. 020426 15.2 mg after incubationspc.spc */; };
+		5540A8842F5CD077009D2826 /* File_260226_150240. project 26 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F82F5CD077009D2826 /* File_260226_150240. project 26 spc.spc */; };
+		5540A8852F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A80A2F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc */; };
+		5540A8862F5CD077009D2826 /* File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B72F5CD077009D2826 /* File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc */; };
+		5540A8872F5CD077009D2826 /* File_260226_150000. project 26 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F62F5CD077009D2826 /* File_260226_150000. project 26 spc.spc */; };
+		5540A8882F5CD077009D2826 /* File_260217_131926.24 14.9 mfspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CE2F5CD077009D2826 /* File_260217_131926.24 14.9 mfspc.spc */; };
+		5540A8892F5CD077009D2826 /* File_260217_144147.base 012726 15.1 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DA2F5CD077009D2826 /* File_260217_144147.base 012726 15.1 mg after incubationspc.spc */; };
+		5540A88A2F5CD077009D2826 /* File_260226_154631. 30 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FF2F5CD077009D2826 /* File_260226_154631. 30 commercial formula after incubation spc.spc */; };
+		5540A88B2F5CD077009D2826 /* File_260226_144844. 10 (rerun) in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EE2F5CD077009D2826 /* File_260226_144844. 10 (rerun) in house formula spc.spc */; };
+		5540A88C2F5CD077009D2826 /* File_260226_145551. Project 24 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F32F5CD077009D2826 /* File_260226_145551. Project 24 spc.spc */; };
+		5540A88D2F5CD077009D2826 /* File_260217_144016.Base 012726 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D92F5CD077009D2826 /* File_260217_144016.Base 012726 14.5 mg after incubationspc.spc */; };
+		5540A88E2F5CD077009D2826 /* File_260226_144118. 50 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E92F5CD077009D2826 /* File_260226_144118. 50 commercial formula spc.spc */; };
+		5540A88F2F5CD077009D2826 /* File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BF2F5CD077009D2826 /* File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc */; };
+		5540A8902F5CD077009D2826 /* File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B92F5CD077009D2826 /* File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A8912F5CD077009D2826 /* File_260226_154802. 30 commercial formula after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8002F5CD077009D2826 /* File_260226_154802. 30 commercial formula after incubationspc.spc */; };
+		5540A8922F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7AF2F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc */; };
+		5540A8932F5CD077009D2826 /* File_260217_132513.20 14.8 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D22F5CD077009D2826 /* File_260217_132513.20 14.8 mgspc.spc */; };
+		5540A8942F5CD077009D2826 /* File_260217_144943. 24 15.8 mf after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DF2F5CD077009D2826 /* File_260217_144943. 24 15.8 mf after incubationspc.spc */; };
+		5540A8952F5CD077009D2826 /* File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B42F5CD077009D2826 /* File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc */; };
+		5540A8962F5CD077009D2826 /* File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C22F5CD077009D2826 /* File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc */; };
+		5540A8972F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B12F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc */; };
+		5540A8982F5CD077009D2826 /* File_260226_154504. 30 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FE2F5CD077009D2826 /* File_260226_154504. 30 commercial formula after incubation spc.spc */; };
+		5540A8992F5CD077009D2826 /* File_260217_145400.20 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E22F5CD077009D2826 /* File_260217_145400.20 15.5 mg after incubationspc.spc */; };
+		5540A89A2F5CD077009D2826 /* File_260226_144539. 30 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EC2F5CD077009D2826 /* File_260226_144539. 30 commercial formula spc.spc */; };
+		5540A89B2F5CD077009D2826 /* File_260226_154334. 50 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FD2F5CD077009D2826 /* File_260226_154334. 50 commercial formula after incubation spc.spc */; };
+		5540A89C2F5CD077009D2826 /* File_260226_163422. project 24 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8092F5CD077009D2826 /* File_260226_163422. project 24 after incubation spc.spc */; };
+		5540A89D2F5CD077009D2826 /* File_260217_145106. 24 14.9 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E02F5CD077009D2826 /* File_260217_145106. 24 14.9 mg after incubationspc.spc */; };
+		5540A89E2F5CD077009D2826 /* File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BD2F5CD077009D2826 /* File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc */; };
+		5540A89F2F5CD077009D2826 /* File_260226_153844. Glycerin control after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FA2F5CD077009D2826 /* File_260226_153844. Glycerin control after incubation spc.spc */; };
+		5540A8A02F5CD077009D2826 /* File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C42F5CD077009D2826 /* File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc */; };
+		5540A8A12F5CD077009D2826 /* File_260226_145013. 10 (rerun) in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EF2F5CD077009D2826 /* File_260226_145013. 10 (rerun) in house formula spc.spc */; };
+		5540A8A22F5CD077009D2826 /* File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B22F5CD077009D2826 /* File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc */; };
+		5540A8A32F5CD077009D2826 /* File_260217_145646. 20 14.8 mh after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E42F5CD077009D2826 /* File_260217_145646. 20 14.8 mh after incubationspc.spc */; };
+		5540A8A42F5CD077009D2826 /* File_260217_145233. 24 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E12F5CD077009D2826 /* File_260217_145233. 24 14.5 mg after incubationspc.spc */; };
+		5540A8A52F5CD077009D2826 /* File_260217_131630.020426 15.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CC2F5CD077009D2826 /* File_260217_131630.020426 15.5 mgspc.spc */; };
+		5540A8A62F5CD077009D2826 /* File_260226_154931. 10 (rerun) in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8012F5CD077009D2826 /* File_260226_154931. 10 (rerun) in house formula after incubation spc.spc */; };
+		5540A8A72F5CD077009D2826 /* File_260217_132056. 24 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CF2F5CD077009D2826 /* File_260217_132056. 24 14.5 mgspc.spc */; };
+		5540A8A82F5CD077009D2826 /* File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B32F5CD077009D2826 /* File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc */; };
+		5540A8A92F5CD077009D2826 /* File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D42F5CD077009D2826 /* File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc */; };
+		5540A8AA2F5CD077009D2826 /* File_260217_132350.20 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D12F5CD077009D2826 /* File_260217_132350.20 14.5 mgspc.spc */; };
+		5540A8AB2F5CD077009D2826 /* File_260226_155415. 20 in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8042F5CD077009D2826 /* File_260226_155415. 20 in house formula after incubation spc.spc */; };
+		5540A8AC2F5CD077009D2826 /* File_260217_131509.020426 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CB2F5CD077009D2826 /* File_260217_131509.020426 14.5 mgspc.spc */; };
+		5540A8AD2F5CD077009D2826 /* File_260217_131204.Base 012726 15.1 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C92F5CD077009D2826 /* File_260217_131204.Base 012726 15.1 mgspc.spc */; };
+		5540A8AE2F5CD077009D2826 /* File_260226_145303. 20 in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F12F5CD077009D2826 /* File_260226_145303. 20 in house formula spc.spc */; };
+		5540A8AF2F5CD077009D2826 /* File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D52F5CD077009D2826 /* File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc */; };
+		5540A8B02F5CD077009D2826 /* File_260226_145714. project 24 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F42F5CD077009D2826 /* File_260226_145714. project 24 spc.spc */; };
+		5540A8B12F5CD077009D2826 /* File_260226_144415. 30 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EB2F5CD077009D2826 /* File_260226_144415. 30 commercial formula spc.spc */; };
+		5540A8B22F5CD077009D2826 /* File_260217_130904.Base 012726 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C72F5CD077009D2826 /* File_260217_130904.Base 012726 14.5 mgspc.spc */; };
+		5540A8B32F5CD077009D2826 /* File_260226_143305. blank spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E52F5CD077009D2826 /* File_260226_143305. blank spc.spc */; };
+		5540A8B42F5CD077009D2826 /* File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D32F5CD077009D2826 /* File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc */; };
+		5540A8B52F5CD077009D2826 /* File_260226_145840. project 24 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F52F5CD077009D2826 /* File_260226_145840. project 24 spc.spc */; };
+		5540A8B62F5CD077009D2826 /* File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B62F5CD077009D2826 /* File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc */; };
+		5540A8B72F5CD077009D2826 /* File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BB2F5CD077009D2826 /* File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc */; };
+		5540A8B82F5CD077009D2826 /* File_260226_155835. project 24 after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8072F5CD077009D2826 /* File_260226_155835. project 24 after incubationspc.spc */; };
+		5540A8B92F5CD077009D2826 /* File_260226_143812. 50 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E72F5CD077009D2826 /* File_260226_143812. 50 commercial formula spc.spc */; };
+		5540A8BA2F5CD077009D2826 /* File_260217_132223.20 15.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D02F5CD077009D2826 /* File_260217_132223.20 15.5 mgspc.spc */; };
+		5540A8BB2F5CD077009D2826 /* File_260226_143634. Glycerin controlspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E62F5CD077009D2826 /* File_260226_143634. Glycerin controlspc.spc */; };
+		5540A8BC2F5CD077009D2826 /* File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BA2F5CD077009D2826 /* File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A8BD2F5CD077009D2826 /* File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C12F5CD077009D2826 /* File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc */; };
+		5540A8BE2F5CD077009D2826 /* File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BE2F5CD077009D2826 /* File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A8BF2F5CD077009D2826 /* File_260226_153718. blank after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F92F5CD077009D2826 /* File_260226_153718. blank after incubationspc.spc */; };
+		5540A8C02F5CD077009D2826 /* File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C62F5CD077009D2826 /* File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc */; };
+		5540A8C12F5CD077009D2826 /* File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C02F5CD077009D2826 /* File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A8C22F5CD077009D2826 /* File_260226_163245. project 24 after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8082F5CD077009D2826 /* File_260226_163245. project 24 after incubationspc.spc */; };
+		5540A8C32F5CD077009D2826 /* File_260217_144628. 020426 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DD2F5CD077009D2826 /* File_260217_144628. 020426 14.5 mg after incubationspc.spc */; };
+		5540A8C42F5CD077009D2826 /* File_260217_131335.020426 15.2 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CA2F5CD077009D2826 /* File_260217_131335.020426 15.2 mgspc.spc */; };
+		5540A8C52F5CD077009D2826 /* File_260226_155708. 20 in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8062F5CD077009D2826 /* File_260226_155708. 20 in house formula after incubation spc.spc */; };
+		5540A8C62F5CD077009D2826 /* File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B52F5CD077009D2826 /* File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc */; };
+		5540A8C72F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D72F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc */; };
+		5540A8C82F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DE2F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc */; };
+		5540A8C92F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F02F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc */; };
+		5540A8CA2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FC2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc */; };
+		5540A8CB2F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B02F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc */; };
+		5540A8CC2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A80C2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc */; };
+		5540A8CD2F5CD077009D2826 /* File_260226_144246. 30 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EA2F5CD077009D2826 /* File_260226_144246. 30 commercial formula spc.spc */; };
+		5540A8CE2F5CD077009D2826 /* File_260217_131803. 24 15.8 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CD2F5CD077009D2826 /* File_260217_131803. 24 15.8 mgspc.spc */; };
+		5540A8CF2F5CD077009D2826 /* File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D62F5CD077009D2826 /* File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc */; };
+		5540A8D02F5CD077009D2826 /* File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C32F5CD077009D2826 /* File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc */; };
+		5540A8D12F5CD077009D2826 /* File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B82F5CD077009D2826 /* File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc */; };
+		5540A8D22F5CD077009D2826 /* File_260226_144710. 10 (rerun) in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7ED2F5CD077009D2826 /* File_260226_144710. 10 (rerun) in house formula spc.spc */; };
+		5540A8D32F5CD077009D2826 /* File_260226_155103. 10 (rerun) in house formula after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8022F5CD077009D2826 /* File_260226_155103. 10 (rerun) in house formula after incubationspc.spc */; };
+		5540A8D42F5CD077009D2826 /* File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BC2F5CD077009D2826 /* File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc */; };
+		5540A8D52F5CD077009D2826 /* File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D82F5CD077009D2826 /* File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc */; };
+		5540A8D62F5CD077009D2826 /* File_260217_144323.Base 012726 15.1mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DB2F5CD077009D2826 /* File_260217_144323.Base 012726 15.1mg after incubationspc.spc */; };
+		5540A8D72F5CD077009D2826 /* File_260226_145428. 20 in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F22F5CD077009D2826 /* File_260226_145428. 20 in house formula spc.spc */; };
+		5540A8D82F5CD077009D2826 /* File_260217_145524.20 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E32F5CD077009D2826 /* File_260217_145524.20 14.5 mg after incubationspc.spc */; };
+		5540A8D92F5CD077009D2826 /* File_260226_150121. project 26 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F72F5CD077009D2826 /* File_260226_150121. project 26 spc.spc */; };
+		5540A8DA2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A80B2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc */; };
+		5540A8DB2F5CD077009D2826 /* File_260226_154029. 50 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FB2F5CD077009D2826 /* File_260226_154029. 50 commercial formula after incubation spc.spc */; };
+		5540A8DC2F5CD077009D2826 /* File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C52F5CD077009D2826 /* File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc */; };
+		5540A8DD2F5CD077009D2826 /* File_260226_155243. 10 (rerun) in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8032F5CD077009D2826 /* File_260226_155243. 10 (rerun) in house formula after incubation spc.spc */; };
+		5540A8DE2F5CD077009D2826 /* File_260226_155540. 20 in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8052F5CD077009D2826 /* File_260226_155540. 20 in house formula after incubation spc.spc */; };
+		5540A8DF2F5CD077009D2826 /* File_260217_131031.Base 012726 15.1 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C82F5CD077009D2826 /* File_260217_131031.Base 012726 15.1 mgspc.spc */; };
+		5540A8E02F5CD077009D2826 /* File_260226_143941. 50 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E82F5CD077009D2826 /* File_260226_143941. 50 commercial formula spc.spc */; };
+		5540A8E12F5CD077009D2826 /* File_260217_144455. 020426 15.2 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DC2F5CD077009D2826 /* File_260217_144455. 020426 15.2 mg after incubationspc.spc */; };
+		5540A8E22F5CD077009D2826 /* File_260226_150240. project 26 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F82F5CD077009D2826 /* File_260226_150240. project 26 spc.spc */; };
+		5540A8E32F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A80A2F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc */; };
+		5540A8E42F5CD077009D2826 /* File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B72F5CD077009D2826 /* File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc */; };
+		5540A8E52F5CD077009D2826 /* File_260226_150000. project 26 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F62F5CD077009D2826 /* File_260226_150000. project 26 spc.spc */; };
+		5540A8E62F5CD077009D2826 /* File_260217_131926.24 14.9 mfspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CE2F5CD077009D2826 /* File_260217_131926.24 14.9 mfspc.spc */; };
+		5540A8E72F5CD077009D2826 /* File_260217_144147.base 012726 15.1 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DA2F5CD077009D2826 /* File_260217_144147.base 012726 15.1 mg after incubationspc.spc */; };
+		5540A8E82F5CD077009D2826 /* File_260226_154631. 30 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FF2F5CD077009D2826 /* File_260226_154631. 30 commercial formula after incubation spc.spc */; };
+		5540A8E92F5CD077009D2826 /* File_260226_144844. 10 (rerun) in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EE2F5CD077009D2826 /* File_260226_144844. 10 (rerun) in house formula spc.spc */; };
+		5540A8EA2F5CD077009D2826 /* File_260226_145551. Project 24 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F32F5CD077009D2826 /* File_260226_145551. Project 24 spc.spc */; };
+		5540A8EB2F5CD077009D2826 /* File_260217_144016.Base 012726 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D92F5CD077009D2826 /* File_260217_144016.Base 012726 14.5 mg after incubationspc.spc */; };
+		5540A8EC2F5CD077009D2826 /* File_260226_144118. 50 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E92F5CD077009D2826 /* File_260226_144118. 50 commercial formula spc.spc */; };
+		5540A8ED2F5CD077009D2826 /* File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BF2F5CD077009D2826 /* File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc */; };
+		5540A8EE2F5CD077009D2826 /* File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B92F5CD077009D2826 /* File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A8EF2F5CD077009D2826 /* File_260226_154802. 30 commercial formula after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8002F5CD077009D2826 /* File_260226_154802. 30 commercial formula after incubationspc.spc */; };
+		5540A8F02F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7AF2F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc */; };
+		5540A8F12F5CD077009D2826 /* File_260217_132513.20 14.8 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D22F5CD077009D2826 /* File_260217_132513.20 14.8 mgspc.spc */; };
+		5540A8F22F5CD077009D2826 /* File_260217_144943. 24 15.8 mf after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DF2F5CD077009D2826 /* File_260217_144943. 24 15.8 mf after incubationspc.spc */; };
+		5540A8F32F5CD077009D2826 /* File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B42F5CD077009D2826 /* File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc */; };
+		5540A8F42F5CD077009D2826 /* File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C22F5CD077009D2826 /* File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc */; };
+		5540A8F52F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B12F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc */; };
+		5540A8F62F5CD077009D2826 /* File_260226_154504. 30 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FE2F5CD077009D2826 /* File_260226_154504. 30 commercial formula after incubation spc.spc */; };
+		5540A8F72F5CD077009D2826 /* File_260217_145400.20 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E22F5CD077009D2826 /* File_260217_145400.20 15.5 mg after incubationspc.spc */; };
+		5540A8F82F5CD077009D2826 /* File_260226_144539. 30 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EC2F5CD077009D2826 /* File_260226_144539. 30 commercial formula spc.spc */; };
+		5540A8F92F5CD077009D2826 /* File_260226_154334. 50 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FD2F5CD077009D2826 /* File_260226_154334. 50 commercial formula after incubation spc.spc */; };
+		5540A8FA2F5CD077009D2826 /* File_260226_163422. project 24 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8092F5CD077009D2826 /* File_260226_163422. project 24 after incubation spc.spc */; };
+		5540A8FB2F5CD077009D2826 /* File_260217_145106. 24 14.9 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E02F5CD077009D2826 /* File_260217_145106. 24 14.9 mg after incubationspc.spc */; };
+		5540A8FC2F5CD077009D2826 /* File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BD2F5CD077009D2826 /* File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc */; };
+		5540A8FD2F5CD077009D2826 /* File_260226_153844. Glycerin control after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FA2F5CD077009D2826 /* File_260226_153844. Glycerin control after incubation spc.spc */; };
+		5540A8FE2F5CD077009D2826 /* File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C42F5CD077009D2826 /* File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc */; };
+		5540A8FF2F5CD077009D2826 /* File_260226_145013. 10 (rerun) in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EF2F5CD077009D2826 /* File_260226_145013. 10 (rerun) in house formula spc.spc */; };
+		5540A9002F5CD077009D2826 /* File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B22F5CD077009D2826 /* File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc */; };
+		5540A9012F5CD077009D2826 /* File_260217_145646. 20 14.8 mh after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E42F5CD077009D2826 /* File_260217_145646. 20 14.8 mh after incubationspc.spc */; };
+		5540A9022F5CD077009D2826 /* File_260217_145233. 24 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E12F5CD077009D2826 /* File_260217_145233. 24 14.5 mg after incubationspc.spc */; };
+		5540A9032F5CD077009D2826 /* File_260217_131630.020426 15.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CC2F5CD077009D2826 /* File_260217_131630.020426 15.5 mgspc.spc */; };
+		5540A9042F5CD077009D2826 /* File_260226_154931. 10 (rerun) in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8012F5CD077009D2826 /* File_260226_154931. 10 (rerun) in house formula after incubation spc.spc */; };
+		5540A9052F5CD077009D2826 /* File_260217_132056. 24 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CF2F5CD077009D2826 /* File_260217_132056. 24 14.5 mgspc.spc */; };
+		5540A9062F5CD077009D2826 /* File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B32F5CD077009D2826 /* File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc */; };
+		5540A9072F5CD077009D2826 /* File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D42F5CD077009D2826 /* File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc */; };
+		5540A9082F5CD077009D2826 /* File_260217_132350.20 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D12F5CD077009D2826 /* File_260217_132350.20 14.5 mgspc.spc */; };
+		5540A9092F5CD077009D2826 /* File_260226_155415. 20 in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8042F5CD077009D2826 /* File_260226_155415. 20 in house formula after incubation spc.spc */; };
+		5540A90A2F5CD077009D2826 /* File_260217_131509.020426 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CB2F5CD077009D2826 /* File_260217_131509.020426 14.5 mgspc.spc */; };
+		5540A90B2F5CD077009D2826 /* File_260217_131204.Base 012726 15.1 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C92F5CD077009D2826 /* File_260217_131204.Base 012726 15.1 mgspc.spc */; };
+		5540A90C2F5CD077009D2826 /* File_260226_145303. 20 in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F12F5CD077009D2826 /* File_260226_145303. 20 in house formula spc.spc */; };
+		5540A90D2F5CD077009D2826 /* File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D52F5CD077009D2826 /* File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc */; };
+		5540A90E2F5CD077009D2826 /* File_260226_145714. project 24 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F42F5CD077009D2826 /* File_260226_145714. project 24 spc.spc */; };
+		5540A90F2F5CD077009D2826 /* File_260226_144415. 30 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7EB2F5CD077009D2826 /* File_260226_144415. 30 commercial formula spc.spc */; };
+		5540A9102F5CD077009D2826 /* File_260217_130904.Base 012726 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C72F5CD077009D2826 /* File_260217_130904.Base 012726 14.5 mgspc.spc */; };
+		5540A9112F5CD077009D2826 /* File_260226_143305. blank spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E52F5CD077009D2826 /* File_260226_143305. blank spc.spc */; };
+		5540A9122F5CD077009D2826 /* File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D32F5CD077009D2826 /* File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc */; };
+		5540A9132F5CD077009D2826 /* File_260226_145840. project 24 spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F52F5CD077009D2826 /* File_260226_145840. project 24 spc.spc */; };
+		5540A9142F5CD077009D2826 /* File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B62F5CD077009D2826 /* File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc */; };
+		5540A9152F5CD077009D2826 /* File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BB2F5CD077009D2826 /* File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc */; };
+		5540A9162F5CD077009D2826 /* File_260226_155835. project 24 after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8072F5CD077009D2826 /* File_260226_155835. project 24 after incubationspc.spc */; };
+		5540A9172F5CD077009D2826 /* File_260226_143812. 50 commercial formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E72F5CD077009D2826 /* File_260226_143812. 50 commercial formula spc.spc */; };
+		5540A9182F5CD077009D2826 /* File_260217_132223.20 15.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D02F5CD077009D2826 /* File_260217_132223.20 15.5 mgspc.spc */; };
+		5540A9192F5CD077009D2826 /* File_260226_143634. Glycerin controlspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7E62F5CD077009D2826 /* File_260226_143634. Glycerin controlspc.spc */; };
+		5540A91A2F5CD077009D2826 /* File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BA2F5CD077009D2826 /* File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A91B2F5CD077009D2826 /* File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C12F5CD077009D2826 /* File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc */; };
+		5540A91C2F5CD077009D2826 /* File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7BE2F5CD077009D2826 /* File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A91D2F5CD077009D2826 /* File_260226_153718. blank after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F92F5CD077009D2826 /* File_260226_153718. blank after incubationspc.spc */; };
+		5540A91E2F5CD077009D2826 /* File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C62F5CD077009D2826 /* File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc */; };
+		5540A91F2F5CD077009D2826 /* File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7C02F5CD077009D2826 /* File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc */; };
+		5540A9202F5CD077009D2826 /* File_260226_163245. project 24 after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8082F5CD077009D2826 /* File_260226_163245. project 24 after incubationspc.spc */; };
+		5540A9212F5CD077009D2826 /* File_260217_144628. 020426 14.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DD2F5CD077009D2826 /* File_260217_144628. 020426 14.5 mg after incubationspc.spc */; };
+		5540A9222F5CD077009D2826 /* File_260217_131335.020426 15.2 mgspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7CA2F5CD077009D2826 /* File_260217_131335.020426 15.2 mgspc.spc */; };
+		5540A9232F5CD077009D2826 /* File_260226_155708. 20 in house formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A8062F5CD077009D2826 /* File_260226_155708. 20 in house formula after incubation spc.spc */; };
+		5540A9242F5CD077009D2826 /* File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B52F5CD077009D2826 /* File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc */; };
+		5540A9252F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D72F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc */; };
+		5540A9262F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DE2F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc */; };
+		5540A9272F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F02F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc */; };
+		55CABC722F64A542001BA1CF /* Diagnostics1600.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = 55CABC702F64A542001BA1CF /* Diagnostics1600.xlsx */; };
+		55CABC732F64A542001BA1CF /* Diagnostics1514.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = 55CABC6F2F64A542001BA1CF /* Diagnostics1514.xlsx */; };
+		55CABC752F64A995001BA1CF /* CloudKit Debug1621.txt in Resources */ = {isa = PBXBuildFile; fileRef = 55CABC742F64A995001BA1CF /* CloudKit Debug1621.txt */; };
+		55CABC772F64AA0D001BA1CF /* Diagnostics1624.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = 55CABC762F64AA0D001BA1CF /* Diagnostics1624.xlsx */; };
+		55D73FD82F64BA18008D8C49 /* Diagnostics1731.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = 55D73FD72F64BA18008D8C49 /* Diagnostics1731.xlsx */; };
+		55D73FDA2F651459008D8C49 /* CloudKit Debug1156.txt in Resources */ = {isa = PBXBuildFile; fileRef = 55D73FD92F651459008D8C49 /* CloudKit Debug1156.txt */; };
+		55D73FDC2F65145A008D8C49 /* Diagnostics1155.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = 55D73FDB2F65145A008D8C49 /* Diagnostics1155.xlsx */; };
+		55D73FDE2F65F147008D8C49 /* Diagnostics1539.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = 55D73FDD2F65F147008D8C49 /* Diagnostics1539.xlsx */; };
+		55D73FE02F65F782008D8C49 /* Diagnostics1606.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = 55D73FDF2F65F782008D8C49 /* Diagnostics1606.xlsx */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		554A4F222F5CAC80007FC99A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 554A4F092F5CAC7E007FC99A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 554A4F102F5CAC7E007FC99A;
+			remoteInfo = "Shimadzu Data Analyser";
+		};
+		554A4F2C2F5CAC80007FC99A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 554A4F092F5CAC7E007FC99A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 554A4F102F5CAC7E007FC99A;
+			remoteInfo = "Shimadzu Data Analyser";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		55197CDF2F625C780016B90E /* Shimadzu Data Analyser.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Shimadzu Data Analyser.xctestplan"; sourceTree = "<group>"; };
+		55253EAF2F6229F3009159EA /* Shimadzu Data Analyser.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Shimadzu Data Analyser.entitlements"; sourceTree = "<group>"; };
+		5540A7AF2F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc"; sourceTree = "<group>"; };
+		5540A7B02F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc"; sourceTree = "<group>"; };
+		5540A7B12F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc"; sourceTree = "<group>"; };
+		5540A7B22F5CD077009D2826 /* File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc"; sourceTree = "<group>"; };
+		5540A7B32F5CD077009D2826 /* File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc"; sourceTree = "<group>"; };
+		5540A7B42F5CD077009D2826 /* File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc"; sourceTree = "<group>"; };
+		5540A7B52F5CD077009D2826 /* File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc"; sourceTree = "<group>"; };
+		5540A7B62F5CD077009D2826 /* File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc"; sourceTree = "<group>"; };
+		5540A7B72F5CD077009D2826 /* File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc"; sourceTree = "<group>"; };
+		5540A7B82F5CD077009D2826 /* File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A7B92F5CD077009D2826 /* File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7BA2F5CD077009D2826 /* File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7BB2F5CD077009D2826 /* File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc"; sourceTree = "<group>"; };
+		5540A7BC2F5CD077009D2826 /* File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A7BD2F5CD077009D2826 /* File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A7BE2F5CD077009D2826 /* File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7BF2F5CD077009D2826 /* File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7C02F5CD077009D2826 /* File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7C12F5CD077009D2826 /* File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7C22F5CD077009D2826 /* File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7C32F5CD077009D2826 /* File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7C42F5CD077009D2826 /* File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7C52F5CD077009D2826 /* File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7C62F5CD077009D2826 /* File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7C72F5CD077009D2826 /* File_260217_130904.Base 012726 14.5 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_130904.Base 012726 14.5 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7C82F5CD077009D2826 /* File_260217_131031.Base 012726 15.1 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_131031.Base 012726 15.1 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7C92F5CD077009D2826 /* File_260217_131204.Base 012726 15.1 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_131204.Base 012726 15.1 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7CA2F5CD077009D2826 /* File_260217_131335.020426 15.2 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_131335.020426 15.2 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7CB2F5CD077009D2826 /* File_260217_131509.020426 14.5 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_131509.020426 14.5 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7CC2F5CD077009D2826 /* File_260217_131630.020426 15.5 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_131630.020426 15.5 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7CD2F5CD077009D2826 /* File_260217_131803. 24 15.8 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_131803. 24 15.8 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7CE2F5CD077009D2826 /* File_260217_131926.24 14.9 mfspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_131926.24 14.9 mfspc.spc"; sourceTree = "<group>"; };
+		5540A7CF2F5CD077009D2826 /* File_260217_132056. 24 14.5 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_132056. 24 14.5 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7D02F5CD077009D2826 /* File_260217_132223.20 15.5 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_132223.20 15.5 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7D12F5CD077009D2826 /* File_260217_132350.20 14.5 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_132350.20 14.5 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7D22F5CD077009D2826 /* File_260217_132513.20 14.8 mgspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_132513.20 14.8 mgspc.spc"; sourceTree = "<group>"; };
+		5540A7D32F5CD077009D2826 /* File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7D42F5CD077009D2826 /* File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7D52F5CD077009D2826 /* File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7D62F5CD077009D2826 /* File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7D72F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7D82F5CD077009D2826 /* File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7D92F5CD077009D2826 /* File_260217_144016.Base 012726 14.5 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_144016.Base 012726 14.5 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7DA2F5CD077009D2826 /* File_260217_144147.base 012726 15.1 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_144147.base 012726 15.1 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7DB2F5CD077009D2826 /* File_260217_144323.Base 012726 15.1mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_144323.Base 012726 15.1mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7DC2F5CD077009D2826 /* File_260217_144455. 020426 15.2 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_144455. 020426 15.2 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7DD2F5CD077009D2826 /* File_260217_144628. 020426 14.5 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_144628. 020426 14.5 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7DE2F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_144758. 020426 15.5 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7DF2F5CD077009D2826 /* File_260217_144943. 24 15.8 mf after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_144943. 24 15.8 mf after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7E02F5CD077009D2826 /* File_260217_145106. 24 14.9 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_145106. 24 14.9 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7E12F5CD077009D2826 /* File_260217_145233. 24 14.5 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_145233. 24 14.5 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7E22F5CD077009D2826 /* File_260217_145400.20 15.5 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_145400.20 15.5 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7E32F5CD077009D2826 /* File_260217_145524.20 14.5 mg after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_145524.20 14.5 mg after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7E42F5CD077009D2826 /* File_260217_145646. 20 14.8 mh after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260217_145646. 20 14.8 mh after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7E52F5CD077009D2826 /* File_260226_143305. blank spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_143305. blank spc.spc"; sourceTree = "<group>"; };
+		5540A7E62F5CD077009D2826 /* File_260226_143634. Glycerin controlspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_143634. Glycerin controlspc.spc"; sourceTree = "<group>"; };
+		5540A7E72F5CD077009D2826 /* File_260226_143812. 50 commercial formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_143812. 50 commercial formula spc.spc"; sourceTree = "<group>"; };
+		5540A7E82F5CD077009D2826 /* File_260226_143941. 50 commercial formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_143941. 50 commercial formula spc.spc"; sourceTree = "<group>"; };
+		5540A7E92F5CD077009D2826 /* File_260226_144118. 50 commercial formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_144118. 50 commercial formula spc.spc"; sourceTree = "<group>"; };
+		5540A7EA2F5CD077009D2826 /* File_260226_144246. 30 commercial formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_144246. 30 commercial formula spc.spc"; sourceTree = "<group>"; };
+		5540A7EB2F5CD077009D2826 /* File_260226_144415. 30 commercial formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_144415. 30 commercial formula spc.spc"; sourceTree = "<group>"; };
+		5540A7EC2F5CD077009D2826 /* File_260226_144539. 30 commercial formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_144539. 30 commercial formula spc.spc"; sourceTree = "<group>"; };
+		5540A7ED2F5CD077009D2826 /* File_260226_144710. 10 (rerun) in house formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_144710. 10 (rerun) in house formula spc.spc"; sourceTree = "<group>"; };
+		5540A7EE2F5CD077009D2826 /* File_260226_144844. 10 (rerun) in house formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_144844. 10 (rerun) in house formula spc.spc"; sourceTree = "<group>"; };
+		5540A7EF2F5CD077009D2826 /* File_260226_145013. 10 (rerun) in house formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_145013. 10 (rerun) in house formula spc.spc"; sourceTree = "<group>"; };
+		5540A7F02F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_145141. 20 in house formula spc.spc"; sourceTree = "<group>"; };
+		5540A7F12F5CD077009D2826 /* File_260226_145303. 20 in house formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_145303. 20 in house formula spc.spc"; sourceTree = "<group>"; };
+		5540A7F22F5CD077009D2826 /* File_260226_145428. 20 in house formula spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_145428. 20 in house formula spc.spc"; sourceTree = "<group>"; };
+		5540A7F32F5CD077009D2826 /* File_260226_145551. Project 24 spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_145551. Project 24 spc.spc"; sourceTree = "<group>"; };
+		5540A7F42F5CD077009D2826 /* File_260226_145714. project 24 spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_145714. project 24 spc.spc"; sourceTree = "<group>"; };
+		5540A7F52F5CD077009D2826 /* File_260226_145840. project 24 spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_145840. project 24 spc.spc"; sourceTree = "<group>"; };
+		5540A7F62F5CD077009D2826 /* File_260226_150000. project 26 spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_150000. project 26 spc.spc"; sourceTree = "<group>"; };
+		5540A7F72F5CD077009D2826 /* File_260226_150121. project 26 spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_150121. project 26 spc.spc"; sourceTree = "<group>"; };
+		5540A7F82F5CD077009D2826 /* File_260226_150240. project 26 spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_150240. project 26 spc.spc"; sourceTree = "<group>"; };
+		5540A7F92F5CD077009D2826 /* File_260226_153718. blank after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_153718. blank after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A7FA2F5CD077009D2826 /* File_260226_153844. Glycerin control after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_153844. Glycerin control after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A7FB2F5CD077009D2826 /* File_260226_154029. 50 commercial formula after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_154029. 50 commercial formula after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A7FC2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_154159. 50 commercial formula after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A7FD2F5CD077009D2826 /* File_260226_154334. 50 commercial formula after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_154334. 50 commercial formula after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A7FE2F5CD077009D2826 /* File_260226_154504. 30 commercial formula after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_154504. 30 commercial formula after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A7FF2F5CD077009D2826 /* File_260226_154631. 30 commercial formula after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_154631. 30 commercial formula after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A8002F5CD077009D2826 /* File_260226_154802. 30 commercial formula after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_154802. 30 commercial formula after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A8012F5CD077009D2826 /* File_260226_154931. 10 (rerun) in house formula after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_154931. 10 (rerun) in house formula after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A8022F5CD077009D2826 /* File_260226_155103. 10 (rerun) in house formula after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_155103. 10 (rerun) in house formula after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A8032F5CD077009D2826 /* File_260226_155243. 10 (rerun) in house formula after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_155243. 10 (rerun) in house formula after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A8042F5CD077009D2826 /* File_260226_155415. 20 in house formula after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_155415. 20 in house formula after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A8052F5CD077009D2826 /* File_260226_155540. 20 in house formula after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_155540. 20 in house formula after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A8062F5CD077009D2826 /* File_260226_155708. 20 in house formula after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_155708. 20 in house formula after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A8072F5CD077009D2826 /* File_260226_155835. project 24 after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_155835. project 24 after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A8082F5CD077009D2826 /* File_260226_163245. project 24 after incubationspc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_163245. project 24 after incubationspc.spc"; sourceTree = "<group>"; };
+		5540A8092F5CD077009D2826 /* File_260226_163422. project 24 after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_163422. project 24 after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A80A2F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_163545. project 26 after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A80B2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_163714. project 26 after incubation spc.spc"; sourceTree = "<group>"; };
+		5540A80C2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_163838. project 26 after incubation spc.spc"; sourceTree = "<group>"; };
+		554A4F112F5CAC7E007FC99A /* Shimadzu Data Analyser.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Shimadzu Data Analyser.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		554A4F212F5CAC80007FC99A /* Shimadzu Data AnalyserTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Shimadzu Data AnalyserTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		554A4F2B2F5CAC80007FC99A /* Shimadzu Data AnalyserUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Shimadzu Data AnalyserUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		55C0F1A12F60000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		55CABC6F2F64A542001BA1CF /* Diagnostics1514.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = Diagnostics1514.xlsx; sourceTree = "<group>"; };
+		55CABC702F64A542001BA1CF /* Diagnostics1600.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = Diagnostics1600.xlsx; sourceTree = "<group>"; };
+		55CABC742F64A995001BA1CF /* CloudKit Debug1621.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CloudKit Debug1621.txt"; sourceTree = "<group>"; };
+		55CABC762F64AA0D001BA1CF /* Diagnostics1624.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = Diagnostics1624.xlsx; sourceTree = "<group>"; };
+		55D73FD72F64BA18008D8C49 /* Diagnostics1731.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = Diagnostics1731.xlsx; sourceTree = "<group>"; };
+		55D73FD92F651459008D8C49 /* CloudKit Debug1156.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "CloudKit Debug1156.txt"; sourceTree = "<group>"; };
+		55D73FDB2F65145A008D8C49 /* Diagnostics1155.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = Diagnostics1155.xlsx; sourceTree = "<group>"; };
+		55D73FDD2F65F147008D8C49 /* Diagnostics1539.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = Diagnostics1539.xlsx; sourceTree = "<group>"; };
+		55D73FDF2F65F782008D8C49 /* Diagnostics1606.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = Diagnostics1606.xlsx; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		553961AB2F5F9E52002509D0 /* tmp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = tmp;
+			sourceTree = "<group>";
+		};
+		554A4F132F5CAC7E007FC99A /* SPF Spectral Analyzer */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "SPF Spectral Analyzer";
+			sourceTree = "<group>";
+		};
+		554A4F242F5CAC80007FC99A /* SPF Spectral AnalyzerTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "SPF Spectral AnalyzerTests";
+			sourceTree = "<group>";
+		};
+		554A4F2E2F5CAC80007FC99A /* SPF Spectral AnalyzerUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "SPF Spectral AnalyzerUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		554A4F0E2F5CAC7E007FC99A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		554A4F1E2F5CAC80007FC99A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		554A4F282F5CAC80007FC99A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		5540A80D2F5CD077009D2826 /* SPC Sample Files */ = {
+			isa = PBXGroup;
+			children = (
+				5540A7AF2F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc */,
+				5540A7B02F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc */,
+				5540A7B12F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc */,
+				5540A7B22F5CD077009D2826 /* File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc */,
+				5540A7B32F5CD077009D2826 /* File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc */,
+				5540A7B42F5CD077009D2826 /* File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc */,
+				5540A7B52F5CD077009D2826 /* File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc */,
+				5540A7B62F5CD077009D2826 /* File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc */,
+				5540A7B72F5CD077009D2826 /* File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc */,
+				5540A7B82F5CD077009D2826 /* File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc */,
+				5540A7B92F5CD077009D2826 /* File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc */,
+				5540A7BA2F5CD077009D2826 /* File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc */,
+				5540A7BB2F5CD077009D2826 /* File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc */,
+				5540A7BC2F5CD077009D2826 /* File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc */,
+				5540A7BD2F5CD077009D2826 /* File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc */,
+				5540A7BE2F5CD077009D2826 /* File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc */,
+				5540A7BF2F5CD077009D2826 /* File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc */,
+				5540A7C02F5CD077009D2826 /* File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc */,
+				5540A7C12F5CD077009D2826 /* File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc */,
+				5540A7C22F5CD077009D2826 /* File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc */,
+				5540A7C32F5CD077009D2826 /* File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc */,
+				5540A7C42F5CD077009D2826 /* File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc */,
+				5540A7C52F5CD077009D2826 /* File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc */,
+				5540A7C62F5CD077009D2826 /* File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc */,
+				5540A7C72F5CD077009D2826 /* File_260217_130904.Base 012726 14.5 mgspc.spc */,
+				5540A7C82F5CD077009D2826 /* File_260217_131031.Base 012726 15.1 mgspc.spc */,
+				5540A7C92F5CD077009D2826 /* File_260217_131204.Base 012726 15.1 mgspc.spc */,
+				5540A7CA2F5CD077009D2826 /* File_260217_131335.020426 15.2 mgspc.spc */,
+				5540A7CB2F5CD077009D2826 /* File_260217_131509.020426 14.5 mgspc.spc */,
+				5540A7CC2F5CD077009D2826 /* File_260217_131630.020426 15.5 mgspc.spc */,
+				5540A7CD2F5CD077009D2826 /* File_260217_131803. 24 15.8 mgspc.spc */,
+				5540A7CE2F5CD077009D2826 /* File_260217_131926.24 14.9 mfspc.spc */,
+				5540A7CF2F5CD077009D2826 /* File_260217_132056. 24 14.5 mgspc.spc */,
+				5540A7D02F5CD077009D2826 /* File_260217_132223.20 15.5 mgspc.spc */,
+				5540A7D12F5CD077009D2826 /* File_260217_132350.20 14.5 mgspc.spc */,
+				5540A7D22F5CD077009D2826 /* File_260217_132513.20 14.8 mgspc.spc */,
+				5540A7D32F5CD077009D2826 /* File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc */,
+				5540A7D42F5CD077009D2826 /* File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc */,
+				5540A7D52F5CD077009D2826 /* File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc */,
+				5540A7D62F5CD077009D2826 /* File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc */,
+				5540A7D72F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc */,
+				5540A7D82F5CD077009D2826 /* File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc */,
+				5540A7D92F5CD077009D2826 /* File_260217_144016.Base 012726 14.5 mg after incubationspc.spc */,
+				5540A7DA2F5CD077009D2826 /* File_260217_144147.base 012726 15.1 mg after incubationspc.spc */,
+				5540A7DB2F5CD077009D2826 /* File_260217_144323.Base 012726 15.1mg after incubationspc.spc */,
+				5540A7DC2F5CD077009D2826 /* File_260217_144455. 020426 15.2 mg after incubationspc.spc */,
+				5540A7DD2F5CD077009D2826 /* File_260217_144628. 020426 14.5 mg after incubationspc.spc */,
+				5540A7DE2F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc */,
+				5540A7DF2F5CD077009D2826 /* File_260217_144943. 24 15.8 mf after incubationspc.spc */,
+				5540A7E02F5CD077009D2826 /* File_260217_145106. 24 14.9 mg after incubationspc.spc */,
+				5540A7E12F5CD077009D2826 /* File_260217_145233. 24 14.5 mg after incubationspc.spc */,
+				5540A7E22F5CD077009D2826 /* File_260217_145400.20 15.5 mg after incubationspc.spc */,
+				5540A7E32F5CD077009D2826 /* File_260217_145524.20 14.5 mg after incubationspc.spc */,
+				5540A7E42F5CD077009D2826 /* File_260217_145646. 20 14.8 mh after incubationspc.spc */,
+				5540A7E52F5CD077009D2826 /* File_260226_143305. blank spc.spc */,
+				5540A7E62F5CD077009D2826 /* File_260226_143634. Glycerin controlspc.spc */,
+				5540A7E72F5CD077009D2826 /* File_260226_143812. 50 commercial formula spc.spc */,
+				5540A7E82F5CD077009D2826 /* File_260226_143941. 50 commercial formula spc.spc */,
+				5540A7E92F5CD077009D2826 /* File_260226_144118. 50 commercial formula spc.spc */,
+				5540A7EA2F5CD077009D2826 /* File_260226_144246. 30 commercial formula spc.spc */,
+				5540A7EB2F5CD077009D2826 /* File_260226_144415. 30 commercial formula spc.spc */,
+				5540A7EC2F5CD077009D2826 /* File_260226_144539. 30 commercial formula spc.spc */,
+				5540A7ED2F5CD077009D2826 /* File_260226_144710. 10 (rerun) in house formula spc.spc */,
+				5540A7EE2F5CD077009D2826 /* File_260226_144844. 10 (rerun) in house formula spc.spc */,
+				5540A7EF2F5CD077009D2826 /* File_260226_145013. 10 (rerun) in house formula spc.spc */,
+				5540A7F02F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc */,
+				5540A7F12F5CD077009D2826 /* File_260226_145303. 20 in house formula spc.spc */,
+				5540A7F22F5CD077009D2826 /* File_260226_145428. 20 in house formula spc.spc */,
+				5540A7F32F5CD077009D2826 /* File_260226_145551. Project 24 spc.spc */,
+				5540A7F42F5CD077009D2826 /* File_260226_145714. project 24 spc.spc */,
+				5540A7F52F5CD077009D2826 /* File_260226_145840. project 24 spc.spc */,
+				5540A7F62F5CD077009D2826 /* File_260226_150000. project 26 spc.spc */,
+				5540A7F72F5CD077009D2826 /* File_260226_150121. project 26 spc.spc */,
+				5540A7F82F5CD077009D2826 /* File_260226_150240. project 26 spc.spc */,
+				5540A7F92F5CD077009D2826 /* File_260226_153718. blank after incubationspc.spc */,
+				5540A7FA2F5CD077009D2826 /* File_260226_153844. Glycerin control after incubation spc.spc */,
+				5540A7FB2F5CD077009D2826 /* File_260226_154029. 50 commercial formula after incubation spc.spc */,
+				5540A7FC2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc */,
+				5540A7FD2F5CD077009D2826 /* File_260226_154334. 50 commercial formula after incubation spc.spc */,
+				5540A7FE2F5CD077009D2826 /* File_260226_154504. 30 commercial formula after incubation spc.spc */,
+				5540A7FF2F5CD077009D2826 /* File_260226_154631. 30 commercial formula after incubation spc.spc */,
+				5540A8002F5CD077009D2826 /* File_260226_154802. 30 commercial formula after incubationspc.spc */,
+				5540A8012F5CD077009D2826 /* File_260226_154931. 10 (rerun) in house formula after incubation spc.spc */,
+				5540A8022F5CD077009D2826 /* File_260226_155103. 10 (rerun) in house formula after incubationspc.spc */,
+				5540A8032F5CD077009D2826 /* File_260226_155243. 10 (rerun) in house formula after incubation spc.spc */,
+				5540A8042F5CD077009D2826 /* File_260226_155415. 20 in house formula after incubation spc.spc */,
+				5540A8052F5CD077009D2826 /* File_260226_155540. 20 in house formula after incubation spc.spc */,
+				5540A8062F5CD077009D2826 /* File_260226_155708. 20 in house formula after incubation spc.spc */,
+				5540A8072F5CD077009D2826 /* File_260226_155835. project 24 after incubationspc.spc */,
+				5540A8082F5CD077009D2826 /* File_260226_163245. project 24 after incubationspc.spc */,
+				5540A8092F5CD077009D2826 /* File_260226_163422. project 24 after incubation spc.spc */,
+				5540A80A2F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc */,
+				5540A80B2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc */,
+				5540A80C2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc */,
+			);
+			path = "SPC Sample Files";
+			sourceTree = "<group>";
+		};
+		554A4F082F5CAC7E007FC99A = {
+			isa = PBXGroup;
+			children = (
+				55197CDF2F625C780016B90E /* Shimadzu Data Analyser.xctestplan */,
+				55253EAF2F6229F3009159EA /* Shimadzu Data Analyser.entitlements */,
+				553961AB2F5F9E52002509D0 /* tmp */,
+				5540A80D2F5CD077009D2826 /* SPC Sample Files */,
+				55C0F1B22F60000000000002 /* Config */,
+				554A4F132F5CAC7E007FC99A /* SPF Spectral Analyzer */,
+				554A4F242F5CAC80007FC99A /* SPF Spectral AnalyzerTests */,
+				554A4F2E2F5CAC80007FC99A /* SPF Spectral AnalyzerUITests */,
+				554A4F122F5CAC7E007FC99A /* Products */,
+				55CABC712F64A542001BA1CF /* DiagLogs */,
+			);
+			sourceTree = "<group>";
+		};
+		554A4F122F5CAC7E007FC99A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				554A4F112F5CAC7E007FC99A /* Shimadzu Data Analyser.app */,
+				554A4F212F5CAC80007FC99A /* Shimadzu Data AnalyserTests.xctest */,
+				554A4F2B2F5CAC80007FC99A /* Shimadzu Data AnalyserUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		55C0F1B22F60000000000002 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				55C0F1A12F60000000000001 /* Info.plist */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		55CABC712F64A542001BA1CF /* DiagLogs */ = {
+			isa = PBXGroup;
+			children = (
+				55CABC6F2F64A542001BA1CF /* Diagnostics1514.xlsx */,
+				55CABC702F64A542001BA1CF /* Diagnostics1600.xlsx */,
+				55CABC742F64A995001BA1CF /* CloudKit Debug1621.txt */,
+				55CABC762F64AA0D001BA1CF /* Diagnostics1624.xlsx */,
+				55D73FD72F64BA18008D8C49 /* Diagnostics1731.xlsx */,
+				55D73FD92F651459008D8C49 /* CloudKit Debug1156.txt */,
+				55D73FDB2F65145A008D8C49 /* Diagnostics1155.xlsx */,
+				55D73FDD2F65F147008D8C49 /* Diagnostics1539.xlsx */,
+				55D73FDF2F65F782008D8C49 /* Diagnostics1606.xlsx */,
+			);
+			path = DiagLogs;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		554A4F102F5CAC7E007FC99A /* Shimadzu Data Analyser */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 554A4F342F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data Analyser" */;
+			buildPhases = (
+				554A4F0D2F5CAC7E007FC99A /* Sources */,
+				554A4F0E2F5CAC7E007FC99A /* Frameworks */,
+				554A4F0F2F5CAC7E007FC99A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				553961AB2F5F9E52002509D0 /* tmp */,
+				554A4F132F5CAC7E007FC99A /* SPF Spectral Analyzer */,
+			);
+			name = "Shimadzu Data Analyser";
+			packageProductDependencies = (
+			);
+			productName = "Shimadzu Data Analyser";
+			productReference = 554A4F112F5CAC7E007FC99A /* Shimadzu Data Analyser.app */;
+			productType = "com.apple.product-type.application";
+		};
+		554A4F202F5CAC80007FC99A /* Shimadzu Data AnalyserTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 554A4F392F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data AnalyserTests" */;
+			buildPhases = (
+				554A4F1D2F5CAC80007FC99A /* Sources */,
+				554A4F1E2F5CAC80007FC99A /* Frameworks */,
+				554A4F1F2F5CAC80007FC99A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				554A4F232F5CAC80007FC99A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				554A4F242F5CAC80007FC99A /* SPF Spectral AnalyzerTests */,
+			);
+			name = "Shimadzu Data AnalyserTests";
+			packageProductDependencies = (
+			);
+			productName = "Shimadzu Data AnalyserTests";
+			productReference = 554A4F212F5CAC80007FC99A /* Shimadzu Data AnalyserTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		554A4F2A2F5CAC80007FC99A /* Shimadzu Data AnalyserUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 554A4F3C2F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data AnalyserUITests" */;
+			buildPhases = (
+				554A4F272F5CAC80007FC99A /* Sources */,
+				554A4F282F5CAC80007FC99A /* Frameworks */,
+				554A4F292F5CAC80007FC99A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				554A4F2D2F5CAC80007FC99A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				554A4F2E2F5CAC80007FC99A /* SPF Spectral AnalyzerUITests */,
+			);
+			name = "Shimadzu Data AnalyserUITests";
+			packageProductDependencies = (
+			);
+			productName = "Shimadzu Data AnalyserUITests";
+			productReference = 554A4F2B2F5CAC80007FC99A /* Shimadzu Data AnalyserUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		554A4F092F5CAC7E007FC99A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					554A4F102F5CAC7E007FC99A = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					554A4F202F5CAC80007FC99A = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 554A4F102F5CAC7E007FC99A;
+					};
+					554A4F2A2F5CAC80007FC99A = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 554A4F102F5CAC7E007FC99A;
+					};
+				};
+			};
+			buildConfigurationList = 554A4F0C2F5CAC7E007FC99A /* Build configuration list for PBXProject "Shimadzu Data Analyser" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 554A4F082F5CAC7E007FC99A;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 554A4F122F5CAC7E007FC99A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				554A4F102F5CAC7E007FC99A /* Shimadzu Data Analyser */,
+				554A4F202F5CAC80007FC99A /* Shimadzu Data AnalyserTests */,
+				554A4F2A2F5CAC80007FC99A /* Shimadzu Data AnalyserUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		554A4F0F2F5CAC7E007FC99A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5540A86C2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc in Resources */,
+				5540A86D2F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A86E2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc in Resources */,
+				5540A86F2F5CD077009D2826 /* File_260226_144246. 30 commercial formula spc.spc in Resources */,
+				5540A8702F5CD077009D2826 /* File_260217_131803. 24 15.8 mgspc.spc in Resources */,
+				5540A8712F5CD077009D2826 /* File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc in Resources */,
+				5540A8722F5CD077009D2826 /* File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc in Resources */,
+				5540A8732F5CD077009D2826 /* File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc in Resources */,
+				5540A8742F5CD077009D2826 /* File_260226_144710. 10 (rerun) in house formula spc.spc in Resources */,
+				5540A8752F5CD077009D2826 /* File_260226_155103. 10 (rerun) in house formula after incubationspc.spc in Resources */,
+				5540A8762F5CD077009D2826 /* File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc in Resources */,
+				5540A8772F5CD077009D2826 /* File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */,
+				5540A8782F5CD077009D2826 /* File_260217_144323.Base 012726 15.1mg after incubationspc.spc in Resources */,
+				5540A8792F5CD077009D2826 /* File_260226_145428. 20 in house formula spc.spc in Resources */,
+				5540A87A2F5CD077009D2826 /* File_260217_145524.20 14.5 mg after incubationspc.spc in Resources */,
+				5540A87B2F5CD077009D2826 /* File_260226_150121. project 26 spc.spc in Resources */,
+				5540A87C2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc in Resources */,
+				5540A87D2F5CD077009D2826 /* File_260226_154029. 50 commercial formula after incubation spc.spc in Resources */,
+				5540A87E2F5CD077009D2826 /* File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc in Resources */,
+				5540A87F2F5CD077009D2826 /* File_260226_155243. 10 (rerun) in house formula after incubation spc.spc in Resources */,
+				5540A8802F5CD077009D2826 /* File_260226_155540. 20 in house formula after incubation spc.spc in Resources */,
+				5540A8812F5CD077009D2826 /* File_260217_131031.Base 012726 15.1 mgspc.spc in Resources */,
+				5540A8822F5CD077009D2826 /* File_260226_143941. 50 commercial formula spc.spc in Resources */,
+				55D73FD82F64BA18008D8C49 /* Diagnostics1731.xlsx in Resources */,
+				5540A8832F5CD077009D2826 /* File_260217_144455. 020426 15.2 mg after incubationspc.spc in Resources */,
+				5540A8842F5CD077009D2826 /* File_260226_150240. project 26 spc.spc in Resources */,
+				5540A8852F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc in Resources */,
+				5540A8862F5CD077009D2826 /* File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8872F5CD077009D2826 /* File_260226_150000. project 26 spc.spc in Resources */,
+				5540A8882F5CD077009D2826 /* File_260217_131926.24 14.9 mfspc.spc in Resources */,
+				5540A8892F5CD077009D2826 /* File_260217_144147.base 012726 15.1 mg after incubationspc.spc in Resources */,
+				5540A88A2F5CD077009D2826 /* File_260226_154631. 30 commercial formula after incubation spc.spc in Resources */,
+				5540A88B2F5CD077009D2826 /* File_260226_144844. 10 (rerun) in house formula spc.spc in Resources */,
+				5540A88C2F5CD077009D2826 /* File_260226_145551. Project 24 spc.spc in Resources */,
+				5540A88D2F5CD077009D2826 /* File_260217_144016.Base 012726 14.5 mg after incubationspc.spc in Resources */,
+				5540A88E2F5CD077009D2826 /* File_260226_144118. 50 commercial formula spc.spc in Resources */,
+				5540A88F2F5CD077009D2826 /* File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc in Resources */,
+				55CABC752F64A995001BA1CF /* CloudKit Debug1621.txt in Resources */,
+				5540A8902F5CD077009D2826 /* File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A8912F5CD077009D2826 /* File_260226_154802. 30 commercial formula after incubationspc.spc in Resources */,
+				5540A8922F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc in Resources */,
+				5540A8932F5CD077009D2826 /* File_260217_132513.20 14.8 mgspc.spc in Resources */,
+				5540A8942F5CD077009D2826 /* File_260217_144943. 24 15.8 mf after incubationspc.spc in Resources */,
+				5540A8952F5CD077009D2826 /* File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8962F5CD077009D2826 /* File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc in Resources */,
+				5540A8972F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8982F5CD077009D2826 /* File_260226_154504. 30 commercial formula after incubation spc.spc in Resources */,
+				5540A8992F5CD077009D2826 /* File_260217_145400.20 15.5 mg after incubationspc.spc in Resources */,
+				5540A89A2F5CD077009D2826 /* File_260226_144539. 30 commercial formula spc.spc in Resources */,
+				5540A89B2F5CD077009D2826 /* File_260226_154334. 50 commercial formula after incubation spc.spc in Resources */,
+				5540A89C2F5CD077009D2826 /* File_260226_163422. project 24 after incubation spc.spc in Resources */,
+				55D73FE02F65F782008D8C49 /* Diagnostics1606.xlsx in Resources */,
+				5540A89D2F5CD077009D2826 /* File_260217_145106. 24 14.9 mg after incubationspc.spc in Resources */,
+				5540A89E2F5CD077009D2826 /* File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc in Resources */,
+				5540A89F2F5CD077009D2826 /* File_260226_153844. Glycerin control after incubation spc.spc in Resources */,
+				5540A8A02F5CD077009D2826 /* File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc in Resources */,
+				5540A8A12F5CD077009D2826 /* File_260226_145013. 10 (rerun) in house formula spc.spc in Resources */,
+				5540A8A22F5CD077009D2826 /* File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8A32F5CD077009D2826 /* File_260217_145646. 20 14.8 mh after incubationspc.spc in Resources */,
+				5540A8A42F5CD077009D2826 /* File_260217_145233. 24 14.5 mg after incubationspc.spc in Resources */,
+				5540A8A52F5CD077009D2826 /* File_260217_131630.020426 15.5 mgspc.spc in Resources */,
+				5540A8A62F5CD077009D2826 /* File_260226_154931. 10 (rerun) in house formula after incubation spc.spc in Resources */,
+				55D73FDA2F651459008D8C49 /* CloudKit Debug1156.txt in Resources */,
+				55CABC772F64AA0D001BA1CF /* Diagnostics1624.xlsx in Resources */,
+				5540A8A72F5CD077009D2826 /* File_260217_132056. 24 14.5 mgspc.spc in Resources */,
+				5540A8A82F5CD077009D2826 /* File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8A92F5CD077009D2826 /* File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc in Resources */,
+				5540A8AA2F5CD077009D2826 /* File_260217_132350.20 14.5 mgspc.spc in Resources */,
+				5540A8AB2F5CD077009D2826 /* File_260226_155415. 20 in house formula after incubation spc.spc in Resources */,
+				5540A8AC2F5CD077009D2826 /* File_260217_131509.020426 14.5 mgspc.spc in Resources */,
+				5540A8AD2F5CD077009D2826 /* File_260217_131204.Base 012726 15.1 mgspc.spc in Resources */,
+				5540A8AE2F5CD077009D2826 /* File_260226_145303. 20 in house formula spc.spc in Resources */,
+				5540A8AF2F5CD077009D2826 /* File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */,
+				5540A8B02F5CD077009D2826 /* File_260226_145714. project 24 spc.spc in Resources */,
+				5540A8B12F5CD077009D2826 /* File_260226_144415. 30 commercial formula spc.spc in Resources */,
+				55D73FDC2F65145A008D8C49 /* Diagnostics1155.xlsx in Resources */,
+				5540A8B22F5CD077009D2826 /* File_260217_130904.Base 012726 14.5 mgspc.spc in Resources */,
+				5540A8B32F5CD077009D2826 /* File_260226_143305. blank spc.spc in Resources */,
+				5540A8B42F5CD077009D2826 /* File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc in Resources */,
+				5540A8B52F5CD077009D2826 /* File_260226_145840. project 24 spc.spc in Resources */,
+				5540A8B62F5CD077009D2826 /* File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8B72F5CD077009D2826 /* File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc in Resources */,
+				5540A8B82F5CD077009D2826 /* File_260226_155835. project 24 after incubationspc.spc in Resources */,
+				5540A8B92F5CD077009D2826 /* File_260226_143812. 50 commercial formula spc.spc in Resources */,
+				55CABC722F64A542001BA1CF /* Diagnostics1600.xlsx in Resources */,
+				55CABC732F64A542001BA1CF /* Diagnostics1514.xlsx in Resources */,
+				5540A8BA2F5CD077009D2826 /* File_260217_132223.20 15.5 mgspc.spc in Resources */,
+				5540A8BB2F5CD077009D2826 /* File_260226_143634. Glycerin controlspc.spc in Resources */,
+				5540A8BC2F5CD077009D2826 /* File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A8BD2F5CD077009D2826 /* File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc in Resources */,
+				5540A8BE2F5CD077009D2826 /* File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A8BF2F5CD077009D2826 /* File_260226_153718. blank after incubationspc.spc in Resources */,
+				55D73FDE2F65F147008D8C49 /* Diagnostics1539.xlsx in Resources */,
+				5540A8C02F5CD077009D2826 /* File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc in Resources */,
+				5540A8C12F5CD077009D2826 /* File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A8C22F5CD077009D2826 /* File_260226_163245. project 24 after incubationspc.spc in Resources */,
+				5540A8C32F5CD077009D2826 /* File_260217_144628. 020426 14.5 mg after incubationspc.spc in Resources */,
+				5540A8C42F5CD077009D2826 /* File_260217_131335.020426 15.2 mgspc.spc in Resources */,
+				5540A8C52F5CD077009D2826 /* File_260226_155708. 20 in house formula after incubation spc.spc in Resources */,
+				5540A8C62F5CD077009D2826 /* File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc in Resources */,
+				5540A8C72F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc in Resources */,
+				5540A8C82F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc in Resources */,
+				5540A8C92F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		554A4F1F2F5CAC80007FC99A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5540A80E2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc in Resources */,
+				5540A80F2F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8102F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc in Resources */,
+				5540A8112F5CD077009D2826 /* File_260226_144246. 30 commercial formula spc.spc in Resources */,
+				5540A8122F5CD077009D2826 /* File_260217_131803. 24 15.8 mgspc.spc in Resources */,
+				5540A8132F5CD077009D2826 /* File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc in Resources */,
+				5540A8142F5CD077009D2826 /* File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc in Resources */,
+				5540A8152F5CD077009D2826 /* File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc in Resources */,
+				5540A8162F5CD077009D2826 /* File_260226_144710. 10 (rerun) in house formula spc.spc in Resources */,
+				5540A8172F5CD077009D2826 /* File_260226_155103. 10 (rerun) in house formula after incubationspc.spc in Resources */,
+				5540A8182F5CD077009D2826 /* File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc in Resources */,
+				5540A8192F5CD077009D2826 /* File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */,
+				5540A81A2F5CD077009D2826 /* File_260217_144323.Base 012726 15.1mg after incubationspc.spc in Resources */,
+				5540A81B2F5CD077009D2826 /* File_260226_145428. 20 in house formula spc.spc in Resources */,
+				5540A81C2F5CD077009D2826 /* File_260217_145524.20 14.5 mg after incubationspc.spc in Resources */,
+				5540A81D2F5CD077009D2826 /* File_260226_150121. project 26 spc.spc in Resources */,
+				5540A81E2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc in Resources */,
+				5540A81F2F5CD077009D2826 /* File_260226_154029. 50 commercial formula after incubation spc.spc in Resources */,
+				5540A8202F5CD077009D2826 /* File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc in Resources */,
+				5540A8212F5CD077009D2826 /* File_260226_155243. 10 (rerun) in house formula after incubation spc.spc in Resources */,
+				5540A8222F5CD077009D2826 /* File_260226_155540. 20 in house formula after incubation spc.spc in Resources */,
+				5540A8232F5CD077009D2826 /* File_260217_131031.Base 012726 15.1 mgspc.spc in Resources */,
+				5540A8242F5CD077009D2826 /* File_260226_143941. 50 commercial formula spc.spc in Resources */,
+				5540A8252F5CD077009D2826 /* File_260217_144455. 020426 15.2 mg after incubationspc.spc in Resources */,
+				5540A8262F5CD077009D2826 /* File_260226_150240. project 26 spc.spc in Resources */,
+				5540A8272F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc in Resources */,
+				5540A8282F5CD077009D2826 /* File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8292F5CD077009D2826 /* File_260226_150000. project 26 spc.spc in Resources */,
+				5540A82A2F5CD077009D2826 /* File_260217_131926.24 14.9 mfspc.spc in Resources */,
+				5540A82B2F5CD077009D2826 /* File_260217_144147.base 012726 15.1 mg after incubationspc.spc in Resources */,
+				5540A82C2F5CD077009D2826 /* File_260226_154631. 30 commercial formula after incubation spc.spc in Resources */,
+				5540A82D2F5CD077009D2826 /* File_260226_144844. 10 (rerun) in house formula spc.spc in Resources */,
+				5540A82E2F5CD077009D2826 /* File_260226_145551. Project 24 spc.spc in Resources */,
+				5540A82F2F5CD077009D2826 /* File_260217_144016.Base 012726 14.5 mg after incubationspc.spc in Resources */,
+				5540A8302F5CD077009D2826 /* File_260226_144118. 50 commercial formula spc.spc in Resources */,
+				5540A8312F5CD077009D2826 /* File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A8322F5CD077009D2826 /* File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A8332F5CD077009D2826 /* File_260226_154802. 30 commercial formula after incubationspc.spc in Resources */,
+				5540A8342F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc in Resources */,
+				5540A8352F5CD077009D2826 /* File_260217_132513.20 14.8 mgspc.spc in Resources */,
+				5540A8362F5CD077009D2826 /* File_260217_144943. 24 15.8 mf after incubationspc.spc in Resources */,
+				5540A8372F5CD077009D2826 /* File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8382F5CD077009D2826 /* File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc in Resources */,
+				5540A8392F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A83A2F5CD077009D2826 /* File_260226_154504. 30 commercial formula after incubation spc.spc in Resources */,
+				5540A83B2F5CD077009D2826 /* File_260217_145400.20 15.5 mg after incubationspc.spc in Resources */,
+				5540A83C2F5CD077009D2826 /* File_260226_144539. 30 commercial formula spc.spc in Resources */,
+				5540A83D2F5CD077009D2826 /* File_260226_154334. 50 commercial formula after incubation spc.spc in Resources */,
+				5540A83E2F5CD077009D2826 /* File_260226_163422. project 24 after incubation spc.spc in Resources */,
+				5540A83F2F5CD077009D2826 /* File_260217_145106. 24 14.9 mg after incubationspc.spc in Resources */,
+				5540A8402F5CD077009D2826 /* File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc in Resources */,
+				5540A8412F5CD077009D2826 /* File_260226_153844. Glycerin control after incubation spc.spc in Resources */,
+				5540A8422F5CD077009D2826 /* File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc in Resources */,
+				5540A8432F5CD077009D2826 /* File_260226_145013. 10 (rerun) in house formula spc.spc in Resources */,
+				5540A8442F5CD077009D2826 /* File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8452F5CD077009D2826 /* File_260217_145646. 20 14.8 mh after incubationspc.spc in Resources */,
+				5540A8462F5CD077009D2826 /* File_260217_145233. 24 14.5 mg after incubationspc.spc in Resources */,
+				5540A8472F5CD077009D2826 /* File_260217_131630.020426 15.5 mgspc.spc in Resources */,
+				5540A8482F5CD077009D2826 /* File_260226_154931. 10 (rerun) in house formula after incubation spc.spc in Resources */,
+				5540A8492F5CD077009D2826 /* File_260217_132056. 24 14.5 mgspc.spc in Resources */,
+				5540A84A2F5CD077009D2826 /* File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A84B2F5CD077009D2826 /* File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc in Resources */,
+				5540A84C2F5CD077009D2826 /* File_260217_132350.20 14.5 mgspc.spc in Resources */,
+				5540A84D2F5CD077009D2826 /* File_260226_155415. 20 in house formula after incubation spc.spc in Resources */,
+				5540A84E2F5CD077009D2826 /* File_260217_131509.020426 14.5 mgspc.spc in Resources */,
+				5540A84F2F5CD077009D2826 /* File_260217_131204.Base 012726 15.1 mgspc.spc in Resources */,
+				5540A8502F5CD077009D2826 /* File_260226_145303. 20 in house formula spc.spc in Resources */,
+				5540A8512F5CD077009D2826 /* File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */,
+				5540A8522F5CD077009D2826 /* File_260226_145714. project 24 spc.spc in Resources */,
+				5540A8532F5CD077009D2826 /* File_260226_144415. 30 commercial formula spc.spc in Resources */,
+				5540A8542F5CD077009D2826 /* File_260217_130904.Base 012726 14.5 mgspc.spc in Resources */,
+				5540A8552F5CD077009D2826 /* File_260226_143305. blank spc.spc in Resources */,
+				5540A8562F5CD077009D2826 /* File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc in Resources */,
+				5540A8572F5CD077009D2826 /* File_260226_145840. project 24 spc.spc in Resources */,
+				5540A8582F5CD077009D2826 /* File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8592F5CD077009D2826 /* File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc in Resources */,
+				5540A85A2F5CD077009D2826 /* File_260226_155835. project 24 after incubationspc.spc in Resources */,
+				5540A85B2F5CD077009D2826 /* File_260226_143812. 50 commercial formula spc.spc in Resources */,
+				5540A85C2F5CD077009D2826 /* File_260217_132223.20 15.5 mgspc.spc in Resources */,
+				5540A85D2F5CD077009D2826 /* File_260226_143634. Glycerin controlspc.spc in Resources */,
+				5540A85E2F5CD077009D2826 /* File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A85F2F5CD077009D2826 /* File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc in Resources */,
+				5540A8602F5CD077009D2826 /* File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A8612F5CD077009D2826 /* File_260226_153718. blank after incubationspc.spc in Resources */,
+				5540A8622F5CD077009D2826 /* File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc in Resources */,
+				5540A8632F5CD077009D2826 /* File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A8642F5CD077009D2826 /* File_260226_163245. project 24 after incubationspc.spc in Resources */,
+				5540A8652F5CD077009D2826 /* File_260217_144628. 020426 14.5 mg after incubationspc.spc in Resources */,
+				5540A8662F5CD077009D2826 /* File_260217_131335.020426 15.2 mgspc.spc in Resources */,
+				5540A8672F5CD077009D2826 /* File_260226_155708. 20 in house formula after incubation spc.spc in Resources */,
+				5540A8682F5CD077009D2826 /* File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc in Resources */,
+				5540A8692F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc in Resources */,
+				5540A86A2F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc in Resources */,
+				5540A86B2F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		554A4F292F5CAC80007FC99A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5540A8CA2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc in Resources */,
+				5540A8CB2F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8CC2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc in Resources */,
+				5540A8CD2F5CD077009D2826 /* File_260226_144246. 30 commercial formula spc.spc in Resources */,
+				5540A8CE2F5CD077009D2826 /* File_260217_131803. 24 15.8 mgspc.spc in Resources */,
+				5540A8CF2F5CD077009D2826 /* File_260217_143448.Neutragena 50 Zno2 +Tio2 14.9 mg after incubationspc.spc in Resources */,
+				5540A8D02F5CD077009D2826 /* File_260217_130228.Neutragena 30 zno+Tio2 15.2 mgspc.spc in Resources */,
+				5540A8D12F5CD077009D2826 /* File_260207_142044. CVS 50 15.2 mg tio2 zno2 combo after incubation spc.spc in Resources */,
+				5540A8D22F5CD077009D2826 /* File_260226_144710. 10 (rerun) in house formula spc.spc in Resources */,
+				5540A8D32F5CD077009D2826 /* File_260226_155103. 10 (rerun) in house formula after incubationspc.spc in Resources */,
+				5540A8D42F5CD077009D2826 /* File_260207_143105. cetaphil 40 15 mg tio2 zno2 combo after incubation spc.spc in Resources */,
+				5540A8D52F5CD077009D2826 /* File_260217_143819. Neutragena 50 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */,
+				5540A8D62F5CD077009D2826 /* File_260217_144323.Base 012726 15.1mg after incubationspc.spc in Resources */,
+				5540A8D72F5CD077009D2826 /* File_260226_145428. 20 in house formula spc.spc in Resources */,
+				5540A8D82F5CD077009D2826 /* File_260217_145524.20 14.5 mg after incubationspc.spc in Resources */,
+				5540A8D92F5CD077009D2826 /* File_260226_150121. project 26 spc.spc in Resources */,
+				5540A8DA2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc in Resources */,
+				5540A8DB2F5CD077009D2826 /* File_260226_154029. 50 commercial formula after incubation spc.spc in Resources */,
+				5540A8DC2F5CD077009D2826 /* File_260217_130543.Neutragena 50 Zno2 15.5 mgspc.spc in Resources */,
+				5540A8DD2F5CD077009D2826 /* File_260226_155243. 10 (rerun) in house formula after incubation spc.spc in Resources */,
+				5540A8DE2F5CD077009D2826 /* File_260226_155540. 20 in house formula after incubation spc.spc in Resources */,
+				5540A8DF2F5CD077009D2826 /* File_260217_131031.Base 012726 15.1 mgspc.spc in Resources */,
+				5540A8E02F5CD077009D2826 /* File_260226_143941. 50 commercial formula spc.spc in Resources */,
+				5540A8E12F5CD077009D2826 /* File_260217_144455. 020426 15.2 mg after incubationspc.spc in Resources */,
+				5540A8E22F5CD077009D2826 /* File_260226_150240. project 26 spc.spc in Resources */,
+				5540A8E32F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc in Resources */,
+				5540A8E42F5CD077009D2826 /* File_260207_132557. cerva 30 14.7 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8E52F5CD077009D2826 /* File_260226_150000. project 26 spc.spc in Resources */,
+				5540A8E62F5CD077009D2826 /* File_260217_131926.24 14.9 mfspc.spc in Resources */,
+				5540A8E72F5CD077009D2826 /* File_260217_144147.base 012726 15.1 mg after incubationspc.spc in Resources */,
+				5540A8E82F5CD077009D2826 /* File_260226_154631. 30 commercial formula after incubation spc.spc in Resources */,
+				5540A8E92F5CD077009D2826 /* File_260226_144844. 10 (rerun) in house formula spc.spc in Resources */,
+				5540A8EA2F5CD077009D2826 /* File_260226_145551. Project 24 spc.spc in Resources */,
+				5540A8EB2F5CD077009D2826 /* File_260217_144016.Base 012726 14.5 mg after incubationspc.spc in Resources */,
+				5540A8EC2F5CD077009D2826 /* File_260226_144118. 50 commercial formula spc.spc in Resources */,
+				5540A8ED2F5CD077009D2826 /* File_260207_143620. cerva 30 15 mf tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A8EE2F5CD077009D2826 /* File_260207_142535. CVS 50 14.5 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A8EF2F5CD077009D2826 /* File_260226_154802. 30 commercial formula after incubationspc.spc in Resources */,
+				5540A8F02F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc in Resources */,
+				5540A8F12F5CD077009D2826 /* File_260217_132513.20 14.8 mgspc.spc in Resources */,
+				5540A8F22F5CD077009D2826 /* File_260217_144943. 24 15.8 mf after incubationspc.spc in Resources */,
+				5540A8F32F5CD077009D2826 /* File_260207_132109. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8F42F5CD077009D2826 /* File_260217_130043.neutragena 30 Zno+Tio2 15.1 mgspc.spc in Resources */,
+				5540A8F52F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A8F62F5CD077009D2826 /* File_260226_154504. 30 commercial formula after incubation spc.spc in Resources */,
+				5540A8F72F5CD077009D2826 /* File_260217_145400.20 15.5 mg after incubationspc.spc in Resources */,
+				5540A8F82F5CD077009D2826 /* File_260226_144539. 30 commercial formula spc.spc in Resources */,
+				5540A8F92F5CD077009D2826 /* File_260226_154334. 50 commercial formula after incubation spc.spc in Resources */,
+				5540A8FA2F5CD077009D2826 /* File_260226_163422. project 24 after incubation spc.spc in Resources */,
+				5540A8FB2F5CD077009D2826 /* File_260217_145106. 24 14.9 mg after incubationspc.spc in Resources */,
+				5540A8FC2F5CD077009D2826 /* File_260207_143242. cetaphil 40 14.5 mg tio2 zno2 combo after incubation spc.spc in Resources */,
+				5540A8FD2F5CD077009D2826 /* File_260226_153844. Glycerin control after incubation spc.spc in Resources */,
+				5540A8FE2F5CD077009D2826 /* File_260217_130400.Neutragena 50 Zno2 14.9 mgspc.spc in Resources */,
+				5540A8FF2F5CD077009D2826 /* File_260226_145013. 10 (rerun) in house formula spc.spc in Resources */,
+				5540A9002F5CD077009D2826 /* File_260207_131603. cetaphil 40 14.5 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A9012F5CD077009D2826 /* File_260217_145646. 20 14.8 mh after incubationspc.spc in Resources */,
+				5540A9022F5CD077009D2826 /* File_260217_145233. 24 14.5 mg after incubationspc.spc in Resources */,
+				5540A9032F5CD077009D2826 /* File_260217_131630.020426 15.5 mgspc.spc in Resources */,
+				5540A9042F5CD077009D2826 /* File_260226_154931. 10 (rerun) in house formula after incubation spc.spc in Resources */,
+				5540A9052F5CD077009D2826 /* File_260217_132056. 24 14.5 mgspc.spc in Resources */,
+				5540A9062F5CD077009D2826 /* File_260207_131744. cetaphil 40 15 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A9072F5CD077009D2826 /* File_260217_143123.Neutragena 30 Zno2 + Tio2 15.1 mg after incubationspc.spc in Resources */,
+				5540A9082F5CD077009D2826 /* File_260217_132350.20 14.5 mgspc.spc in Resources */,
+				5540A9092F5CD077009D2826 /* File_260226_155415. 20 in house formula after incubation spc.spc in Resources */,
+				5540A90A2F5CD077009D2826 /* File_260217_131509.020426 14.5 mgspc.spc in Resources */,
+				5540A90B2F5CD077009D2826 /* File_260217_131204.Base 012726 15.1 mgspc.spc in Resources */,
+				5540A90C2F5CD077009D2826 /* File_260226_145303. 20 in house formula spc.spc in Resources */,
+				5540A90D2F5CD077009D2826 /* File_260217_143303.Neutragena 30 Zno2 + Tio2 15.2 mg after incubationspc.spc in Resources */,
+				5540A90E2F5CD077009D2826 /* File_260226_145714. project 24 spc.spc in Resources */,
+				5540A90F2F5CD077009D2826 /* File_260226_144415. 30 commercial formula spc.spc in Resources */,
+				5540A9102F5CD077009D2826 /* File_260217_130904.Base 012726 14.5 mgspc.spc in Resources */,
+				5540A9112F5CD077009D2826 /* File_260226_143305. blank spc.spc in Resources */,
+				5540A9122F5CD077009D2826 /* File_260217_142946.Neutragena 30 Zno2+Tio2 14.5 mg after incubationspc.spc in Resources */,
+				5540A9132F5CD077009D2826 /* File_260226_145840. project 24 spc.spc in Resources */,
+				5540A9142F5CD077009D2826 /* File_260207_132422. cerva 30 15 mg tio2 zno2 combo spc.spc in Resources */,
+				5540A9152F5CD077009D2826 /* File_260207_142931. cteaphil 40 14.5 mg tio2 zno2 combo after incubation.spc in Resources */,
+				5540A9162F5CD077009D2826 /* File_260226_155835. project 24 after incubationspc.spc in Resources */,
+				5540A9172F5CD077009D2826 /* File_260226_143812. 50 commercial formula spc.spc in Resources */,
+				5540A9182F5CD077009D2826 /* File_260217_132223.20 15.5 mgspc.spc in Resources */,
+				5540A9192F5CD077009D2826 /* File_260226_143634. Glycerin controlspc.spc in Resources */,
+				5540A91A2F5CD077009D2826 /* File_260207_142711. CVS 50 16.1 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A91B2F5CD077009D2826 /* File_260217_125906.Neutragena 30 Zno2+Tio2 14.5 mgspc.spc in Resources */,
+				5540A91C2F5CD077009D2826 /* File_260207_143438.cerva 30 a4.9 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A91D2F5CD077009D2826 /* File_260226_153718. blank after incubationspc.spc in Resources */,
+				5540A91E2F5CD077009D2826 /* File_260217_130716.Neutragena 50 Zno2 15.2 mgspc.spc in Resources */,
+				5540A91F2F5CD077009D2826 /* File_260207_143756. cerva 30 14.7 mg tio2 zno2 combo after incubationspc.spc in Resources */,
+				5540A9202F5CD077009D2826 /* File_260226_163245. project 24 after incubationspc.spc in Resources */,
+				5540A9212F5CD077009D2826 /* File_260217_144628. 020426 14.5 mg after incubationspc.spc in Resources */,
+				5540A9222F5CD077009D2826 /* File_260217_131335.020426 15.2 mgspc.spc in Resources */,
+				5540A9232F5CD077009D2826 /* File_260226_155708. 20 in house formula after incubation spc.spc in Resources */,
+				5540A9242F5CD077009D2826 /* File_260207_132249. cerva 30 14.9 mg tio2 zno2 combospc.spc in Resources */,
+				5540A9252F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc in Resources */,
+				5540A9262F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc in Resources */,
+				5540A9272F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		554A4F0D2F5CAC7E007FC99A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		554A4F1D2F5CAC80007FC99A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		554A4F272F5CAC80007FC99A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		554A4F232F5CAC80007FC99A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 554A4F102F5CAC7E007FC99A /* Shimadzu Data Analyser */;
+			targetProxy = 554A4F222F5CAC80007FC99A /* PBXContainerItemProxy */;
+		};
+		554A4F2D2F5CAC80007FC99A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 554A4F102F5CAC7E007FC99A /* Shimadzu Data Analyser */;
+			targetProxy = 554A4F2C2F5CAC80007FC99A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		554A4F352F5CAC80007FC99A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "Shimadzu Data Analyser.entitlements";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A45694H5ZG;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = YES;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = YES;
+				ENABLE_RESOURCE_ACCESS_USB = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "SPF Spectral Analyser";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zincoverde.SPFSpectralAnalyzer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "SPF Spectral Analyzer/SPF Spectral Analyzer-Bridging-Header.h";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		554A4F362F5CAC80007FC99A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "Shimadzu Data Analyser.entitlements";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A45694H5ZG;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = YES;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = YES;
+				ENABLE_RESOURCE_ACCESS_USB = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Config/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "SPF Spectral Analyser";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zincoverde.SPFSpectralAnalyzer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "SPF Spectral Analyzer/SPF Spectral Analyzer-Bridging-Header.h";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		554A4F372F5CAC80007FC99A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = A45694H5ZG;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		554A4F382F5CAC80007FC99A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = A45694H5ZG;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		554A4F3A2F5CAC80007FC99A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A45694H5ZG;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zincoverde.SPFSpectralAnalyzerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Shimadzu Data Analyser.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Shimadzu Data Analyser";
+			};
+			name = Debug;
+		};
+		554A4F3B2F5CAC80007FC99A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A45694H5ZG;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zincoverde.SPFSpectralAnalyzerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Shimadzu Data Analyser.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Shimadzu Data Analyser";
+			};
+			name = Release;
+		};
+		554A4F3D2F5CAC80007FC99A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A45694H5ZG;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zincoverde.SPFSpectralAnalyzerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = "Shimadzu Data Analyser";
+			};
+			name = Debug;
+		};
+		554A4F3E2F5CAC80007FC99A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = A45694H5ZG;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zincoverde.SPFSpectralAnalyzerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = "Shimadzu Data Analyser";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		554A4F0C2F5CAC7E007FC99A /* Build configuration list for PBXProject "Shimadzu Data Analyser" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				554A4F372F5CAC80007FC99A /* Debug */,
+				554A4F382F5CAC80007FC99A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		554A4F342F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data Analyser" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				554A4F352F5CAC80007FC99A /* Debug */,
+				554A4F362F5CAC80007FC99A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		554A4F392F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data AnalyserTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				554A4F3A2F5CAC80007FC99A /* Debug */,
+				554A4F3B2F5CAC80007FC99A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		554A4F3C2F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data AnalyserUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				554A4F3D2F5CAC80007FC99A /* Debug */,
+				554A4F3E2F5CAC80007FC99A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 554A4F092F5CAC7E007FC99A /* Project object */;
+}

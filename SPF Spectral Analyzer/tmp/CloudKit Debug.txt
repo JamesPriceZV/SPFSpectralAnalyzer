@@ -1,0 +1,48 @@
+CloudKit Debug
+Generated: Mar 13, 2026 at 10:08:32 AM
+
+[Connection]
+Container: iCloud.com.zincoverde.SPFSpectralAnalyzer
+Database Scope: private
+Store Mode: cloudKit
+Account Status: available
+Account Status Time: Mar 13, 2026 at 10:05:49 AM
+Subscription ID: spf.spectral.cloudkit.database
+Subscription Status: Subscription active
+Last Sync Reason: poll
+Last Poll Time: Mar 12, 2026 at 8:28:56 PM
+Last Push Time: (never)
+
+[Last Sync Details]
+Sync Start: Mar 12, 2026 at 8:28:56 PM
+Sync End: Mar 12, 2026 at 8:28:57 PM
+Sync Duration: 0.53 s
+Changes Detected: no
+More Coming: no
+Changed Zones: 0
+Deleted Zones: 0
+
+[Last Notification Payload]
+(none)
+
+[Last Change Token]
+<CKServerChangeToken: 0x9296bf090; data=AQAAAZzkmF7k>
+
+[Token Size]
+Archived Bytes: 253
+
+[Last Zone Changes]
+Changed Zones: (none)
+Deleted Zones: (none)
+
+[More Coming Timestamps]
+(none)
+
+[Partial Zone Errors]
+(none)
+
+[Zone Changes Fetch]
+Last Fetch Time: (never)
+More Coming: no
+Zone Fetch Errors: (none)
+Zone Token Sizes: (none)
