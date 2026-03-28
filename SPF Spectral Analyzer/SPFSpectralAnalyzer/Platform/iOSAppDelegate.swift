@@ -53,11 +53,10 @@ final class iOSAppDelegate: NSObject, UIApplicationDelegate {
 
     func application(
         _ application: UIApplication,
-        didReceiveRemoteNotification userInfo: [String: Any],
-        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
-    ) {
-        CloudKitSyncMonitor.shared.handleRemoteNotification(userInfo)
-        completionHandler(.newData)
+        didReceiveRemoteNotification userInfo: [AnyHashable: Any]
+    ) async -> UIBackgroundFetchResult {
+        CloudKitSyncMonitor.shared.handleRemoteNotification(userInfo as? [String: Any] ?? [:])
+        return .newData
     }
 }
 #endif

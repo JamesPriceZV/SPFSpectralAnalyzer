@@ -87,7 +87,11 @@ extension ContentView {
                         .foregroundColor(.orange)
                     if !analysis.warningDetails.isEmpty {
                         Button("Details") { showWarningDetails = true }
+                            #if os(macOS)
                             .buttonStyle(.link)
+                            #else
+                            .buttonStyle(.borderless)
+                            #endif
                     }
                 }
             }
@@ -97,7 +101,11 @@ extension ContentView {
                         .font(.caption)
                         .foregroundColor(.orange)
                     Button("View") { showInvalidDetails = true }
+                        #if os(macOS)
                         .buttonStyle(.link)
+                        #else
+                        .buttonStyle(.borderless)
+                        #endif
                 }
             }
             if !analysis.spectra.isEmpty {

@@ -3,10 +3,14 @@ import SwiftUI
 extension ContentView {
 
     var analysisPanel: some View {
+        regularAnalysisPanel
+    }
+
+    /// Full 3-pane layout for macOS and iPad regular width
+    private var regularAnalysisPanel: some View {
         platformHSplit {
             if !expandChart {
                 if datasetSidebarCollapsed {
-                    // Collapsed sidebar: just a narrow strip with expand button
                     VStack {
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) {
@@ -26,16 +30,28 @@ extension ContentView {
                     .cornerRadius(16)
                 } else {
                     leftPanel
+                        #if os(macOS)
                         .frame(minWidth: 240, idealWidth: 260, maxWidth: 320)
+                        #else
+                        .frame(minWidth: 200, idealWidth: 260, maxWidth: 320)
+                        #endif
                 }
             }
 
             centerPanel
+                #if os(macOS)
                 .frame(minWidth: 520, maxWidth: .infinity)
+                #else
+                .frame(minWidth: 300, maxWidth: .infinity)
+                #endif
 
             if !expandChart {
                 rightPanel
+                    #if os(macOS)
                     .frame(minWidth: 300, idealWidth: 320, maxWidth: 380)
+                    #else
+                    .frame(minWidth: 200, idealWidth: 280, maxWidth: 380)
+                    #endif
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -245,7 +261,11 @@ extension ContentView {
                     .foregroundColor(.secondary)
                 Spacer()
                 Button("View All") { showInvalidDetails = true }
+                    #if os(macOS)
                     .buttonStyle(.link)
+                    #else
+                    .buttonStyle(.borderless)
+                    #endif
             }
 
             let preview = Array(analysis.invalidItems.prefix(4))

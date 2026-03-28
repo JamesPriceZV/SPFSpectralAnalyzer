@@ -228,6 +228,26 @@ struct SettingsView: View {
         )
     }
 
+    private var settingsAreDirty: Bool {
+        draftAIEnabled != aiEnabled ||
+        draftTemperature != aiTemperature ||
+        draftMaxTokens != aiMaxTokens ||
+        draftPromptPresetRawValue != aiPromptPresetRawValue ||
+        draftAutoRun != aiAutoRun ||
+        draftDefaultScopeRawValue != aiDefaultScopeRawValue ||
+        draftProviderPreferenceRawValue != aiProviderPreferenceRawValue ||
+        draftOpenAIEndpoint != aiOpenAIEndpoint ||
+        draftOpenAIModel != aiOpenAIModel ||
+        draftDiagnosticsEnabled != aiDiagnosticsEnabled ||
+        draftStructuredOutputEnabled != aiStructuredOutputEnabled ||
+        draftClearLogsOnQuit != aiClearLogsOnQuit ||
+        draftSpfDisplayModeRawValue != spfDisplayModeRawValue ||
+        draftSpfEstimationOverrideRawValue != spfEstimationOverrideRawValue ||
+        draftSpfCalculationMethodRawValue != spfCalculationMethodRawValue ||
+        draftInstrumentationEnabled != instrumentationEnabled ||
+        draftInstrumentationEnhancedDiagnostics != instrumentationEnhancedDiagnostics
+    }
+
     private var resolvedOpenAIEndpointURL: URL? {
         let trimmed = draftOpenAIEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
@@ -387,11 +407,13 @@ struct SettingsView: View {
             return "No proxy settings detected"
         }
         let httpEnabled = (settings[kCFNetworkProxiesHTTPEnable as String] as? Int ?? 0) != 0
-        let httpsEnabled = (settings[kCFNetworkProxiesHTTPSEnable as String] as? Int ?? 0) != 0
         let httpProxy = settings[kCFNetworkProxiesHTTPProxy as String] as? String
         let httpPort = settings[kCFNetworkProxiesHTTPPort as String] as? Int
+        #if os(macOS)
+        let httpsEnabled = (settings[kCFNetworkProxiesHTTPSEnable as String] as? Int ?? 0) != 0
         let httpsProxy = settings[kCFNetworkProxiesHTTPSProxy as String] as? String
         let httpsPort = settings[kCFNetworkProxiesHTTPSPort as String] as? Int
+        #endif
         var parts: [String] = []
         if httpEnabled {
             if let httpProxy {
@@ -401,6 +423,7 @@ struct SettingsView: View {
                 parts.append("HTTP enabled")
             }
         }
+        #if os(macOS)
         if httpsEnabled {
             if let httpsProxy {
                 let portText = httpsPort.map { ":\($0)" } ?? ""
@@ -409,6 +432,7 @@ struct SettingsView: View {
                 parts.append("HTTPS enabled")
             }
         }
+        #endif
         return parts.isEmpty ? "No proxy enabled" : parts.joined(separator: " • ")
     }
 
@@ -416,7 +440,11 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 0) {
             Picker("", selection: $selectedSettingsTab) {
                 ForEach(SettingsTab.allCases) { tab in
+                    #if os(iOS)
+                    Image(systemName: tab.icon).tag(tab)
+                    #else
                     Label(tab.rawValue, systemImage: tab.icon).tag(tab)
+                    #endif
                 }
             }
             .pickerStyle(.segmented)
@@ -451,17 +479,33 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("C_factor")
+                                #if os(macOS)
                                 .frame(width: 130, alignment: .leading)
+                                #else
+                                .frame(minWidth: 80, alignment: .leading)
+                                #endif
                             TextField("e.g. 25.0", text: $draftSpfCFactor)
                                 .textFieldStyle(.roundedBorder)
+                                #if os(macOS)
                                 .frame(width: 100)
+                                #else
+                                .keyboardType(.decimalPad)
+                                #endif
                         }
                         HStack {
                             Text("Substrate Correction")
+                                #if os(macOS)
                                 .frame(width: 130, alignment: .leading)
+                                #else
+                                .frame(minWidth: 80, alignment: .leading)
+                                #endif
                             TextField("e.g. 1.0", text: $draftSpfSubstrateCorrection)
                                 .textFieldStyle(.roundedBorder)
+                                #if os(macOS)
                                 .frame(width: 100)
+                                #else
+                                .keyboardType(.decimalPad)
+                                #endif
                         }
                         Text("C_factor is the ratio of in-vivo SPF to in-vitro COLIPA value (typically 15–30). Substrate correction adjusts for the PMMA plate type. Both must be > 0 for Tier 1.")
                             .font(.caption)
@@ -474,10 +518,18 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("Multiplier")
+                                #if os(macOS)
                                 .frame(width: 130, alignment: .leading)
+                                #else
+                                .frame(minWidth: 80, alignment: .leading)
+                                #endif
                             TextField("1", text: $draftSpfAdjustmentFactor)
                                 .textFieldStyle(.roundedBorder)
+                                #if os(macOS)
                                 .frame(width: 100)
+                                #else
+                                .keyboardType(.decimalPad)
+                                #endif
                         }
                         Text("Multiplier applied to raw in-vitro SPF when correction factors and calibration are unavailable. Default is 1 (no adjustment). Set a value > 1 only if you have experimentally determined the ratio between in-vitro and in-vivo SPF for your instrument and substrate.")
                             .font(.caption)
@@ -549,6 +601,48 @@ struct SettingsView: View {
                         }
                     }
 
+                    #if os(iOS)
+                    // iOS: stack buttons vertically for better fit
+                    HStack(spacing: 12) {
+                        Button("Save Key") {
+                            saveAPIKey()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                        .disabled(apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        Button("Clear") {
+                            clearAPIKey()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(!hasStoredAPIKey)
+
+                        Button("Test") {
+                            Task { await testOpenAIConnection() }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(resolvedOpenAIEndpointURL == nil || !hasStoredAPIKey)
+
+                        Spacer()
+                    }
+
+                    HStack(spacing: 6) {
+                        Image(systemName: hasStoredAPIKey ? "checkmark.circle.fill" : "xmark.circle")
+                            .foregroundColor(hasStoredAPIKey ? .green : .secondary)
+                            .font(.caption)
+                        Text(hasStoredAPIKey ? "Key stored" : "No key stored")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    if openAITestBadgeText != "Not tested" {
+                        Text(openAITestBadgeText)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    #else
                     HStack {
                         Button("Save API Key") {
                             saveAPIKey()
@@ -575,9 +669,20 @@ struct SettingsView: View {
 
                         Spacer()
                     }
+                    #endif
 
                     Divider()
 
+                    #if os(iOS)
+                    Button {
+                        showOpenAIKeyBrowser = true
+                    } label: {
+                        Label("Get API Key from OpenAI", systemImage: "globe")
+                    }
+                    Text("Opens the OpenAI platform in-app to create or copy your API key.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    #else
                     HStack {
                         Button {
                             showOpenAIKeyBrowser = true
@@ -588,6 +693,7 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
+                    #endif
                 }
             }
             .sheet(isPresented: $showOpenAIKeyBrowser) {
@@ -689,7 +795,11 @@ struct SettingsView: View {
                         icloudSyncEnabled = true
                         dataStoreController.setCloudSyncEnabled(true)
                     }
+                    #if os(macOS)
                     .buttonStyle(.link)
+                    #else
+                    .buttonStyle(.borderless)
+                    #endif
                     .accessibilityIdentifier("retryCloudKitButton")
                 }
 
@@ -835,7 +945,11 @@ struct SettingsView: View {
                 Button("Show CloudKit Debug") {
                     showICloudDebugPanel.toggle()
                 }
+                #if os(macOS)
                 .buttonStyle(.link)
+                #else
+                .buttonStyle(.borderless)
+                #endif
                 #endif
 
                 Toggle("Automatic backups", isOn: $icloudAutoBackupEnabled)
@@ -973,7 +1087,11 @@ struct SettingsView: View {
                     Button("Reset to Default") {
                         draftAIResponseTextSize = 18.0
                     }
+                    #if os(macOS)
                     .buttonStyle(.link)
+                    #else
+                    .buttonStyle(.borderless)
+                    #endif
                     Spacer()
                 }
             }
@@ -1069,10 +1187,16 @@ struct SettingsView: View {
 
             }
             .formStyle(.grouped)
+            #if os(iOS)
+            .scrollDismissesKeyboard(.interactively)
+            #endif
+            #if os(macOS)
             .padding(20)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .scrollIndicators(.visible)
+            #endif
 
+            #if os(macOS)
             Divider()
 
             HStack {
@@ -1080,6 +1204,7 @@ struct SettingsView: View {
                 Button("Apply") {
                     applyDraft()
                 }
+                .disabled(!settingsAreDirty)
                 Button("Save") {
                     applyDraft()
                     dismiss()
@@ -1090,13 +1215,27 @@ struct SettingsView: View {
             }
             .padding(20)
             .background(.regularMaterial)
+            #endif
         }
+        #if os(iOS)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Apply") {
+                    applyDraft()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!settingsAreDirty)
+            }
+        }
+        #endif
         #if DEBUG
         .sheet(isPresented: $showICloudDebugPanel) {
             CloudKitDebugPanel()
         }
         #endif
+        #if os(macOS)
         .frame(minWidth: 560, minHeight: 640)
+        #endif
         .onAppear {
             loadDraft()
             Task {
@@ -1590,7 +1729,23 @@ private struct CloudKitDebugPanel: View {
             HStack {
                 Text("CloudKit Debug")
                     .font(.title2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Spacer()
+                #if os(iOS)
+                Button("Copy", systemImage: "doc.on.doc") {
+                    copyDebugInfo()
+                }
+                .labelStyle(.iconOnly)
+                Button("Save", systemImage: "square.and.arrow.down") {
+                    exportDebugInfo()
+                }
+                .labelStyle(.iconOnly)
+                Button("Close", systemImage: "xmark.circle.fill") {
+                    dismiss()
+                }
+                .labelStyle(.iconOnly)
+                #else
                 Button("Copy") {
                     copyDebugInfo()
                 }
@@ -1600,6 +1755,7 @@ private struct CloudKitDebugPanel: View {
                 Button("Close") {
                     dismiss()
                 }
+                #endif
             }
 
             ScrollView {
@@ -1709,8 +1865,12 @@ private struct CloudKitDebugPanel: View {
                 .padding(.vertical, 4)
             }
         }
+        #if os(macOS)
         .padding(20)
         .frame(minWidth: 560, minHeight: 520)
+        #else
+        .padding(16)
+        #endif
     }
 
     private func formattedTimestamp(_ value: Double) -> String {
@@ -1863,14 +2023,24 @@ private struct CloudKitDebugPanel: View {
         return formatter.string(fromByteCount: Int64(bytes))
     }
 
+    #if os(iOS)
+    private let debugFont: Font = .system(.caption, design: .monospaced)
+    #else
+    private let debugFont: Font = .system(.body, design: .monospaced)
+    #endif
+
     @ViewBuilder
     private func debugLine(label: String, value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(label + ":")
-                .font(.system(.body, design: .monospaced))
+                .font(debugFont)
                 .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
             Text(value)
-                .font(.system(.body, design: .monospaced))
+                .font(debugFont)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
         }
     }
 
@@ -1878,10 +2048,10 @@ private struct CloudKitDebugPanel: View {
     private func debugMultiline(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label + ":")
-                .font(.system(.body, design: .monospaced))
+                .font(debugFont)
                 .foregroundColor(.secondary)
             Text(value.isEmpty ? "(none)" : value)
-                .font(.system(.body, design: .monospaced))
+                .font(debugFont)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

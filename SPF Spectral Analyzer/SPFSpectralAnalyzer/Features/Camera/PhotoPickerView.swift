@@ -10,10 +10,13 @@ struct PhotoPickerView: View {
     @State private var selectedImage: UIImage?
     @State private var analysisResult: ColorAnalysisResult?
     @State private var isAnalyzing = false
+    @State private var isPickerPresented = false
 
     var body: some View {
         VStack(spacing: 16) {
-            PhotosPicker(selection: $selectedItem, matching: .images) {
+            Button {
+                isPickerPresented = true
+            } label: {
                 if let image = selectedImage {
                     Image(uiImage: image)
                         .resizable()
@@ -26,6 +29,7 @@ struct PhotoPickerView: View {
                         description: Text("Tap to choose a photo of a PMMA plate or sunscreen sample"))
                 }
             }
+            .photosPicker(isPresented: $isPickerPresented, selection: $selectedItem, matching: .images)
 
             if isAnalyzing {
                 ProgressView("Analyzing…")

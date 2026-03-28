@@ -23,6 +23,53 @@ extension ContentView {
         VStack(alignment: .leading, spacing: 8) {
             Text("Quick Reports")
                 .font(.headline)
+
+            #if os(iOS)
+            VStack(spacing: 10) {
+                Button {
+                    let options = ExportOptions(
+                        title: exportTitle,
+                        operatorName: exportOperator,
+                        notes: exportNotes,
+                        includeProcessing: exportIncludeProcessing,
+                        includeMetadata: exportIncludeMetadata
+                    )
+                    exportPDFReport(options: options)
+                } label: {
+                    Label("Export PDF Report", systemImage: "doc.richtext")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("exportPDFButton")
+                .disabled(displayedSpectra.isEmpty)
+
+                Button {
+                    let options = ExportOptions(
+                        title: exportTitle,
+                        operatorName: exportOperator,
+                        notes: exportNotes,
+                        includeProcessing: exportIncludeProcessing,
+                        includeMetadata: exportIncludeMetadata
+                    )
+                    exportHTMLReport(options: options)
+                } label: {
+                    Label("Export HTML Report", systemImage: "globe")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.indigo)
+                .accessibilityIdentifier("exportHTMLButton")
+                .disabled(displayedSpectra.isEmpty)
+
+                ShareButton(
+                    items: [analysis.displayedSpectra.map { $0.name }.joined(separator: "\n")],
+                    label: "Share Summary",
+                    systemImage: "square.and.arrow.up"
+                )
+                .buttonStyle(.bordered)
+                .disabled(displayedSpectra.isEmpty)
+            }
+            #else
             HStack(spacing: 12) {
                 Button("Export PDF Report") {
                     let options = ExportOptions(
@@ -58,13 +105,18 @@ extension ContentView {
                 .disabled(displayedSpectra.isEmpty)
             }
             .glassButtonStyle(isProminent: true)
+            #endif
 
             Text("Includes charts, metrics, and AI recommendations when available.")
                 .font(.caption2)
                 .foregroundColor(.secondary)
         }
         .padding(12)
+        #if os(macOS)
         .background(panelBackground)
+        #else
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
+        #endif
         .cornerRadius(12)
     }
 

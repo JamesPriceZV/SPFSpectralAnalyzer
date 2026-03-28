@@ -6,11 +6,19 @@ extension ContentView {
         platformHSplit {
             // MARK: Left Pane — Import & Stored Datasets
             importPanelLeftPane
+                #if os(macOS)
                 .frame(minWidth: 420, idealWidth: 520, maxWidth: 680)
+                #else
+                .frame(maxWidth: .infinity)
+                #endif
 
             // MARK: Right Pane — Validation Log & Recent Imports
             importPanelRightPane
+                #if os(macOS)
                 .frame(minWidth: 280, maxWidth: .infinity)
+                #else
+                .frame(maxWidth: .infinity)
+                #endif
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(16)
@@ -150,8 +158,10 @@ extension ContentView {
 
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 8) {
-                            ForEach(datasets.filteredStoredDatasets(from: storedDatasets)) { dataset in
-                                storedDatasetRow(dataset)
+                            let datasetIDs = storedDatasets.map(\.id)
+                            let filteredIDs = datasets.filteredDatasetIDs(from: datasetIDs)
+                            ForEach(filteredIDs, id: \.self) { datasetID in
+                                storedDatasetRow(datasetID)
                             }
                         }
                         .padding(.horizontal, 12)
@@ -182,15 +192,27 @@ extension ContentView {
                             Button("Copy") {
                                 copyValidationLog()
                             }
+                            #if os(macOS)
                             .buttonStyle(.link)
+                            #else
+                            .buttonStyle(.borderless)
+                            #endif
                             Button("Save Log…") {
                                 saveValidationLogToFile()
                             }
+                            #if os(macOS)
                             .buttonStyle(.link)
+                            #else
+                            .buttonStyle(.borderless)
+                            #endif
                             Button("Clear") {
                                 analysis.validationLogEntries.removeAll()
                             }
+                            #if os(macOS)
                             .buttonStyle(.link)
+                            #else
+                            .buttonStyle(.borderless)
+                            #endif
                         }
 
                         ScrollView {
@@ -220,7 +242,7 @@ extension ContentView {
                         Text("Recent Imports")
                             .font(.headline)
                         LazyVStack(alignment: .leading, spacing: 8) {
-                            ForEach(displayedSpectra.prefix(12).indices, id: \.self) { index in
+                            ForEach(Array(displayedSpectra.prefix(12).enumerated()), id: \.offset) { index, _ in
                                 spectrumRow(for: index)
                             }
                         }
@@ -301,8 +323,10 @@ extension ContentView {
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(datasets.filteredStoredDatasets(from: storedDatasets)) { dataset in
-                            storedDatasetPickerRow(dataset)
+                        let pickerIDs = storedDatasets.map(\.id)
+                        let filteredPickerIDs = datasets.filteredDatasetIDs(from: pickerIDs)
+                        ForEach(filteredPickerIDs, id: \.self) { datasetID in
+                            storedDatasetPickerRow(datasetID)
                         }
                     }
                     .padding(.vertical, 4)
@@ -372,8 +396,10 @@ extension ContentView {
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(datasets.filteredArchivedDatasets(from: archivedDatasets)) { dataset in
-                            archivedDatasetRow(dataset)
+                        let archivedIDs = archivedDatasets.map(\.id)
+                        let filteredArchivedIDs = datasets.filteredArchivedDatasetIDs(from: archivedIDs)
+                        ForEach(filteredArchivedIDs, id: \.self) { datasetID in
+                            archivedDatasetRow(datasetID)
                         }
                     }
                     .padding(.vertical, 4)
@@ -428,18 +454,18 @@ extension ContentView {
         .frame(minWidth: 420)
     }
 
-    func storedDatasetRow(_ dataset: StoredDataset) -> some View {
+    func storedDatasetRow(_ datasetID: UUID) -> some View {
         // Read all display data from the snapshot cache to avoid touching SwiftData
         // model properties, which can be invalidated by CloudKit sync mid-render.
-        let record = datasets.searchableRecordCache[dataset.id]
-        let isSelected = datasets.selectedStoredDatasetIDs.contains(dataset.id)
+        let record = datasets.searchableRecordCache[datasetID]
+        let isSelected = datasets.selectedStoredDatasetIDs.contains(datasetID)
         let spectrumCount = record?.spectrumCount ?? 0
         let dataSetCount = record?.dataSetNames.count ?? 0
         let detail = dataSetCount > 0
             ? "\(spectrumCount) spectra • \(dataSetCount) datasets"
             : "\(spectrumCount) spectra"
         let dateLabel = DatasetViewModel.storedDateFormatter.string(from: record?.importedAt ?? Date())
-        let displayName = record?.fileName ?? dataset.id.uuidString
+        let displayName = record?.fileName ?? datasetID.uuidString
         let isRef = record?.isReference ?? false
         let isProt = record?.isPrototype ?? false
         let spfValue = record?.knownInVivoSPF
@@ -451,9 +477,9 @@ extension ContentView {
 
         return Button {
             if isSelected {
-                datasets.selectedStoredDatasetIDs.remove(dataset.id)
+                datasets.selectedStoredDatasetIDs.remove(datasetID)
             } else {
-                datasets.selectedStoredDatasetIDs.insert(dataset.id)
+                datasets.selectedStoredDatasetIDs.insert(datasetID)
             }
         } label: {
             HStack(spacing: 8) {
@@ -514,7 +540,7 @@ extension ContentView {
         .buttonStyle(.plain)
         .contextMenu {
             Button {
-                datasets.pendingRoleDatasetID = dataset.id
+                datasets.pendingRoleDatasetID = datasetID
                 datasets.pendingKnownSPF = spfValue ?? 30.0
                 datasets.showReferenceSpfSheet = true
             } label: {
@@ -523,18 +549,18 @@ extension ContentView {
             Button {
                 let isHDRS = (SPFCalculationMethod(rawValue: spfCalculationMethodRawValue) ?? .colipa) == .iso23675
                 if isHDRS {
-                    datasets.pendingRoleDatasetID = dataset.id
+                    datasets.pendingRoleDatasetID = datasetID
                     datasets.pendingHDRSPlateType = .moulded
                     datasets.showSamplePlateTypeSheet = true
                 } else {
-                    datasets.setDatasetRole(.prototype, knownInVivoSPF: nil, for: dataset.id, storedDatasets: storedDatasets)
+                    datasets.setDatasetRole(.prototype, knownInVivoSPF: nil, for: datasetID, storedDatasets: storedDatasets)
                 }
             } label: {
                 Label("Set as Prototype Sample", systemImage: "flask.fill")
             }
             Divider()
             Button {
-                datasets.pendingInstrumentAssignDatasetID = dataset.id
+                datasets.pendingInstrumentAssignDatasetID = datasetID
                 datasets.showAssignInstrumentSheet = true
             } label: {
                 Label("Assign Instrument...", systemImage: "cpu")
@@ -542,7 +568,7 @@ extension ContentView {
             if hasRole {
                 Divider()
                 Button(role: .destructive) {
-                    datasets.setDatasetRole(nil, knownInVivoSPF: nil, for: dataset.id, storedDatasets: storedDatasets)
+                    datasets.setDatasetRole(nil, knownInVivoSPF: nil, for: datasetID, storedDatasets: storedDatasets)
                 } label: {
                     Label("Clear Role", systemImage: "xmark.circle")
                 }
@@ -550,24 +576,24 @@ extension ContentView {
         }
     }
 
-    func archivedDatasetRow(_ dataset: StoredDataset) -> some View {
+    func archivedDatasetRow(_ datasetID: UUID) -> some View {
         // Read all display data from the snapshot cache to avoid touching SwiftData
         // model properties, which can be invalidated by CloudKit sync mid-render.
-        let record = datasets.archivedSearchableRecordCache[dataset.id]
-        let isSelected = datasets.archivedDatasetSelection.contains(dataset.id)
+        let record = datasets.archivedSearchableRecordCache[datasetID]
+        let isSelected = datasets.archivedDatasetSelection.contains(datasetID)
         let spectrumCount = record?.spectrumCount ?? 0
         let dataSetCount = record?.dataSetNames.count ?? 0
         let detail = dataSetCount > 0
             ? "\(spectrumCount) spectra • \(dataSetCount) datasets"
             : "\(spectrumCount) spectra"
         let archivedLabel = record?.archivedAt.map { DatasetViewModel.storedDateFormatter.string(from: $0) } ?? "Unknown"
-        let displayName = record?.fileName ?? dataset.id.uuidString
+        let displayName = record?.fileName ?? datasetID.uuidString
 
         return Button {
             if isSelected {
-                datasets.archivedDatasetSelection.remove(dataset.id)
+                datasets.archivedDatasetSelection.remove(datasetID)
             } else {
-                datasets.archivedDatasetSelection.insert(dataset.id)
+                datasets.archivedDatasetSelection.insert(datasetID)
             }
         } label: {
             HStack(spacing: 8) {
@@ -595,13 +621,13 @@ extension ContentView {
         .buttonStyle(.plain)
     }
 
-    func storedDatasetPickerRow(_ dataset: StoredDataset) -> some View {
+    func storedDatasetPickerRow(_ datasetID: UUID) -> some View {
         // Read display data from cache to avoid touching SwiftData model properties.
-        let record = datasets.searchableRecordCache[dataset.id]
-        let isSelected = datasets.storedDatasetPickerSelection.contains(dataset.id)
+        let record = datasets.searchableRecordCache[datasetID]
+        let isSelected = datasets.storedDatasetPickerSelection.contains(datasetID)
         let spectrumCount = record?.spectrumCount ?? 0
         let dataSetCount = record?.dataSetNames.count ?? 0
-        let displayName = record?.fileName ?? dataset.id.uuidString
+        let displayName = record?.fileName ?? datasetID.uuidString
         let isRef = record?.isReference ?? false
         let isProt = record?.isPrototype ?? false
         let spfValue = record?.knownInVivoSPF
@@ -627,9 +653,9 @@ extension ContentView {
         return HStack(spacing: 10) {
             Button {
                 if isSelected {
-                    datasets.storedDatasetPickerSelection.remove(dataset.id)
+                    datasets.storedDatasetPickerSelection.remove(datasetID)
                 } else {
-                    datasets.storedDatasetPickerSelection.insert(dataset.id)
+                    datasets.storedDatasetPickerSelection.insert(datasetID)
                 }
             } label: {
                 HStack(spacing: 10) {
@@ -682,18 +708,25 @@ extension ContentView {
             Spacer(minLength: 8)
 
             Button("Show Details") {
-                datasets.datasetDetailPopoverID = dataset.id
+                datasets.datasetDetailPopoverID = datasetID
             }
+            #if os(macOS)
             .buttonStyle(.link)
+            #else
+            .buttonStyle(.borderless)
+            #endif
             .popover(isPresented: Binding(
-                get: { datasets.datasetDetailPopoverID == dataset.id },
+                get: { datasets.datasetDetailPopoverID == datasetID },
                 set: { isPresented in
                     if !isPresented { datasets.datasetDetailPopoverID = nil }
                 }
             )) {
                 // Decode metadata on-demand only when the popover is opened.
-                // This is acceptable because it's user-initiated, not during scroll rendering.
-                let metadata = datasets.decodedMetadata(for: dataset)
+                // Look up the model object by ID — safe here since it's user-initiated.
+                let metadata: ShimadzuSPCMetadata? = {
+                    guard let ds = storedDatasets.first(where: { $0.id == datasetID }) else { return nil }
+                    return datasets.decodedMetadata(for: ds)
+                }()
                 let metadataLines = metadataDetailLines(metadata)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {

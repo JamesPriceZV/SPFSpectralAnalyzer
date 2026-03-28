@@ -4,18 +4,15 @@ extension ContentView {
 
     var overlayControls: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                Toggle("All Spectra", isOn: $analysis.showAllSpectra)
-                    .toggleStyle(.switch)
-                Toggle("Selected Only", isOn: $analysis.showSelectedOnly)
-                    .toggleStyle(.switch)
-                Toggle("Average", isOn: $analysis.showAverage)
-                    .toggleStyle(.switch)
-                Toggle("Legend", isOn: $analysis.showLegend)
-                    .toggleStyle(.switch)
-                Toggle("Labels", isOn: $analysis.showLabels)
-                    .toggleStyle(.switch)
+            #if os(iOS)
+            if horizontalSizeClass == .compact {
+                compactOverlayToggles
+            } else {
+                regularOverlayToggles
             }
+            #else
+            regularOverlayToggles
+            #endif
 
             if !analysis.invalidItems.isEmpty {
                 HStack(spacing: 12) {
@@ -28,31 +25,15 @@ extension ContentView {
                 }
             }
 
-            HStack(spacing: 12) {
-                Text("Y Axis")
-                Picker("Y Axis", selection: $analysis.yAxisMode) {
-                    ForEach(SpectralYAxisMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Text("Palette")
-                Picker("Palette", selection: $analysis.palette) {
-                    ForEach(SpectrumPalette.allCases) { value in
-                        Text(value.rawValue).tag(value)
-                    }
-                }
-                .frame(width: 160)
-
-                if analysis.showAllSpectra {
-                    Text("Overlay")
-                    Stepper(value: $analysis.overlayLimit, in: 1...200, step: 1) {
-                        Text("\(analysis.overlayLimit)")
-                            .frame(width: 40, alignment: .leading)
-                    }
-                }
+            #if os(iOS)
+            if horizontalSizeClass == .compact {
+                compactOverlayPickers
+            } else {
+                regularOverlayPickers
             }
+            #else
+            regularOverlayPickers
+            #endif
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 12) {
@@ -73,6 +54,103 @@ extension ContentView {
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .frame(width: 70, alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    // MARK: - Overlay Controls Variants
+
+    private var regularOverlayToggles: some View {
+        HStack(spacing: 12) {
+            Toggle("All Spectra", isOn: $analysis.showAllSpectra)
+                .toggleStyle(.switch)
+            Toggle("Selected Only", isOn: $analysis.showSelectedOnly)
+                .toggleStyle(.switch)
+            Toggle("Average", isOn: $analysis.showAverage)
+                .toggleStyle(.switch)
+            Toggle("Legend", isOn: $analysis.showLegend)
+                .toggleStyle(.switch)
+            Toggle("Labels", isOn: $analysis.showLabels)
+                .toggleStyle(.switch)
+        }
+    }
+
+    private var compactOverlayToggles: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                Toggle("All", isOn: $analysis.showAllSpectra)
+                    .toggleStyle(.switch)
+                Toggle("Selected", isOn: $analysis.showSelectedOnly)
+                    .toggleStyle(.switch)
+                Toggle("Avg", isOn: $analysis.showAverage)
+                    .toggleStyle(.switch)
+            }
+            HStack(spacing: 12) {
+                Toggle("Legend", isOn: $analysis.showLegend)
+                    .toggleStyle(.switch)
+                Toggle("Labels", isOn: $analysis.showLabels)
+                    .toggleStyle(.switch)
+            }
+        }
+    }
+
+    private var regularOverlayPickers: some View {
+        HStack(spacing: 12) {
+            Text("Y Axis")
+            Picker("Y Axis", selection: $analysis.yAxisMode) {
+                ForEach(SpectralYAxisMode.allCases) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Text("Palette")
+            Picker("Palette", selection: $analysis.palette) {
+                ForEach(SpectrumPalette.allCases) { value in
+                    Text(value.rawValue).tag(value)
+                }
+            }
+            .frame(width: 160)
+
+            if analysis.showAllSpectra {
+                Text("Overlay")
+                Stepper(value: $analysis.overlayLimit, in: 1...200, step: 1) {
+                    Text("\(analysis.overlayLimit)")
+                        .frame(width: 40, alignment: .leading)
+                }
+            }
+        }
+    }
+
+    private var compactOverlayPickers: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Y Axis").font(.caption).foregroundColor(.secondary)
+                Picker("Y Axis", selection: $analysis.yAxisMode) {
+                    ForEach(SpectralYAxisMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+
+            HStack(spacing: 12) {
+                Text("Palette")
+                Picker("Palette", selection: $analysis.palette) {
+                    ForEach(SpectrumPalette.allCases) { value in
+                        Text(value.rawValue).tag(value)
+                    }
+                }
+            }
+
+            if analysis.showAllSpectra {
+                HStack(spacing: 8) {
+                    Text("Overlay")
+                    Stepper(value: $analysis.overlayLimit, in: 1...200, step: 1) {
+                        Text("\(analysis.overlayLimit)")
+                            .frame(width: 40, alignment: .leading)
+                    }
                 }
             }
         }

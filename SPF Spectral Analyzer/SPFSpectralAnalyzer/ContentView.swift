@@ -18,6 +18,9 @@ struct ContentView: View {
     @Environment(\.undoManager) var undoManager
     @Environment(\.modelContext) var modelContext
     @Environment(\.openWindow) var openWindow
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    #endif
     @Query(
         filter: #Predicate<StoredDataset> { !$0.isArchived },
         sort: \StoredDataset.importedAt,
@@ -156,15 +159,19 @@ struct ContentView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
                 }
+                #if os(macOS)
                 if appMode == .dataManagement {
                     compactSyncStatusBar
                         .padding(.horizontal, 16)
                         .padding(.top, 6)
                 }
+                #endif
                 contentArea
+                #if os(macOS)
                 if showBottomTray {
                     bottomTray
                 }
+                #endif
             }
         }
         .onAppear {
@@ -278,38 +285,63 @@ struct ContentView: View {
     @ViewBuilder
     var contentArea: some View {
         TabView(selection: $appMode) {
-            importPanel
-                .tabItem {
-                    Label("Data Management", systemImage: "folder.badge.gearshape")
-                }
-                .tag(AppMode.dataManagement)
-
-            analysisPanel
-                .tabItem {
-                    Label("Analysis", systemImage: "waveform.path.ecg")
-                }
-                .tag(AppMode.analyze)
-
             #if os(iOS)
-            SpectralCameraView()
-                .tabItem {
-                    Label("Camera", systemImage: "camera.fill")
-                }
-                .tag(AppMode.camera)
-            #endif
+            Tab("Data", systemImage: "folder.badge.gearshape", value: AppMode.dataManagement) {
+                iOSDataManagementView(
+                    analysis: analysis,
+                    datasets: datasets,
+                    appMode: $appMode
+                )
+            }
 
-            exportPanel
-                .tabItem {
-                    Label("Reporting", systemImage: "doc.text.magnifyingglass")
-                }
-                .tag(AppMode.reporting)
+            Tab("Analysis", systemImage: "waveform.path.ecg", value: AppMode.analyze) {
+                iOSAnalysisView(
+                    analysis: analysis,
+                    datasets: datasets,
+                    aiVM: aiVM,
+                    runAI: { self.runAIAnalysis() }
+                )
+            }
+
+            Tab("Camera", systemImage: "camera.fill", value: AppMode.camera) {
+                SpectralCameraView()
+            }
+
+            Tab("Reporting", systemImage: "doc.text.magnifyingglass", value: AppMode.reporting) {
+                exportPanel
+            }
+
+            Tab("Settings", systemImage: "gearshape", value: AppMode.settings) {
+                settingsPanel
+            }
+            #else
+            Tab("Data Management", systemImage: "folder.badge.gearshape", value: AppMode.dataManagement) {
+                importPanel
+            }
+
+            Tab("Analysis", systemImage: "waveform.path.ecg", value: AppMode.analyze) {
+                analysisPanel
+            }
+
+            Tab("Reporting", systemImage: "doc.text.magnifyingglass", value: AppMode.reporting) {
+                exportPanel
+            }
+            #endif
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     var settingsPanel: some View {
+        #if os(iOS)
+        NavigationStack {
+            SettingsView()
+                .navigationTitle("Settings")
+                .navigationBarTitleDisplayMode(.inline)
+        }
+        #else
         SettingsView()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        #endif
     }
 
     // MARK: - SPF Helpers

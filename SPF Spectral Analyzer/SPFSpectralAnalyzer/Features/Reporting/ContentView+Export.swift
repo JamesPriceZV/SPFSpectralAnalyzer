@@ -235,12 +235,22 @@ extension ContentView {
 
     func exportPDFReport(options: ExportOptions) {
         let reportData = buildPDFReportData(options: options)
-        guard let url = savePanel(defaultName: "Analysis Report.pdf", allowedTypes: [UTType.pdf], directoryKey: .analysisExports) else { return }
-
         let started = Date()
         Instrumentation.log("Export PDF started", area: .export, level: .info)
-
         let data = PDFReportRenderer.render(data: reportData)
+
+        #if os(iOS)
+        Task { @MainActor in
+            let _ = await PlatformFileSaver.save(
+                defaultName: "Analysis Report.pdf",
+                allowedTypes: [UTType.pdf],
+                data: data
+            )
+            let duration = Date().timeIntervalSince(started)
+            Instrumentation.log("Export PDF completed", area: .export, level: .info, duration: duration)
+        }
+        #else
+        guard let url = savePanel(defaultName: "Analysis Report.pdf", allowedTypes: [UTType.pdf], directoryKey: .analysisExports) else { return }
         do {
             try data.write(to: url)
             let duration = Date().timeIntervalSince(started)
@@ -249,15 +259,27 @@ extension ContentView {
             Instrumentation.log("Export PDF failed", area: .export, level: .error, details: "error=\(error.localizedDescription)")
             analysis.errorMessage = "Failed to export PDF: \(error.localizedDescription)"
         }
+        #endif
     }
 
     func exportHTMLReport(options: ExportOptions) {
         let html = buildHTMLReport(options: options)
-        guard let url = savePanel(defaultName: "Analysis Report.html", allowedTypes: [UTType.html], directoryKey: .analysisExports) else { return }
-
         let started = Date()
         Instrumentation.log("Export HTML started", area: .export, level: .info)
 
+        #if os(iOS)
+        guard let data = html.data(using: .utf8) else { return }
+        Task { @MainActor in
+            let _ = await PlatformFileSaver.save(
+                defaultName: "Analysis Report.html",
+                allowedTypes: [UTType.html],
+                data: data
+            )
+            let duration = Date().timeIntervalSince(started)
+            Instrumentation.log("Export HTML completed", area: .export, level: .info, duration: duration)
+        }
+        #else
+        guard let url = savePanel(defaultName: "Analysis Report.html", allowedTypes: [UTType.html], directoryKey: .analysisExports) else { return }
         do {
             try html.write(to: url, atomically: true, encoding: .utf8)
             let duration = Date().timeIntervalSince(started)
@@ -266,6 +288,7 @@ extension ContentView {
             Instrumentation.log("Export HTML failed", area: .export, level: .error, details: "error=\(error.localizedDescription)")
             analysis.errorMessage = "Failed to export HTML: \(error.localizedDescription)"
         }
+        #endif
     }
 
     func buildPDFReportData(options: ExportOptions) -> PDFReportData {

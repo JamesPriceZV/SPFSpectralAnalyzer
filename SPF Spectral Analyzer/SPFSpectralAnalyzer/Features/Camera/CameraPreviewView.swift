@@ -19,7 +19,7 @@ struct CameraPreviewView: UIViewControllerRepresentable {
 final class CameraViewController: UIViewController {
     var onCapture: ((UIImage?) -> Void)?
 
-    private let captureSession = AVCaptureSession()
+    nonisolated(unsafe) private let captureSession = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private let delegateHandler = PhotoCaptureDelegate()

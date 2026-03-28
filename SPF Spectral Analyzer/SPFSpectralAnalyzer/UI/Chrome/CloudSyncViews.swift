@@ -181,10 +181,12 @@ extension ContentView {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(dataStoreController.cloudSyncEnabled && !dataStoreController.cloudKitUnavailable)
+                    #if os(macOS)
                     SettingsLink {
                         Text("Settings")
                     }
                     .buttonStyle(.link)
+                    #endif
                 }
             } else if dataStoreController.cloudSyncEnabled && isLocalStore {
                 Text("iCloud sync is enabled but this session is using local storage. Migration will start automatically.")
@@ -231,7 +233,11 @@ extension ContentView {
                     Button("Copy Status") {
                         copyICloudStatusDetails()
                     }
+                    #if os(macOS)
                     .buttonStyle(.link)
+                    #else
+                    .buttonStyle(.borderless)
+                    #endif
                     .controlSize(.small)
                 }
             }
@@ -388,10 +394,12 @@ extension ContentView {
                 .buttonStyle(.bordered)
                 .disabled(dataStoreController.cloudSyncEnabled && !dataStoreController.cloudKitUnavailable)
                 .accessibilityIdentifier("retryCloudKitBannerButton")
+                #if os(macOS)
                 SettingsLink {
                     Text("Settings")
                 }
                 .buttonStyle(.link)
+                #endif
             }
 
             if dataStoreController.syncState.isActive {
@@ -423,10 +431,12 @@ extension ContentView {
                 CloudSyncProgressView(state: state)
             }
             Spacer()
+            #if os(macOS)
             SettingsLink {
                 Text("Settings")
             }
             .buttonStyle(.link)
+            #endif
         }
         .padding(10)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -450,10 +460,12 @@ extension ContentView {
                     .foregroundColor(.secondary)
             }
             Spacer()
+            #if os(macOS)
             SettingsLink {
                 Text("Settings")
             }
             .buttonStyle(.link)
+            #endif
         }
         .padding(10)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))

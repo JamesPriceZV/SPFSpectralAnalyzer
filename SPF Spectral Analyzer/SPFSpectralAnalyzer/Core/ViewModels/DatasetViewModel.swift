@@ -247,6 +247,17 @@ final class DatasetViewModel {
         }
     }
 
+    /// Returns filtered dataset IDs using only the cache — safe against
+    /// CloudKit sync invalidating SwiftData model objects mid-render.
+    func filteredDatasetIDs(from ids: [UUID]) -> [UUID] {
+        let query = SearchQuery.parse(datasetSearchText)
+        guard !query.isEmpty else { return ids }
+        return ids.filter { id in
+            guard let record = searchableRecordCache[id] else { return true }
+            return query.matches(record)
+        }
+    }
+
     /// Cached search records for archived datasets.
     private(set) var archivedSearchableRecordCache: [UUID: DatasetSearchRecord] = [:]
     private var cachedArchivedDatasetIDs: Set<UUID> = []
@@ -279,6 +290,17 @@ final class DatasetViewModel {
         guard !query.isEmpty else { return archivedDatasets }
         return archivedDatasets.filter { dataset in
             guard let record = archivedSearchableRecordCache[dataset.id] else { return true }
+            return query.matches(record)
+        }
+    }
+
+    /// Returns filtered archived dataset IDs using only the cache — safe against
+    /// CloudKit sync invalidating SwiftData model objects mid-render.
+    func filteredArchivedDatasetIDs(from ids: [UUID]) -> [UUID] {
+        let query = SearchQuery.parse(archivedSearchText)
+        guard !query.isEmpty else { return ids }
+        return ids.filter { id in
+            guard let record = archivedSearchableRecordCache[id] else { return true }
             return query.matches(record)
         }
     }

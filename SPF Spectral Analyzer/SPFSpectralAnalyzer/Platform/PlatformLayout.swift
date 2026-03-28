@@ -6,14 +6,24 @@ import SwiftUI
 struct PlatformHSplit<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
+
     var body: some View {
         #if os(macOS)
         HSplitView {
             content()
         }
         #else
-        HStack(spacing: 0) {
-            content()
+        if horizontalSizeClass == .compact {
+            VStack(spacing: 0) {
+                content()
+            }
+        } else {
+            HStack(spacing: 0) {
+                content()
+            }
         }
         #endif
     }

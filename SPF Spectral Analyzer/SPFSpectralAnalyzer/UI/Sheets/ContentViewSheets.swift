@@ -11,7 +11,11 @@ extension ContentView {
                 Button("Copy Math") {
                     copySpfMathToPasteboard()
                 }
+                #if os(macOS)
                 .buttonStyle(.link)
+                #else
+                .buttonStyle(.borderless)
+                #endif
                 Button("Close") { showSpfMathDetails = false }
             }
 
@@ -386,7 +390,11 @@ extension ContentView {
                     Text(plateType.label).tag(plateType)
                 }
             }
+            #if os(macOS)
             .pickerStyle(.radioGroup)
+            #else
+            .pickerStyle(.inline)
+            #endif
 
             HStack(spacing: 12) {
                 Button("Cancel") {

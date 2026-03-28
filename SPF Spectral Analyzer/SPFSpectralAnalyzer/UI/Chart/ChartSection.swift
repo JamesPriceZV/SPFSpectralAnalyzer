@@ -114,7 +114,11 @@ extension ContentView {
                     Button("Math…") {
                         showSpfMathDetails = true
                     }
+                    #if os(macOS)
                     .buttonStyle(.link)
+                    #else
+                    .buttonStyle(.borderless)
+                    #endif
                 }
             }
             if let spectrum = analysis.selectedSpectrum, let metrics = analysis.selectedMetrics {
@@ -365,8 +369,8 @@ extension ContentView {
         }
 
         if analysis.showSelectedOnly {
-            ForEach(analysis.selectedSpectra.indices, id: \.self) { index in
-                let spectrum = analysis.selectedSpectra[index]
+            let selectedSnapshot = Array(analysis.selectedSpectra)
+            ForEach(Array(selectedSnapshot.enumerated()), id: \.offset) { _, spectrum in
                 let points = analysis.points(for: spectrum)
                 ForEach(points) { point in
                     LineMark(
