@@ -2,25 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleDevelopmentRegion</key>
-    <string>$(DEVELOPMENT_LANGUAGE)</string>
-    <key>CFBundleExecutable</key>
-    <string>$(EXECUTABLE_NAME)</string>
-    <key>CFBundleIdentifier</key>
-    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-    <key>CFBundleName</key>
-    <string>$(PRODUCT_NAME)</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>$(MARKETING_VERSION)</string>
-    <key>CFBundleVersion</key>
-    <string>$(CURRENT_PROJECT_VERSION)</string>
-    <key>LSRequiresIPhoneOS</key>
-    <false/>
-    <key>NSHighResolutionCapable</key>
-    <true/>
+	<key>LSRequiresIPhoneOS</key>
+	<false/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>SPF Spectral Analyzer uses the camera to photograph PMMA plates and sunscreen samples for visual color analysis.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>SPF Spectral Analyzer accesses your photo library to analyze existing photographs of PMMA plates and sunscreen samples.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>SPF Spectral Analyzer creates calendar events for calibration reminders and incubation re-test deadlines.</string>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UISupportsMultipleScenes</key>
+	<true/>
 </dict>
 </plist>

@@ -306,20 +306,20 @@
 			containerPortal = 554A4F092F5CAC7E007FC99A /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 554A4F102F5CAC7E007FC99A;
-			remoteInfo = "Shimadzu Data Analyser";
+			remoteInfo = "SPF Spectral Analyzer";
 		};
 		554A4F2C2F5CAC80007FC99A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 554A4F092F5CAC7E007FC99A /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 554A4F102F5CAC7E007FC99A;
-			remoteInfo = "Shimadzu Data Analyser";
+			remoteInfo = "SPF Spectral Analyzer";
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		55197CDF2F625C780016B90E /* Shimadzu Data Analyser.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Shimadzu Data Analyser.xctestplan"; sourceTree = "<group>"; };
-		55253EAF2F6229F3009159EA /* Shimadzu Data Analyser.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Shimadzu Data Analyser.entitlements"; sourceTree = "<group>"; };
+		55197CDF2F625C780016B90E /* SPFSpectralAnalyzer.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = SPFSpectralAnalyzer.xctestplan; sourceTree = "<group>"; };
+		55253EAF2F6229F3009159EA /* SPFSpectralAnalyzer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SPFSpectralAnalyzer.entitlements; sourceTree = "<group>"; };
 		5540A7AF2F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc"; sourceTree = "<group>"; };
 		5540A7B02F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc"; sourceTree = "<group>"; };
 		5540A7B12F5CD077009D2826 /* File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260207_131425. CVS 50 14.5 mg tio2 zno2 combo spc.spc"; sourceTree = "<group>"; };
@@ -414,9 +414,9 @@
 		5540A80A2F5CD077009D2826 /* File_260226_163545. project 26 after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_163545. project 26 after incubation spc.spc"; sourceTree = "<group>"; };
 		5540A80B2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_163714. project 26 after incubation spc.spc"; sourceTree = "<group>"; };
 		5540A80C2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc */ = {isa = PBXFileReference; lastKnownFileType = file; path = "File_260226_163838. project 26 after incubation spc.spc"; sourceTree = "<group>"; };
-		554A4F112F5CAC7E007FC99A /* Shimadzu Data Analyser.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Shimadzu Data Analyser.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		554A4F212F5CAC80007FC99A /* Shimadzu Data AnalyserTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Shimadzu Data AnalyserTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		554A4F2B2F5CAC80007FC99A /* Shimadzu Data AnalyserUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Shimadzu Data AnalyserUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		554A4F112F5CAC7E007FC99A /* SPF Spectral Analyzer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "SPF Spectral Analyzer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		554A4F212F5CAC80007FC99A /* SPFSpectralAnalyzerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SPFSpectralAnalyzerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		554A4F2B2F5CAC80007FC99A /* SPFSpectralAnalyzerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SPFSpectralAnalyzerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		55C0F1A12F60000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		55CABC6F2F64A542001BA1CF /* Diagnostics1514.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = Diagnostics1514.xlsx; sourceTree = "<group>"; };
 		55CABC702F64A542001BA1CF /* Diagnostics1600.xlsx */ = {isa = PBXFileReference; lastKnownFileType = file; path = Diagnostics1600.xlsx; sourceTree = "<group>"; };
@@ -435,19 +435,19 @@
 			path = tmp;
 			sourceTree = "<group>";
 		};
-		554A4F132F5CAC7E007FC99A /* SPF Spectral Analyzer */ = {
+		554A4F132F5CAC7E007FC99A /* SPFSpectralAnalyzer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "SPF Spectral Analyzer";
+			path = SPFSpectralAnalyzer;
 			sourceTree = "<group>";
 		};
-		554A4F242F5CAC80007FC99A /* SPF Spectral AnalyzerTests */ = {
+		554A4F242F5CAC80007FC99A /* SPFSpectralAnalyzerTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "SPF Spectral AnalyzerTests";
+			path = SPFSpectralAnalyzerTests;
 			sourceTree = "<group>";
 		};
-		554A4F2E2F5CAC80007FC99A /* SPF Spectral AnalyzerUITests */ = {
+		554A4F2E2F5CAC80007FC99A /* SPFSpectralAnalyzerUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "SPF Spectral AnalyzerUITests";
+			path = SPFSpectralAnalyzerUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -477,7 +477,7 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		5540A80D2F5CD077009D2826 /* SPC Sample Files */ = {
+		5540A80D2F5CD077009D2826 /* SPCSampleFiles */ = {
 			isa = PBXGroup;
 			children = (
 				5540A7AF2F5CD077009D2826 /* File_260207_131047.CVS 50 15.2 mg tio2 zno2 combospc.spc */,
@@ -575,20 +575,20 @@
 				5540A80B2F5CD077009D2826 /* File_260226_163714. project 26 after incubation spc.spc */,
 				5540A80C2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc */,
 			);
-			path = "SPC Sample Files";
+			path = SPCSampleFiles;
 			sourceTree = "<group>";
 		};
 		554A4F082F5CAC7E007FC99A = {
 			isa = PBXGroup;
 			children = (
-				55197CDF2F625C780016B90E /* Shimadzu Data Analyser.xctestplan */,
-				55253EAF2F6229F3009159EA /* Shimadzu Data Analyser.entitlements */,
+				55197CDF2F625C780016B90E /* SPFSpectralAnalyzer.xctestplan */,
+				55253EAF2F6229F3009159EA /* SPFSpectralAnalyzer.entitlements */,
 				553961AB2F5F9E52002509D0 /* tmp */,
-				5540A80D2F5CD077009D2826 /* SPC Sample Files */,
+				5540A80D2F5CD077009D2826 /* SPCSampleFiles */,
 				55C0F1B22F60000000000002 /* Config */,
-				554A4F132F5CAC7E007FC99A /* SPF Spectral Analyzer */,
-				554A4F242F5CAC80007FC99A /* SPF Spectral AnalyzerTests */,
-				554A4F2E2F5CAC80007FC99A /* SPF Spectral AnalyzerUITests */,
+				554A4F132F5CAC7E007FC99A /* SPFSpectralAnalyzer */,
+				554A4F242F5CAC80007FC99A /* SPFSpectralAnalyzerTests */,
+				554A4F2E2F5CAC80007FC99A /* SPFSpectralAnalyzerUITests */,
 				554A4F122F5CAC7E007FC99A /* Products */,
 				55CABC712F64A542001BA1CF /* DiagLogs */,
 			);
@@ -597,9 +597,9 @@
 		554A4F122F5CAC7E007FC99A /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				554A4F112F5CAC7E007FC99A /* Shimadzu Data Analyser.app */,
-				554A4F212F5CAC80007FC99A /* Shimadzu Data AnalyserTests.xctest */,
-				554A4F2B2F5CAC80007FC99A /* Shimadzu Data AnalyserUITests.xctest */,
+				554A4F112F5CAC7E007FC99A /* SPF Spectral Analyzer.app */,
+				554A4F212F5CAC80007FC99A /* SPFSpectralAnalyzerTests.xctest */,
+				554A4F2B2F5CAC80007FC99A /* SPFSpectralAnalyzerUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -631,9 +631,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		554A4F102F5CAC7E007FC99A /* Shimadzu Data Analyser */ = {
+		554A4F102F5CAC7E007FC99A /* SPF Spectral Analyzer */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 554A4F342F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data Analyser" */;
+			buildConfigurationList = 554A4F342F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "SPF Spectral Analyzer" */;
 			buildPhases = (
 				554A4F0D2F5CAC7E007FC99A /* Sources */,
 				554A4F0E2F5CAC7E007FC99A /* Frameworks */,
@@ -645,18 +645,18 @@
 			);
 			fileSystemSynchronizedGroups = (
 				553961AB2F5F9E52002509D0 /* tmp */,
-				554A4F132F5CAC7E007FC99A /* SPF Spectral Analyzer */,
+				554A4F132F5CAC7E007FC99A /* SPFSpectralAnalyzer */,
 			);
-			name = "Shimadzu Data Analyser";
+			name = "SPF Spectral Analyzer";
 			packageProductDependencies = (
 			);
-			productName = "Shimadzu Data Analyser";
-			productReference = 554A4F112F5CAC7E007FC99A /* Shimadzu Data Analyser.app */;
+			productName = "SPF Spectral Analyzer";
+			productReference = 554A4F112F5CAC7E007FC99A /* SPF Spectral Analyzer.app */;
 			productType = "com.apple.product-type.application";
 		};
-		554A4F202F5CAC80007FC99A /* Shimadzu Data AnalyserTests */ = {
+		554A4F202F5CAC80007FC99A /* SPFSpectralAnalyzerTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 554A4F392F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data AnalyserTests" */;
+			buildConfigurationList = 554A4F392F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "SPFSpectralAnalyzerTests" */;
 			buildPhases = (
 				554A4F1D2F5CAC80007FC99A /* Sources */,
 				554A4F1E2F5CAC80007FC99A /* Frameworks */,
@@ -668,18 +668,18 @@
 				554A4F232F5CAC80007FC99A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				554A4F242F5CAC80007FC99A /* SPF Spectral AnalyzerTests */,
+				554A4F242F5CAC80007FC99A /* SPFSpectralAnalyzerTests */,
 			);
-			name = "Shimadzu Data AnalyserTests";
+			name = SPFSpectralAnalyzerTests;
 			packageProductDependencies = (
 			);
-			productName = "Shimadzu Data AnalyserTests";
-			productReference = 554A4F212F5CAC80007FC99A /* Shimadzu Data AnalyserTests.xctest */;
+			productName = SPFSpectralAnalyzerTests;
+			productReference = 554A4F212F5CAC80007FC99A /* SPFSpectralAnalyzerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		554A4F2A2F5CAC80007FC99A /* Shimadzu Data AnalyserUITests */ = {
+		554A4F2A2F5CAC80007FC99A /* SPFSpectralAnalyzerUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 554A4F3C2F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data AnalyserUITests" */;
+			buildConfigurationList = 554A4F3C2F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "SPFSpectralAnalyzerUITests" */;
 			buildPhases = (
 				554A4F272F5CAC80007FC99A /* Sources */,
 				554A4F282F5CAC80007FC99A /* Frameworks */,
@@ -691,13 +691,13 @@
 				554A4F2D2F5CAC80007FC99A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				554A4F2E2F5CAC80007FC99A /* SPF Spectral AnalyzerUITests */,
+				554A4F2E2F5CAC80007FC99A /* SPFSpectralAnalyzerUITests */,
 			);
-			name = "Shimadzu Data AnalyserUITests";
+			name = SPFSpectralAnalyzerUITests;
 			packageProductDependencies = (
 			);
-			productName = "Shimadzu Data AnalyserUITests";
-			productReference = 554A4F2B2F5CAC80007FC99A /* Shimadzu Data AnalyserUITests.xctest */;
+			productName = SPFSpectralAnalyzerUITests;
+			productReference = 554A4F2B2F5CAC80007FC99A /* SPFSpectralAnalyzerUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -708,7 +708,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2630;
-				LastUpgradeCheck = 2630;
+				LastUpgradeCheck = 2640;
 				TargetAttributes = {
 					554A4F102F5CAC7E007FC99A = {
 						CreatedOnToolsVersion = 26.3;
@@ -723,7 +723,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 554A4F0C2F5CAC7E007FC99A /* Build configuration list for PBXProject "Shimadzu Data Analyser" */;
+			buildConfigurationList = 554A4F0C2F5CAC7E007FC99A /* Build configuration list for PBXProject "SPFSpectralAnalyzer" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -737,9 +737,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				554A4F102F5CAC7E007FC99A /* Shimadzu Data Analyser */,
-				554A4F202F5CAC80007FC99A /* Shimadzu Data AnalyserTests */,
-				554A4F2A2F5CAC80007FC99A /* Shimadzu Data AnalyserUITests */,
+				554A4F102F5CAC7E007FC99A /* SPF Spectral Analyzer */,
+				554A4F202F5CAC80007FC99A /* SPFSpectralAnalyzerTests */,
+				554A4F2A2F5CAC80007FC99A /* SPFSpectralAnalyzerUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -1086,12 +1086,12 @@
 /* Begin PBXTargetDependency section */
 		554A4F232F5CAC80007FC99A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 554A4F102F5CAC7E007FC99A /* Shimadzu Data Analyser */;
+			target = 554A4F102F5CAC7E007FC99A /* SPF Spectral Analyzer */;
 			targetProxy = 554A4F222F5CAC80007FC99A /* PBXContainerItemProxy */;
 		};
 		554A4F2D2F5CAC80007FC99A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 554A4F102F5CAC7E007FC99A /* Shimadzu Data Analyser */;
+			target = 554A4F102F5CAC7E007FC99A /* SPF Spectral Analyzer */;
 			targetProxy = 554A4F2C2F5CAC80007FC99A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -1103,24 +1103,29 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = "Shimadzu Data Analyser.entitlements";
+				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = SPFSpectralAnalyzer.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = A45694H5ZG;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_MOVIES_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readwrite;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
 				ENABLE_RESOURCE_ACCESS_BLUETOOTH = YES;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = YES;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = YES;
+				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
 				ENABLE_RESOURCE_ACCESS_PRINTING = YES;
 				ENABLE_RESOURCE_ACCESS_USB = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
@@ -1128,21 +1133,35 @@
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "SPF Spectral Analyser";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppDataUsageDescription = "Allows users to access Contacts, Calendar, and iMessages to quickly share data and collaborate on analyses with others.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zincoverde.SPFSpectralAnalyzer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "SPFSpectralAnalyzer/SPFSpectralAnalyzer-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -1152,24 +1171,29 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
-				CODE_SIGN_ENTITLEMENTS = "Shimadzu Data Analyser.entitlements";
+				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = SPFSpectralAnalyzer.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = A45694H5ZG;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_MOVIES_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readwrite;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
 				ENABLE_RESOURCE_ACCESS_BLUETOOTH = YES;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = YES;
+				ENABLE_RESOURCE_ACCESS_CAMERA = YES;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = YES;
+				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
 				ENABLE_RESOURCE_ACCESS_PRINTING = YES;
 				ENABLE_RESOURCE_ACCESS_USB = YES;
 				ENABLE_USER_SELECTED_FILES = readwrite;
@@ -1177,21 +1201,35 @@
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "SPF Spectral Analyser";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSAppDataUsageDescription = "Allows users to access Contacts, Calendar, and iMessages to quickly share data and collaborate on analyses with others.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zincoverde.SPFSpectralAnalyzer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "SPFSpectralAnalyzer/SPFSpectralAnalyzer-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -1229,6 +1267,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = A45694H5ZG;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1254,6 +1293,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -1293,6 +1333,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = A45694H5ZG;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1311,6 +1352,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
@@ -1321,6 +1363,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = A45694H5ZG;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
@@ -1332,7 +1375,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Shimadzu Data Analyser.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Shimadzu Data Analyser";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SPF Spectral Analyzer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SPF Spectral Analyzer";
 			};
 			name = Debug;
 		};
@@ -1342,6 +1385,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = A45694H5ZG;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
@@ -1353,7 +1397,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Shimadzu Data Analyser.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Shimadzu Data Analyser";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SPF Spectral Analyzer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/SPF Spectral Analyzer";
 			};
 			name = Release;
 		};
@@ -1362,6 +1406,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = A45694H5ZG;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
@@ -1372,7 +1417,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
-				TEST_TARGET_NAME = "Shimadzu Data Analyser";
+				TEST_TARGET_NAME = "SPF Spectral Analyzer";
 			};
 			name = Debug;
 		};
@@ -1381,6 +1426,7 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = A45694H5ZG;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
@@ -1391,14 +1437,14 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
-				TEST_TARGET_NAME = "Shimadzu Data Analyser";
+				TEST_TARGET_NAME = "SPF Spectral Analyzer";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		554A4F0C2F5CAC7E007FC99A /* Build configuration list for PBXProject "Shimadzu Data Analyser" */ = {
+		554A4F0C2F5CAC7E007FC99A /* Build configuration list for PBXProject "SPFSpectralAnalyzer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				554A4F372F5CAC80007FC99A /* Debug */,
@@ -1407,7 +1453,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		554A4F342F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data Analyser" */ = {
+		554A4F342F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "SPF Spectral Analyzer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				554A4F352F5CAC80007FC99A /* Debug */,
@@ -1416,7 +1462,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		554A4F392F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data AnalyserTests" */ = {
+		554A4F392F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "SPFSpectralAnalyzerTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				554A4F3A2F5CAC80007FC99A /* Debug */,
@@ -1425,7 +1471,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		554A4F3C2F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "Shimadzu Data AnalyserUITests" */ = {
+		554A4F3C2F5CAC80007FC99A /* Build configuration list for PBXNativeTarget "SPFSpectralAnalyzerUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				554A4F3D2F5CAC80007FC99A /* Debug */,
