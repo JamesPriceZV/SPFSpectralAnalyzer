@@ -727,18 +727,126 @@ struct SettingsView: View {
             }
 
             Section("CoreML SPF Model") {
-                let mlService = SPFPredictionService.shared
+                let mlPredict = SPFPredictionService.shared
+                let mlTrain = MLTrainingService.shared
+
+                // Status indicator
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(mlService.status.isReady ? Color.green : Color.secondary)
+                        .fill(mlPredict.status.isReady ? Color.green :
+                              mlTrain.status.isInProgress ? Color.orange : Color.secondary)
                         .frame(width: 8, height: 8)
-                    Text(mlService.status.label)
+                    Text(mlPredict.status.label)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                Text("When a trained CoreML model is bundled, it will provide a machine-learning-based SPF estimate alongside the calibration-based calculation.")
+
+                // Reference data count
+                HStack {
+                    Text("Reference spectra available:")
+                        .font(.caption)
+                    Spacer()
+                    Text("\(mlTrain.availableSpectrumCount)")
+                        .font(.caption)
+                        .foregroundColor(mlTrain.availableSpectrumCount >= MLTrainingService.minimumSpectra ? .primary : .orange)
+                }
+
+                // Last trained info
+                if let result = mlTrain.lastResult {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Last trained:")
+                                .font(.caption)
+                            Spacer()
+                            Text(result.trainedAt, style: .date)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        HStack {
+                            Text("Datasets / Spectra:")
+                                .font(.caption)
+                            Spacer()
+                            Text("\(result.datasetCount) / \(result.spectrumCount)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        HStack {
+                            Text("R²:")
+                                .font(.caption)
+                            Spacer()
+                            Text(String(format: "%.3f", result.r2))
+                                .font(.caption.monospacedDigit())
+                                .foregroundColor(result.r2 >= 0.85 ? .green : .orange)
+                        }
+                        HStack {
+                            Text("RMSE:")
+                                .font(.caption)
+                            Spacer()
+                            Text(String(format: "%.2f", result.rmse))
+                                .font(.caption.monospacedDigit())
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
+                // Training progress
+                if case .training(let progress) = mlTrain.status {
+                    ProgressView(value: progress)
+                        .progressViewStyle(.linear)
+                    Text(mlTrain.status.label)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                } else if case .preparingData = mlTrain.status {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Preparing training data…")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                } else if case .evaluating = mlTrain.status {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Evaluating model…")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                } else if case .failed(let msg) = mlTrain.status {
+                    Text(msg)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+
+                #if os(macOS)
+                // Train button
+                Button {
+                    Task {
+                        await mlTrain.train(modelContext: modelContext)
+                    }
+                } label: {
+                    Label("Train Model", systemImage: "brain")
+                }
+                .disabled(!mlTrain.canTrain)
+                .help(mlTrain.availableSpectrumCount < MLTrainingService.minimumSpectra
+                      ? "Need at least \(MLTrainingService.minimumSpectra) reference spectra"
+                      : "Train a boosted tree regressor from reference datasets")
+
+                // Reset button
+                if mlPredict.status.isReady || mlTrain.lastResult != nil {
+                    Button(role: .destructive) {
+                        mlTrain.resetModel()
+                    } label: {
+                        Label("Reset Model", systemImage: "trash")
+                    }
+                }
+                #else
+                Text("Train models on Mac. The trained model loads automatically on all platforms.")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                #endif
+
+                if mlTrain.availableSpectrumCount < MLTrainingService.minimumSpectra {
+                    Text("Tag at least \(MLTrainingService.minimumSpectra) reference datasets with known in-vivo SPF values in Data Management to enable training.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
             } // end AI tab
@@ -1238,6 +1346,7 @@ struct SettingsView: View {
         #endif
         .onAppear {
             loadDraft()
+            MLTrainingService.shared.updateAvailableCount(modelContext: modelContext)
             Task {
                 await refreshBackupSize()
                 if hasStoredAPIKey, canResolveOpenAIHost {
@@ -1532,6 +1641,8 @@ struct SettingsView: View {
             icloudLastBackupSizeBytes = cachedSize
         } else {
             // Fall back to a safe estimation with modelContext != nil guards
+            // ObjCExceptionCatcher guards property reads that can throw NSExceptions
+            // when CloudKit invalidates backing store mid-iteration.
             do {
                 let datasets = try modelContext.fetch(FetchDescriptor<StoredDataset>())
                 var total: Int64 = 0
@@ -1542,6 +1653,7 @@ struct SettingsView: View {
                     total += Int64(dataset.headerInfoData?.count ?? 0)
                     total += Int64(dataset.skippedDataJSON?.count ?? 0)
                     total += Int64(dataset.warningsJSON?.count ?? 0)
+
                     let dsID = dataset.id
                     let spectrumPredicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID }
                     let spectra = (try? modelContext.fetch(FetchDescriptor<StoredSpectrum>(predicate: spectrumPredicate))) ?? []

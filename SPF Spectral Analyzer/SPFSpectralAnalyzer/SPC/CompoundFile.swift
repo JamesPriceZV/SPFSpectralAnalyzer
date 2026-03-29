@@ -67,7 +67,7 @@ private struct BinaryReader {
     }
 }
 
-struct CompoundFileDirectoryEntry {
+struct CompoundFileDirectoryEntry: Sendable {
     let name: String
     let objectType: UInt8
     let leftSibling: Int32

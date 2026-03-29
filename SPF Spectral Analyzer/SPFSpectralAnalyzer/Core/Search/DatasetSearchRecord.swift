@@ -24,6 +24,15 @@ struct DatasetSearchRecord: SearchableRecord {
     /// UUID of the assigned `StoredInstrument`, if any.
     let instrumentID: UUID?
 
+    /// ISO 24443 substrate plate type raw value.
+    let plateType: String?
+    /// Application quantity in mg.
+    let applicationQuantityMg: Double?
+    /// Formulation category raw value.
+    let formulationType: String?
+    /// PMMA plate subtype raw value ("moulded" or "sandblasted").
+    let pmmaPlateSubtype: String?
+
     // MARK: - Display Fields (used by row views)
 
     /// Number of valid (non-invalid) spectra in the dataset.
@@ -51,7 +60,11 @@ struct DatasetSearchRecord: SearchableRecord {
         instrumentID: UUID? = nil,
         validSpectrumCount: Int? = nil,
         isArchived: Bool = false,
-        archivedAt: Date? = nil
+        archivedAt: Date? = nil,
+        plateType: String? = nil,
+        applicationQuantityMg: Double? = nil,
+        formulationType: String? = nil,
+        pmmaPlateSubtype: String? = nil
     ) {
         self.fileName = fileName
         self.datasetRole = datasetRole
@@ -68,6 +81,10 @@ struct DatasetSearchRecord: SearchableRecord {
         self.validSpectrumCount = validSpectrumCount ?? spectrumCount
         self.isArchived = isArchived
         self.archivedAt = archivedAt
+        self.plateType = plateType
+        self.applicationQuantityMg = applicationQuantityMg
+        self.formulationType = formulationType
+        self.pmmaPlateSubtype = pmmaPlateSubtype
 
         // Build allText once for fast unqualified search
         var parts: [String] = []
@@ -105,7 +122,11 @@ struct DatasetSearchRecord: SearchableRecord {
             instrumentID: self.instrumentID,
             validSpectrumCount: self.validSpectrumCount,
             isArchived: self.isArchived,
-            archivedAt: self.archivedAt
+            archivedAt: self.archivedAt,
+            plateType: self.plateType,
+            applicationQuantityMg: self.applicationQuantityMg,
+            formulationType: self.formulationType,
+            pmmaPlateSubtype: self.pmmaPlateSubtype
         )
     }
 
@@ -125,7 +146,11 @@ struct DatasetSearchRecord: SearchableRecord {
             instrumentID: instrumentID,
             validSpectrumCount: self.validSpectrumCount,
             isArchived: self.isArchived,
-            archivedAt: self.archivedAt
+            archivedAt: self.archivedAt,
+            plateType: self.plateType,
+            applicationQuantityMg: self.applicationQuantityMg,
+            formulationType: self.formulationType,
+            pmmaPlateSubtype: self.pmmaPlateSubtype
         )
     }
 

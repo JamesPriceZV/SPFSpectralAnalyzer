@@ -1,9 +1,10 @@
 import Foundation
 import Observation
+import CoreML
 
-/// Scaffold for a future CoreML-based numerical SPF predictor.
-/// The model is not yet trained — this service provides the interface and
-/// placeholder logic so the rest of the app can integrate against a stable API.
+/// CoreML-based numerical SPF predictor.
+/// Loads a trained model from app support (user-trained) or app bundle (pre-bundled),
+/// computes predictions with conformal prediction intervals.
 @MainActor @Observable
 final class SPFPredictionService {
 
@@ -32,6 +33,11 @@ final class SPFPredictionService {
 
     var status: ModelStatus = .notTrained
 
+    // MARK: - Private State
+
+    private var model: MLModel?
+    private var conformalResiduals: [Double] = []
+
     // MARK: - Singleton
 
     static let shared = SPFPredictionService()
@@ -42,57 +48,182 @@ final class SPFPredictionService {
 
     // MARK: - Model Loading
 
-    /// Attempts to load a compiled CoreML model from the app bundle.
-    /// Currently a no-op since the model has not been trained yet.
+    /// Attempts to load a compiled CoreML model.
+    /// Checks app support directory first (user-trained), then falls back to the app bundle.
     func loadModelIfAvailable() {
-        // Future implementation:
-        // guard let modelURL = Bundle.main.url(forResource: "SPFPredictor", withExtension: "mlmodelc") else {
-        //     status = .notTrained
-        //     return
-        // }
-        // status = .loading
-        // do {
-        //     let config = MLModelConfiguration()
-        //     config.computeUnits = .all
-        //     model = try MLModel(contentsOf: modelURL, configuration: config)
-        //     status = .ready
-        // } catch {
-        //     status = .error(error.localizedDescription)
-        // }
+        status = .loading
+        model = nil
+        conformalResiduals = []
+
+        // 1. Check app support directory (user-trained model)
+        let userModelURL = MLTrainingService.compiledModelURL
+        if FileManager.default.fileExists(atPath: userModelURL.path) {
+            do {
+                let config = MLModelConfiguration()
+                config.computeUnits = .all
+                model = try MLModel(contentsOf: userModelURL, configuration: config)
+                loadConformalResiduals()
+                status = .ready
+                Instrumentation.log("ML model loaded from app support", area: .processing, level: .info)
+                return
+            } catch {
+                Instrumentation.log("Failed to load user-trained model", area: .processing, level: .warning,
+                                    details: "error=\(error.localizedDescription)")
+            }
+        }
+
+        // 2. Fall back to bundle
+        if let bundleURL = Bundle.main.url(forResource: SPFModelSchema.modelResourceName,
+                                           withExtension: SPFModelSchema.modelExtension) {
+            do {
+                let config = MLModelConfiguration()
+                config.computeUnits = .all
+                model = try MLModel(contentsOf: bundleURL, configuration: config)
+                loadConformalResiduals()
+                status = .ready
+                Instrumentation.log("ML model loaded from bundle", area: .processing, level: .info)
+                return
+            } catch {
+                status = .error(error.localizedDescription)
+                return
+            }
+        }
+
         status = .notTrained
+    }
+
+    private func loadConformalResiduals() {
+        let resultURL = MLTrainingService.trainingResultURL
+        guard FileManager.default.fileExists(atPath: resultURL.path),
+              let data = try? Data(contentsOf: resultURL),
+              let result = try? JSONDecoder().decode(MLTrainingResult.self, from: data) else {
+            return
+        }
+        conformalResiduals = result.conformalResiduals
     }
 
     // MARK: - Prediction
 
-    /// Predicts SPF from raw wavelength/absorbance arrays.
-    /// - Parameters:
-    ///   - wavelengths: Array of wavelength values (nm), expected 290–510 in 1 nm steps (221 points).
-    ///   - absorbances: Corresponding absorbance values.
-    /// - Returns: An `SPFMLPrediction` or `nil` if the model is not available.
-    func predict(wavelengths: [Double], absorbances: [Double]) -> SPFMLPrediction? {
-        guard status.isReady else { return nil }
-        guard wavelengths.count == absorbances.count, wavelengths.count >= 111 else { return nil }
+    /// Predicts SPF from raw wavelength/absorbance arrays with auxiliary metadata.
+    func predict(
+        wavelengths: [Double],
+        absorbances: [Double],
+        plateType: SubstratePlateType = .pmma,
+        applicationQuantityMg: Double? = nil,
+        formulationType: FormulationType = .unknown,
+        isPostIrradiation: Bool = false
+    ) -> SPFMLPrediction? {
+        guard status.isReady, let model else { return nil }
+        guard wavelengths.count == absorbances.count, wavelengths.count >= 2 else { return nil }
 
-        // Placeholder — return nil until a trained model is bundled.
-        // Future implementation will:
-        // 1. Interpolate input to 290–510 nm at 1 nm spacing (221 points)
-        // 2. Create MLMultiArray [1, 221] from absorbance values
-        // 3. Run model.prediction(from:)
-        // 4. Extract spf_estimate, confidence_low, confidence_high from output
-        return nil
+        // 1. Resample to 290-400nm at 1nm (111 points)
+        guard let resampled = SPFCalibration.resampleAbsorbance(
+            x: wavelengths, y: absorbances, yAxisMode: .absorbance
+        ) else { return nil }
+
+        // 2. Compute spectral metrics
+        guard let metrics = SpectralMetricsCalculator.metrics(
+            x: wavelengths, y: absorbances, yAxisMode: .absorbance
+        ) else { return nil }
+
+        // 3. Build feature dictionary
+        var featureDict: [String: MLFeatureValue] = [:]
+
+        // Spectral features
+        for i in 0..<SPFModelSchema.spectralFeatureCount {
+            let colName = SPFModelSchema.spectralFeatureColumns[i]
+            featureDict[colName] = MLFeatureValue(double: i < resampled.count ? resampled[i] : 0)
+        }
+
+        // Derived metrics
+        featureDict["critical_wavelength"] = MLFeatureValue(double: metrics.criticalWavelength)
+        featureDict["uva_uvb_ratio"] = MLFeatureValue(double: metrics.uvaUvbRatio)
+        featureDict["uvb_area"] = MLFeatureValue(double: metrics.uvbArea)
+        featureDict["uva_area"] = MLFeatureValue(double: metrics.uvaArea)
+        featureDict["mean_uvb_transmittance"] = MLFeatureValue(double: metrics.meanUVBTransmittance)
+        featureDict["mean_uva_transmittance"] = MLFeatureValue(double: metrics.meanUVATransmittance)
+        featureDict["peak_absorbance_wavelength"] = MLFeatureValue(double: metrics.peakAbsorbanceWavelength)
+
+        // Auxiliary features
+        let plateValue: Double = plateType == .pmma ? 0 : (plateType == .quartz ? 1 : 2)
+        featureDict["plate_type"] = MLFeatureValue(double: plateValue)
+        featureDict["application_quantity_mg"] = MLFeatureValue(double: applicationQuantityMg ?? 15.0)
+        featureDict["formulation_type"] = MLFeatureValue(double: Double(formulationType.featureValue))
+        featureDict["is_post_irradiation"] = MLFeatureValue(double: isPostIrradiation ? 1.0 : 0.0)
+
+        // 4. Run prediction
+        do {
+            let provider = try MLDictionaryFeatureProvider(dictionary: featureDict)
+            let prediction = try model.prediction(from: provider)
+
+            guard let spfValue = prediction.featureValue(for: SPFModelSchema.targetColumn)?.doubleValue else {
+                return nil
+            }
+
+            let spf = max(spfValue, 1.0)
+
+            // 5. Compute conformal prediction intervals
+            let q90 = conformalQuantile(level: 0.9)
+            let confidenceLow = max(spf - q90, 1.0)
+            let confidenceHigh = spf + q90
+
+            return SPFMLPrediction(
+                spfEstimate: spf,
+                confidenceLow: confidenceLow,
+                confidenceHigh: confidenceHigh
+            )
+        } catch {
+            Instrumentation.log("ML prediction failed", area: .processing, level: .warning,
+                                details: "error=\(error.localizedDescription)")
+            return nil
+        }
     }
 
-    /// Convenience overload that accepts the spectrum x/y arrays and y-axis mode.
-    func predict(x: [Double], y: [Double], yAxisMode: String) -> SPFMLPrediction? {
-        // Only absorbance-mode input is supported for the model
-        guard yAxisMode == "absorbance" || yAxisMode == "Absorbance" else { return nil }
-        return predict(wavelengths: x, absorbances: y)
+    /// Convenience overload for spectrum x/y arrays with y-axis mode.
+    func predict(
+        x: [Double], y: [Double],
+        yAxisMode: SpectralYAxisMode,
+        plateType: SubstratePlateType = .pmma,
+        applicationQuantityMg: Double? = nil,
+        formulationType: FormulationType = .unknown,
+        isPostIrradiation: Bool = false
+    ) -> SPFMLPrediction? {
+        // Convert transmittance to absorbance if needed
+        let absorbances: [Double]
+        switch yAxisMode {
+        case .absorbance:
+            absorbances = y
+        case .transmittance:
+            absorbances = y.map { t in
+                let clamped = max(t, 1.0e-10)
+                return -log10(clamped)
+            }
+        }
+        return predict(
+            wavelengths: x,
+            absorbances: absorbances,
+            plateType: plateType,
+            applicationQuantityMg: applicationQuantityMg,
+            formulationType: formulationType,
+            isPostIrradiation: isPostIrradiation
+        )
+    }
+
+    // MARK: - Conformal Intervals
+
+    private func conformalQuantile(level: Double) -> Double {
+        guard !conformalResiduals.isEmpty else {
+            return 5.0  // Default fallback interval when no calibration data
+        }
+        let index = min(Int(ceil(level * Double(conformalResiduals.count))) - 1,
+                        conformalResiduals.count - 1)
+        return conformalResiduals[max(index, 0)]
     }
 }
 
 // MARK: - Prediction Result
 
-struct SPFMLPrediction: Equatable {
+struct SPFMLPrediction: Equatable, Sendable {
     let spfEstimate: Double
     let confidenceLow: Double
     let confidenceHigh: Double

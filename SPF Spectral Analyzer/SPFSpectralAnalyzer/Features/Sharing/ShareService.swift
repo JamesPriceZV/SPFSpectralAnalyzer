@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Describes the content types that can be shared from the app.
-enum ShareableContent: Identifiable {
+enum ShareableContent: Identifiable, Sendable {
     case text(String)
     case chartImage(Image, title: String)
     case pdfData(Data, filename: String)

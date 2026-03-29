@@ -1,53 +1,98 @@
 import Foundation
 
 /// Documents the expected CoreML model schema for the SPF predictor.
-/// This file serves as a reference for model training — no runtime code.
 ///
 /// ## Model Specification
 ///
 /// **Name:** SPFPredictor
-/// **Type:** Neural Network Regressor (or Tabular Regressor)
+/// **Type:** Boosted Tree Regressor (Create ML `MLBoostedTreeRegressor`)
 ///
-/// ### Input
-/// - **Feature name:** `absorbance_spectrum`
-/// - **Type:** `MLMultiArray` with shape `[1, 221]`
-/// - **Description:** Absorbance values at wavelengths 290–510 nm in 1 nm steps.
-///   The input must be interpolated to exactly 221 points before prediction.
-///   Values should be in absorbance units (not transmittance or reflectance).
+/// ### Inputs (Hybrid Feature Set)
 ///
-/// ### Outputs
-/// - **`spf_estimate`** (`Double`): Predicted SPF value
-/// - **`confidence_low`** (`Double`): Lower bound of 95% prediction interval
-/// - **`confidence_high`** (`Double`): Upper bound of 95% prediction interval
+/// **Spectral features (111):**
+/// - `abs_290` through `abs_400`: Absorbance values at 290–400 nm in 1 nm steps.
+///   Interpolated to exactly 111 points. Values in absorbance units (not transmittance).
 ///
-/// ### Training Data Requirements
-/// - Paired in-vitro UV absorbance spectra (from Shimadzu or compatible instruments)
-///   with known in-vivo SPF values from human clinical studies.
-/// - Minimum recommended: 200+ samples across SPF 2–100 range.
-/// - Spectra should be PMMA plate measurements in absorbance mode.
-/// - Include diverse formulation types: chemical, mineral, combination filters.
+/// **Derived spectral metrics (7):**
+/// - `critical_wavelength`: λc where 90% of absorbance integral is reached (nm)
+/// - `uva_uvb_ratio`: Ratio of UVA (320–400nm) to UVB (290–320nm) area
+/// - `uvb_area`: Integrated absorbance 290–320 nm
+/// - `uva_area`: Integrated absorbance 320–400 nm
+/// - `mean_uvb_transmittance`: Mean transmittance in UVB range
+/// - `mean_uva_transmittance`: Mean transmittance in UVA range
+/// - `peak_absorbance_wavelength`: λmax in 290–400 nm
+///
+/// **Auxiliary features (4):**
+/// - `plate_type`: Substrate plate (0=PMMA, 1=quartz, 2=other)
+/// - `application_quantity_mg`: Application mass in mg
+/// - `formulation_type`: Filter category (0=mineral, 1=organic, 2=combination, 3=unknown)
+/// - `is_post_irradiation`: Post-irradiation flag (0 or 1)
+///
+/// ### Output
+/// - **`spf`** (`Double`): Predicted in-vivo SPF value
+///
+/// Confidence intervals are computed post-hoc via conformal prediction on
+/// calibration-set residuals (not a separate model output).
+///
+/// ### Training Data Requirements (ISO 24443)
+/// - Paired in-vitro UV absorbance spectra (PMMA plate, Shimadzu or compatible)
+///   with known in-vivo SPF values.
+/// - Spectra measured in absorbance mode, 290–400 nm range.
+/// - Minimum recommended: 5+ reference datasets (more is better).
+/// - Include diverse formulation types: mineral, organic, combination.
 ///
 /// ### Preprocessing Pipeline (applied before prediction)
-/// 1. Trim spectrum to 290–510 nm range
-/// 2. Interpolate to 1 nm spacing (linear interpolation)
-/// 3. Baseline correction (if not already applied)
-/// 4. No normalization (absolute absorbance values are meaningful)
+/// 1. Ensure absorbance mode (convert from transmittance if needed)
+/// 2. Resample to 290–400 nm at 1 nm spacing (111 points) via linear interpolation
+/// 3. Compute 7 derived spectral metrics
+/// 4. Encode auxiliary metadata as numeric features
 ///
-/// ### Model Training Notes
-/// - Use CreateML `MLRegressor` or a custom `MLNeuralNetworkClassifier` via coremltools.
-/// - Cross-validate with leave-one-formulation-out strategy.
-/// - Target metric: R² ≥ 0.90 on held-out test set.
-/// - Consider ensemble of gradient boosted trees + 1D-CNN for best accuracy.
-
+/// ### In-App Training
+/// - Trained on-device using Create ML `MLBoostedTreeRegressor` (macOS only)
+/// - Conformal prediction intervals from 80/20 calibration split
+/// - Target metric: R² ≥ 0.85 on validation set
 enum SPFModelSchema {
 
-    /// Expected input wavelength range.
-    static let wavelengthRange: ClosedRange<Double> = 290.0...510.0
+    /// Expected input wavelength range (ISO 24443 compliant).
+    static let wavelengthRange: ClosedRange<Double> = 290.0...400.0
 
-    /// Expected number of input features (1 nm spacing).
-    static let inputFeatureCount = 221
+    /// Number of spectral absorbance features (1 nm spacing, 290–400 nm).
+    static let spectralFeatureCount = 111
 
-    /// Model file name (without extension) expected in the app bundle.
+    /// Column names for the 111 spectral absorbance features.
+    static let spectralFeatureColumns: [String] = (290...400).map { "abs_\($0)" }
+
+    /// Column names for the 7 derived spectral metrics.
+    static let derivedMetricColumns: [String] = [
+        "critical_wavelength",
+        "uva_uvb_ratio",
+        "uvb_area",
+        "uva_area",
+        "mean_uvb_transmittance",
+        "mean_uva_transmittance",
+        "peak_absorbance_wavelength"
+    ]
+
+    /// Column names for the 4 auxiliary features.
+    static let auxiliaryFeatureColumns: [String] = [
+        "plate_type",
+        "application_quantity_mg",
+        "formulation_type",
+        "is_post_irradiation"
+    ]
+
+    /// The target column name.
+    static let targetColumn = "spf"
+
+    /// All feature column names (spectral + derived + auxiliary).
+    static var allFeatureColumns: [String] {
+        spectralFeatureColumns + derivedMetricColumns + auxiliaryFeatureColumns
+    }
+
+    /// Total number of input features.
+    static var totalFeatureCount: Int { allFeatureColumns.count }
+
+    /// Model file name (without extension) expected in the app bundle or app support.
     static let modelResourceName = "SPFPredictor"
 
     /// Model file extension for compiled CoreML models.

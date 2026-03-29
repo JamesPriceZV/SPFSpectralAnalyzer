@@ -156,20 +156,24 @@ struct InstrumentRegistryView: View {
     }
 
     private func deleteInstrument(_ instrument: StoredInstrument) {
-        let restoreAutoSave = modelContext.autosaveEnabled
-        modelContext.autosaveEnabled = false
+        guard instrument.modelContext != nil else { return }
+
+        let writeCtx = ModelContext(modelContext.container)
+        writeCtx.autosaveEnabled = false
+        let pid = instrument.persistentModelID
+        guard let fresh = writeCtx.model(for: pid) as? StoredInstrument else { return }
 
         do {
             try ObjCExceptionCatcher.try {
-                self.modelContext.delete(instrument)
+                writeCtx.delete(fresh)
             }
         } catch {
             print("[InstrumentRegistry] ObjC exception during delete: \(error.localizedDescription)")
+            return
         }
 
-        let context = modelContext
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            context.autosaveEnabled = restoreAutoSave
+        do { try writeCtx.save() } catch {
+            print("[InstrumentRegistry] Save failed after delete: \(error.localizedDescription)")
         }
     }
 }

@@ -51,6 +51,18 @@ public final class StoredDataset {
     /// Stored as a plain UUID (not a @Relationship) to avoid CloudKit sync crash risk.
     var instrumentID: UUID?
 
+    /// Substrate plate type (ISO 24443): "pmma", "quartz", or "other".
+    var plateType: String?
+
+    /// Application quantity in mg, parsed from filename or manually entered.
+    var applicationQuantityMg: Double?
+
+    /// UV filter formulation category: "mineral", "organic", "combination", or "unknown".
+    var formulationType: String?
+
+    /// PMMA plate subtype: "moulded" or "sandblasted" (only meaningful when plateType == "pmma").
+    var pmmaPlateSubtype: String?
+
     @Relationship(deleteRule: .cascade, inverse: \StoredSpectrum.dataset)
     var spectra: [StoredSpectrum]?
 
@@ -78,7 +90,11 @@ public final class StoredDataset {
         datasetRole: String? = nil,
         knownInVivoSPF: Double? = nil,
         hdrsTagsJSON: Data? = nil,
-        instrumentID: UUID? = nil
+        instrumentID: UUID? = nil,
+        plateType: String? = nil,
+        applicationQuantityMg: Double? = nil,
+        formulationType: String? = nil,
+        pmmaPlateSubtype: String? = nil
     ) {
         self.id = id
         self.fileName = fileName
@@ -99,6 +115,10 @@ public final class StoredDataset {
         self.knownInVivoSPF = knownInVivoSPF
         self.hdrsTagsJSON = hdrsTagsJSON
         self.instrumentID = instrumentID
+        self.plateType = plateType
+        self.applicationQuantityMg = applicationQuantityMg
+        self.formulationType = formulationType
+        self.pmmaPlateSubtype = pmmaPlateSubtype
     }
 
     var skippedDataSets: [String] {
@@ -129,6 +149,24 @@ public final class StoredDataset {
         set {
             hdrsTagsJSON = try? JSONEncoder().encode(newValue)
         }
+    }
+
+    /// Typed substrate plate type.
+    var substratePlateType: SubstratePlateType {
+        get { plateType.flatMap { SubstratePlateType(rawValue: $0) } ?? .pmma }
+        set { plateType = newValue.rawValue }
+    }
+
+    /// Typed formulation category.
+    var formulationCategory: FormulationType {
+        get { formulationType.flatMap { FormulationType(rawValue: $0) } ?? .unknown }
+        set { formulationType = newValue.rawValue }
+    }
+
+    /// Typed PMMA plate subtype (only meaningful when plateType == "pmma").
+    var pmmaSubtype: PMMAPlateSubtype {
+        get { pmmaPlateSubtype.flatMap { PMMAPlateSubtype(rawValue: $0) } ?? .moulded }
+        set { pmmaPlateSubtype = newValue.rawValue }
     }
 
     private static func encodeStringArray(_ values: [String]) -> Data? {

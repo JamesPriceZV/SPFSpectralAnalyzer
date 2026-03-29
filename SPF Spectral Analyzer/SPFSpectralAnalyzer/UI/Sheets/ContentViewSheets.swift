@@ -454,17 +454,95 @@ extension ContentView {
             Text("Set as Reference Dataset")
                 .font(.headline)
 
-            Text("Enter the validated in-vivo SPF value for this reference dataset. This value will be used to build a calibration model for predicting SPF of prototype samples.")
+            Text("Enter the validated in-vivo SPF value and ISO 24443 metadata for this reference dataset.")
                 .font(.callout)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
-            HStack {
-                Text("Known In-Vivo SPF:")
-                    .font(.subheadline)
-                TextField("SPF", value: $datasets.pendingKnownSPF, format: .number)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 100)
+            // Known SPF
+            Grid(alignment: .trailing, verticalSpacing: 10) {
+                GridRow {
+                    Text("Known In-Vivo SPF:")
+                        .font(.subheadline)
+                        .gridColumnAlignment(.trailing)
+                    TextField("SPF", value: $datasets.pendingKnownSPF, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 100)
+                        .gridColumnAlignment(.leading)
+                }
+            }
+
+            Divider()
+
+            // ISO 24443 Metadata
+            VStack(spacing: 12) {
+                Text("ISO 24443 Metadata")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                Grid(alignment: .trailing, verticalSpacing: 10) {
+                    GridRow {
+                        Text("Plate Type:")
+                            .font(.subheadline)
+                            .gridColumnAlignment(.trailing)
+                        Picker("", selection: $datasets.pendingPlateType) {
+                            ForEach(SubstratePlateType.allCases) { type in
+                                Text(type.label).tag(type)
+                            }
+                        }
+                        .labelsHidden()
+                        #if os(macOS)
+                        .pickerStyle(.segmented)
+                        #endif
+                        .gridColumnAlignment(.leading)
+                    }
+
+                    if datasets.pendingPlateType == .pmma {
+                        GridRow {
+                            Text("PMMA Subtype:")
+                                .font(.subheadline)
+                            Picker("", selection: $datasets.pendingPMMASubtype) {
+                                ForEach(PMMAPlateSubtype.allCases) { subtype in
+                                    Text(subtype.label).tag(subtype)
+                                }
+                            }
+                            .labelsHidden()
+                            #if os(macOS)
+                            .pickerStyle(.segmented)
+                            #endif
+                        }
+                    }
+
+                    GridRow {
+                        Text("Application (mg):")
+                            .font(.subheadline)
+                        HStack(spacing: 6) {
+                            TextField("e.g. 14.5", value: $datasets.pendingApplicationQuantityMg, format: .number)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 100)
+                            Text("mg/cm²")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    GridRow {
+                        Text("Formulation:")
+                            .font(.subheadline)
+                        Picker("", selection: $datasets.pendingFormulationType) {
+                            ForEach(FormulationType.allCases) { type in
+                                Text(type.label).tag(type)
+                            }
+                        }
+                        .labelsHidden()
+                        #if os(macOS)
+                        .pickerStyle(.menu)
+                        #endif
+                        .frame(width: 160, alignment: .leading)
+                    }
+                }
             }
 
             HStack(spacing: 12) {
@@ -482,6 +560,14 @@ extension ContentView {
                             for: datasetID,
                             storedDatasets: storedDatasets
                         )
+                        datasets.setDatasetMetadata(
+                            plateType: datasets.pendingPlateType,
+                            pmmaPlateSubtype: datasets.pendingPlateType == .pmma ? datasets.pendingPMMASubtype : nil,
+                            applicationQuantityMg: datasets.pendingApplicationQuantityMg,
+                            formulationType: datasets.pendingFormulationType,
+                            for: datasetID,
+                            storedDatasets: storedDatasets
+                        )
                     }
                     datasets.showReferenceSpfSheet = false
                     datasets.pendingRoleDatasetID = nil
@@ -491,7 +577,7 @@ extension ContentView {
             }
         }
         .padding(24)
-        .frame(width: 400)
+        .frame(minWidth: 420, idealWidth: 480)
     }
 
 }

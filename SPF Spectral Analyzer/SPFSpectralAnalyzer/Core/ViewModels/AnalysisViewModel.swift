@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import Observation
 
-@Observable
+@MainActor @Observable
 final class AnalysisViewModel {
 
     // MARK: - Spectra Data
@@ -548,12 +548,12 @@ final class AnalysisViewModel {
                 cachedDashboardMetrics = result.dashboard
                 cachedSPFEstimation = result.spfEstimation
 
-                // CoreML prediction (placeholder — returns nil until a model is bundled)
+                // CoreML prediction
                 if let firstSpectrum = analysis.first {
                     coreMLPrediction = SPFPredictionService.shared.predict(
                         x: firstSpectrum.x,
                         y: firstSpectrum.y,
-                        yAxisMode: yAxis.rawValue
+                        yAxisMode: yAxis
                     )
                 } else {
                     coreMLPrediction = nil

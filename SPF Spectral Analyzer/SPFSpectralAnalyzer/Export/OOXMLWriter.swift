@@ -1,6 +1,6 @@
 import Foundation
 
-struct ZipEntry {
+struct ZipEntry: Sendable {
     let path: String
     let data: Data
 }

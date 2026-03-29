@@ -32,7 +32,7 @@ enum DatasetPersistenceService {
         return preview
     }
 
-    @discardableResult
+    @MainActor @discardableResult
     static func persistParsedFiles(
         _ parsedFiles: [ParsedFileResult],
         modelContext: ModelContext,
@@ -40,102 +40,117 @@ enum DatasetPersistenceService {
     ) -> [String: UUID] {
         guard !parsedFiles.isEmpty else { return [:] }
         var fileNameToDatasetID: [String: UUID] = [:]
-        do {
-            var importedBytes: Int64 = 0
-            let allDatasets = (try? modelContext.fetch(FetchDescriptor<StoredDataset>())) ?? []
-            var existingDatasetKeys = Set(
-                allDatasets
-                    .compactMap { dataset -> String? in
-                        guard dataset.modelContext != nil else { return nil }
-                        return datasetUniquenessKey(fileHash: dataset.fileHash, sourcePath: dataset.sourcePath)
-                    }
-            )
-            for parsed in parsedFiles {
-                let fileData = parsed.fileData ?? (try? Data(contentsOf: parsed.url))
-                let fileHash = fileData.map { sha256Hex($0) }
-                let uniqueKey = datasetUniquenessKey(fileHash: fileHash, sourcePath: parsed.url.path)
-                if let uniqueKey,
-                   existingDatasetKeys.contains(uniqueKey) {
-                    Instrumentation.log(
-                        "Duplicate dataset skipped",
-                        area: .importParsing,
-                        level: .warning,
-                        details: "file=\(parsed.url.lastPathComponent) key=\(uniqueKey.prefix(16))"
-                    )
-                    continue
-                }
 
-                let storedSpectraInputs = parsed.rawSpectra.map { raw in
-                    let reason = SpectrumValidation.invalidReason(x: raw.x, y: raw.y)
-                    return StoredSpectrumInput(
-                        name: raw.name,
-                        x: raw.x,
-                        y: raw.y,
-                        isInvalid: reason != nil,
-                        invalidReason: reason
-                    )
+        // Read existing keys from the main context (read-only).
+        let allDatasets = (try? modelContext.fetch(FetchDescriptor<StoredDataset>())) ?? []
+        var existingDatasetKeys = Set(
+            allDatasets
+                .compactMap { dataset -> String? in
+                    guard dataset.modelContext != nil else { return nil }
+                    return datasetUniquenessKey(fileHash: dataset.fileHash, sourcePath: dataset.sourcePath)
                 }
-                let invalidCount = storedSpectraInputs.filter { $0.isInvalid }.count
-                var datasetWarnings = parsed.warnings
-                if invalidCount > 0 {
-                    datasetWarnings.append("flagged \(invalidCount) invalid spectra")
-                }
+        )
 
-                let datasetID = UUID()
-                let spectraModels = storedSpectraInputs.enumerated().map { index, stored in
-                    StoredSpectrum(
-                        datasetID: datasetID,
-                        name: stored.name,
-                        orderIndex: index,
-                        xData: SpectrumBinaryCodec.encodeDoubles(stored.x),
-                        yData: SpectrumBinaryCodec.encodeDoubles(stored.y),
-                        isInvalid: stored.isInvalid,
-                        invalidReason: stored.invalidReason
-                    )
-                }
-                let spectraBytes = spectraModels.reduce(Int64(0)) { $0 + Int64($1.xData.count + $1.yData.count) }
-                let metadataJSON = try? JSONEncoder().encode(parsed.metadata)
+        // Insert new datasets via a fresh context so the main context stays
+        // clean. This prevents _SD_get_current_context_tsd crashes from
+        // autosave encountering dirty-but-invalidated objects.
+        let writeCtx = ModelContext(modelContext.container)
+        writeCtx.autosaveEnabled = false
+        var importedBytes: Int64 = 0
 
-                let dataset = StoredDataset(
-                    id: datasetID,
-                    fileName: parsed.url.lastPathComponent,
-                    sourcePath: parsed.url.path,
-                    importedAt: Date(),
-                    fileHash: fileHash,
-                    fileData: fileData,
-                    metadataJSON: metadataJSON,
-                    headerInfoData: parsed.headerInfoData,
-                    skippedDataJSON: nil,
-                    warningsJSON: nil, spectra: spectraModels
+        for parsed in parsedFiles {
+            let fileData = parsed.fileData ?? (try? Data(contentsOf: parsed.url))
+            let fileHash = fileData.map { sha256Hex($0) }
+            let uniqueKey = datasetUniquenessKey(fileHash: fileHash, sourcePath: parsed.url.path)
+            if let uniqueKey,
+               existingDatasetKeys.contains(uniqueKey) {
+                Instrumentation.log(
+                    "Duplicate dataset skipped",
+                    area: .importParsing,
+                    level: .warning,
+                    details: "file=\(parsed.url.lastPathComponent) key=\(uniqueKey.prefix(16))"
                 )
-                dataset.skippedDataSets = parsed.skippedDataSets
-                dataset.warnings = datasetWarnings
-                for spectrum in spectraModels {
-                    spectrum.dataset = dataset
-                }
-                modelContext.insert(dataset)
-                fileNameToDatasetID[parsed.url.lastPathComponent] = datasetID
-                if let uniqueKey {
-                    existingDatasetKeys.insert(uniqueKey)
-                }
-                importedBytes += Int64(parsed.fileData?.count ?? 0)
-                importedBytes += Int64(metadataJSON?.count ?? 0)
-                importedBytes += Int64(parsed.headerInfoData.count)
-                importedBytes += Int64(dataset.skippedDataJSON?.count ?? 0)
-                importedBytes += Int64(dataset.warningsJSON?.count ?? 0)
-                importedBytes += spectraBytes
+                continue
             }
-            try ObjCExceptionCatcher.try { try? modelContext.save() }
-            if importedBytes > 0 {
-                dataStoreController?.noteLocalChange(bytes: importedBytes)
+
+            let storedSpectraInputs = parsed.rawSpectra.map { raw in
+                let reason = SpectrumValidation.invalidReason(x: raw.x, y: raw.y)
+                return StoredSpectrumInput(
+                    name: raw.name,
+                    x: raw.x,
+                    y: raw.y,
+                    isInvalid: reason != nil,
+                    invalidReason: reason
+                )
             }
-        } catch {
-            Instrumentation.log(
-                "SwiftData save failed",
-                area: .importParsing,
-                level: .warning,
-                details: "error=\(error.localizedDescription)"
+            let invalidCount = storedSpectraInputs.filter { $0.isInvalid }.count
+            var datasetWarnings = parsed.warnings
+            if invalidCount > 0 {
+                datasetWarnings.append("flagged \(invalidCount) invalid spectra")
+            }
+
+            let datasetID = UUID()
+            let spectraModels = storedSpectraInputs.enumerated().map { index, stored in
+                StoredSpectrum(
+                    datasetID: datasetID,
+                    name: stored.name,
+                    orderIndex: index,
+                    xData: SpectrumBinaryCodec.encodeDoubles(stored.x),
+                    yData: SpectrumBinaryCodec.encodeDoubles(stored.y),
+                    isInvalid: stored.isInvalid,
+                    invalidReason: stored.invalidReason
+                )
+            }
+            let spectraBytes = spectraModels.reduce(Int64(0)) { $0 + Int64($1.xData.count + $1.yData.count) }
+            let metadataJSON = try? JSONEncoder().encode(parsed.metadata)
+
+            let dataset = StoredDataset(
+                id: datasetID,
+                fileName: parsed.url.lastPathComponent,
+                sourcePath: parsed.url.path,
+                importedAt: Date(),
+                fileHash: fileHash,
+                fileData: fileData,
+                metadataJSON: metadataJSON,
+                headerInfoData: parsed.headerInfoData,
+                skippedDataJSON: nil,
+                warningsJSON: nil, spectra: spectraModels
             )
+            dataset.skippedDataSets = parsed.skippedDataSets
+            dataset.warnings = datasetWarnings
+
+            // Auto-populate ISO 24443 metadata from filename
+            let parsedMeta = FilenameMetadataParser.parse(filename: parsed.url.lastPathComponent)
+            dataset.plateType = parsedMeta.plateType.rawValue
+            dataset.applicationQuantityMg = parsedMeta.applicationQuantityMg
+            dataset.formulationType = parsedMeta.formulationType.rawValue
+            for spectrum in spectraModels {
+                spectrum.dataset = dataset
+            }
+            writeCtx.insert(dataset)
+            fileNameToDatasetID[parsed.url.lastPathComponent] = datasetID
+            if let uniqueKey {
+                existingDatasetKeys.insert(uniqueKey)
+            }
+            importedBytes += Int64(parsed.fileData?.count ?? 0)
+            importedBytes += Int64(metadataJSON?.count ?? 0)
+            importedBytes += Int64(parsed.headerInfoData.count)
+            importedBytes += Int64(dataset.skippedDataJSON?.count ?? 0)
+            importedBytes += Int64(dataset.warningsJSON?.count ?? 0)
+            importedBytes += spectraBytes
+        }
+
+        // Save all inserts in a single batch
+        do { try writeCtx.save() } catch {
+            Instrumentation.log(
+                "persistParsedFiles save failed",
+                area: .importParsing, level: .error,
+                details: "\(error)"
+            )
+        }
+
+        if importedBytes > 0 {
+            dataStoreController?.noteLocalChange(bytes: importedBytes)
         }
         return fileNameToDatasetID
     }

@@ -1,6 +1,6 @@
 import Foundation
 
-struct SPCFileTypeFlags: Codable {
+struct SPCFileTypeFlags: Codable, Sendable {
     let rawValue: UInt8
 
     var yIs16Bit: Bool { (rawValue & 0x01) != 0 }
@@ -22,7 +22,7 @@ struct SPCFileTypeFlags: Codable {
     }
 }
 
-struct SPCUnitCode: Codable {
+struct SPCUnitCode: Codable, Sendable {
     let rawValue: UInt8
 
     var label: String {
@@ -71,7 +71,7 @@ struct SPCUnitCode: Codable {
     }
 }
 
-struct SPCYUnitCode: Codable {
+struct SPCYUnitCode: Codable, Sendable {
     let rawValue: UInt8
 
     var label: String {
@@ -117,7 +117,7 @@ struct SPCYUnitCode: Codable {
     }
 }
 
-struct SPCExperimentTypeCode: Codable {
+struct SPCExperimentTypeCode: Codable, Sendable {
     let rawValue: UInt8
 
     var label: String {

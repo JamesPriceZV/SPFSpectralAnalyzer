@@ -279,6 +279,53 @@ struct iOSDataManagementView: View {
                         }
                     }
 
+                    // ISO 24443 metadata for reference datasets
+                    if isRef {
+                        let pt = record?.plateType
+                        let mg = record?.applicationQuantityMg
+                        let ft = record?.formulationType
+                        let hasMetadata = (pt != nil && !pt!.isEmpty) || mg != nil || (ft != nil && ft != FormulationType.unknown.rawValue)
+                        if hasMetadata {
+                            HStack(spacing: 4) {
+                                if let pt, !pt.isEmpty {
+                                    let plateLabel: String = {
+                                        guard let type = SubstratePlateType(rawValue: pt) else { return pt }
+                                        if type == .pmma, let sub = record?.pmmaPlateSubtype,
+                                           let subtype = PMMAPlateSubtype(rawValue: sub) {
+                                            return "PMMA \(subtype == .moulded ? "HD6" : "SB6")"
+                                        }
+                                        return type.label
+                                    }()
+                                    Text(plateLabel)
+                                        .font(.caption2)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(Color.orange.opacity(0.15))
+                                        .foregroundColor(.orange)
+                                        .cornerRadius(3)
+                                }
+                                if let mg {
+                                    Text(String(format: "%.1f mg", mg))
+                                        .font(.caption2)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(Color.cyan.opacity(0.15))
+                                        .foregroundColor(.cyan)
+                                        .cornerRadius(3)
+                                }
+                                if let ft, ft != FormulationType.unknown.rawValue {
+                                    Text(FormulationType(rawValue: ft)?.label ?? ft)
+                                        .font(.caption2)
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(Color.purple.opacity(0.15))
+                                        .foregroundColor(.purple)
+                                        .cornerRadius(3)
+                                }
+                            }
+                        }
+                    }
+
                     Text(dateLabel)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
@@ -326,6 +373,10 @@ struct iOSDataManagementView: View {
             Button {
                 datasets.pendingRoleDatasetID = datasetID
                 datasets.pendingKnownSPF = spfValue ?? 30.0
+                datasets.pendingPlateType = SubstratePlateType(rawValue: record?.plateType ?? "") ?? .pmma
+                datasets.pendingApplicationQuantityMg = record?.applicationQuantityMg
+                datasets.pendingFormulationType = FormulationType(rawValue: record?.formulationType ?? "") ?? .unknown
+                datasets.pendingPMMASubtype = PMMAPlateSubtype(rawValue: record?.pmmaPlateSubtype ?? "") ?? .moulded
                 datasets.showReferenceSpfSheet = true
             } label: {
                 Label("Set as Reference (Known SPF)", systemImage: "checkmark.seal.fill")

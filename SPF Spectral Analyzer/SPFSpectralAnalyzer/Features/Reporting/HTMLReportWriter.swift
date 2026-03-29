@@ -45,7 +45,7 @@ public struct HTMLReportWriter {
     /// Snapshots all datasets and their spectra from live model objects.
     /// Call this once while models are known to be valid, then pass the
     /// snapshots to `writeHTMLReport(snapshots:options:to:)`.
-    public static func snapshotDatasets(_ datasets: [StoredDataset]) -> [DatasetSnapshot] {
+    @MainActor public static func snapshotDatasets(_ datasets: [StoredDataset]) -> [DatasetSnapshot] {
         datasets.compactMap { dataset -> DatasetSnapshot? in
             guard dataset.modelContext != nil else { return nil }
             let fileName = dataset.fileName
@@ -63,7 +63,7 @@ public struct HTMLReportWriter {
         }
     }
 
-    public static func writeHTMLReport(
+    @MainActor public static func writeHTMLReport(
         datasets: [StoredDataset],
         options: Options,
         to url: URL

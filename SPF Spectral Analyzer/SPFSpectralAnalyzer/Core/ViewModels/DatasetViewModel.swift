@@ -4,7 +4,7 @@ import SwiftData
 import Observation
 import CryptoKit
 
-@Observable
+@MainActor @Observable
 final class DatasetViewModel {
 
     // MARK: - Cross-ViewModel References
@@ -58,6 +58,10 @@ final class DatasetViewModel {
     var showSamplePlateTypeSheet = false
     var pendingRoleDatasetID: UUID?
     var pendingKnownSPF: Double = 30.0
+    var pendingPlateType: SubstratePlateType = .pmma
+    var pendingApplicationQuantityMg: Double? = nil
+    var pendingFormulationType: FormulationType = .unknown
+    var pendingPMMASubtype: PMMAPlateSubtype = .moulded
     var pendingHDRSPlateType: HDRSPlateType = .moulded
 
     // MARK: - Instrument Assignment State
@@ -354,7 +358,11 @@ final class DatasetViewModel {
                     instrumentID: dataset.instrumentID,
                     validSpectrumCount: validSpectrumCount,
                     isArchived: dataset.isArchived,
-                    archivedAt: dataset.archivedAt
+                    archivedAt: dataset.archivedAt,
+                    plateType: dataset.plateType,
+                    applicationQuantityMg: dataset.applicationQuantityMg,
+                    formulationType: dataset.formulationType,
+                    pmmaPlateSubtype: dataset.pmmaPlateSubtype
                 )
             }
         } catch {
@@ -847,7 +855,16 @@ final class DatasetViewModel {
     /// Must be called when the model object is known to be valid (e.g., from a fresh `@Query`
     /// result during a user-initiated action). After this returns, no model access is needed.
     private func snapshotForLoad(_ dataset: StoredDataset) -> DatasetLoadSnapshot {
-        let spectraItems = dataset.spectraItems
+        // Fetch spectra by predicate instead of traversing the spectraItems
+        // relationship, which loads all spectrum objects and can fault during CloudKit sync.
+        let dsID = dataset.id
+        let spectraPredicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID }
+        let spectraItems: [StoredSpectrum]
+        if let ctx = modelContext {
+            spectraItems = (try? ctx.fetch(FetchDescriptor<StoredSpectrum>(predicate: spectraPredicate))) ?? []
+        } else {
+            spectraItems = dataset.spectraItems
+        }
         Instrumentation.log(
             "Snapshot created",
             area: .importParsing, level: .info,
@@ -1201,20 +1218,14 @@ final class DatasetViewModel {
 
     /// Updates the role and known in-vivo SPF for a stored dataset.
     ///
-    /// **Strategy — "cache-first, deferred persist":**
+    /// **Strategy — "cache-first, fresh-context write":**
     ///
     /// 1. The searchable-record cache is patched immediately so the UI reflects
     ///    the new role/SPF without any model property access.
-    /// 2. Reference indices are rebuilt from cache only.
-    /// 3. The actual model mutation is **deferred** by temporarily disabling
-    ///    `autosaveEnabled` on the context, writing the properties, and then
-    ///    scheduling a controlled save on a later run-loop pass.
-    ///
-    /// This avoids calling `ModelContext.save()` synchronously during a user
-    /// action while CloudKit's `NSPersistentCloudKitContainer` may be performing
-    /// import/export on background threads. `save()` under those conditions hits
-    /// an internal SwiftData/Core Data precondition (`brk #0x1`) that cannot be
-    /// caught by Swift `do/catch` or Objective-C `@try/@catch`.
+    /// 2. A disposable `ModelContext` is created, the object is re-fetched by
+    ///    `PersistentIdentifier`, mutated there, and saved explicitly.
+    ///    The main context stays read-only — no dirty objects for autosave to
+    ///    encounter if CloudKit sync invalidates them mid-flight.
     func setDatasetRole(
         _ role: DatasetRole?,
         knownInVivoSPF: Double?,
@@ -1227,49 +1238,20 @@ final class DatasetViewModel {
         // 1. Patch the cache FIRST so the UI renders from safe value types.
         patchCacheEntry(for: datasetID, datasetRole: roleRawValue, knownInVivoSPF: spfValue)
 
-        // 2. Mutate the model with auto-save temporarily disabled.
-        //    This prevents SwiftData from calling save() synchronously in
-        //    response to the property write while CloudKit sync may be active.
-        guard let ctx = modelContext else { return }
-        guard let dataset = storedDatasets.first(where: { $0.id == datasetID }) else { return }
+        // 2. Write via a fresh context so the main context stays clean.
+        guard let dataset = storedDatasets.first(where: { $0.id == datasetID }),
+              dataset.modelContext != nil else { return }
+        guard let container = modelContext?.container else { return }
 
-        // Guard: if the dataset's backing store has been invalidated (e.g. by
-        // CloudKit sync deallocating the object) the modelContext will be nil.
-        guard dataset.modelContext != nil else {
-            Instrumentation.log(
-                "setDatasetRole skipped — model context nil",
-                area: .processing, level: .warning,
-                details: "datasetID=\(datasetID) role=\(roleRawValue ?? "nil")"
-            )
-            return
-        }
+        let writeCtx = ModelContext(container)
+        writeCtx.autosaveEnabled = false
+        let pid = dataset.persistentModelID
+        guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { return }
 
-        // If CloudKit sync is actively running, defer the entire mutation to
-        // avoid hitting `swift_weakLoadStrong` on an invalidated backing object.
-        if UserDefaults.standard.bool(forKey: "icloudSyncInProgress") {
-            Instrumentation.log(
-                "setDatasetRole deferred — sync active",
-                area: .processing, level: .info,
-                details: "datasetID=\(datasetID) role=\(roleRawValue ?? "nil")"
-            )
-            Task { @MainActor [weak self] in
-                try? await Task.sleep(nanoseconds: 2_000_000_000) // 2s
-                self?.setDatasetRole(role, knownInVivoSPF: knownInVivoSPF, for: datasetID, storedDatasets: storedDatasets)
-            }
-            return
-        }
-
-        let wasAutoSave = ctx.autosaveEnabled
-        ctx.autosaveEnabled = false
-
-        // Wrap model property writes in ObjCExceptionCatcher to handle
-        // NSExceptions from Core Data faulting during CloudKit sync.
-        var writeSucceeded = false
         do {
             try ObjCExceptionCatcher.try {
-                dataset.datasetRole = roleRawValue
-                dataset.knownInVivoSPF = spfValue
-                writeSucceeded = true
+                fresh.datasetRole = roleRawValue
+                fresh.knownInVivoSPF = spfValue
             }
         } catch {
             Instrumentation.log(
@@ -1277,100 +1259,95 @@ final class DatasetViewModel {
                 area: .processing, level: .error,
                 details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
             )
-        }
-
-        guard writeSucceeded else {
-            ctx.autosaveEnabled = wasAutoSave
             return
         }
 
-        // 4. Schedule a controlled save on a future run-loop pass.
-        //    The delay gives CloudKit time to finish its current sync cycle
-        //    and lets SwiftUI dismiss the context menu before @Query re-fires.
-        scheduleDeferredSave(context: ctx, restoreAutoSave: wasAutoSave, reason: "setDatasetRole(\(roleRawValue ?? "nil"))")
+        do { try writeCtx.save() } catch {
+            Instrumentation.log(
+                "setDatasetRole save failed",
+                area: .processing, level: .error,
+                details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
+            )
+        }
 
         dataStoreController?.noteLocalChange(bytes: 64)
     }
 
-    /// Re-enables autosave after a short delay so SwiftData persists pending
-    /// changes on its own schedule.
-    ///
-    /// **Why we never call `context.save()` explicitly:**
-    ///
-    /// `ModelContext.save()` triggers a Core Data coordinator save that hits an
-    /// internal precondition (`brk #0x1` — `fatalError`/`__builtin_trap`) when
-    /// `NSPersistentCloudKitContainer` is performing import/export on background
-    /// threads. This is a Swift precondition failure that **cannot** be caught
-    /// by `do/catch`, `ObjCExceptionCatcher`, or any other mechanism.
-    ///
-    /// SwiftData's autosave, by contrast, uses internal coordination with
-    /// CloudKit's history tracking and only flushes when it is safe to do so.
-    /// By temporarily disabling `autosaveEnabled` during the mutation and
-    /// re-enabling it after a brief delay, we let the framework choose the
-    /// correct moment to persist — avoiding the crash entirely.
-    ///
-    /// If CloudKit sync is currently active, we wait longer before re-enabling,
-    /// giving the sync cycle time to settle. The delay is purely defensive;
-    /// SwiftData should handle the coordination regardless.
-    private func scheduleDeferredSave(
-        context: ModelContext,
-        restoreAutoSave: Bool,
-        reason: String,
-        attempt: Int = 1
+    /// Saves ISO 24443 metadata (plate type, application quantity, formulation type) for a dataset.
+    func setDatasetMetadata(
+        plateType: SubstratePlateType,
+        pmmaPlateSubtype: PMMAPlateSubtype?,
+        applicationQuantityMg: Double?,
+        formulationType: FormulationType,
+        for datasetID: UUID,
+        storedDatasets: [StoredDataset]
     ) {
-        let delay: UInt64 = switch attempt {
-        case 1: 200_000_000   // 200ms
-        case 2: 500_000_000   // 500ms
-        case 3: 1_000_000_000 // 1s
-        default: 2_000_000_000 // 2s
+        let subtypeRaw = (plateType == .pmma) ? (pmmaPlateSubtype ?? .moulded).rawValue : nil
+
+        // 1. Patch the cache so UI updates immediately.
+        if var existing = searchableRecordCache[datasetID] {
+            existing = DatasetSearchRecord(
+                fileName: existing.fileName,
+                datasetRole: existing.datasetRole,
+                knownInVivoSPF: existing.knownInVivoSPF,
+                importedAt: existing.importedAt,
+                fileHash: existing.fileHash,
+                sourcePath: existing.sourcePath,
+                dataSetNames: existing.dataSetNames,
+                directoryEntryNames: existing.directoryEntryNames,
+                spectrumCount: existing.spectrumCount,
+                memo: existing.memo,
+                sourceInstrumentText: existing.sourceInstrumentText,
+                instrumentID: existing.instrumentID,
+                validSpectrumCount: existing.validSpectrumCount,
+                isArchived: existing.isArchived,
+                archivedAt: existing.archivedAt,
+                plateType: plateType.rawValue,
+                applicationQuantityMg: applicationQuantityMg,
+                formulationType: formulationType.rawValue,
+                pmmaPlateSubtype: subtypeRaw
+            )
+            searchableRecordCache[datasetID] = existing
         }
 
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: delay)
-            guard self != nil else {
-                // ViewModel deallocated — restore autosave so the context
-                // eventually flushes on its own.
-                context.autosaveEnabled = restoreAutoSave
-                return
+        // 2. Write via a fresh context so the main context stays clean.
+        guard let dataset = storedDatasets.first(where: { $0.id == datasetID }),
+              dataset.modelContext != nil else { return }
+        guard let container = modelContext?.container else { return }
+
+        let writeCtx = ModelContext(container)
+        writeCtx.autosaveEnabled = false
+        let pid = dataset.persistentModelID
+        guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { return }
+
+        do {
+            try ObjCExceptionCatcher.try {
+                fresh.plateType = plateType.rawValue
+                fresh.applicationQuantityMg = applicationQuantityMg
+                fresh.formulationType = formulationType.rawValue
+                fresh.pmmaPlateSubtype = subtypeRaw
             }
-
-            // If CloudKit sync is active and we haven't waited long enough,
-            // postpone re-enabling autosave to let the sync cycle complete.
-            let syncActive = UserDefaults.standard.bool(forKey: "icloudSyncInProgress")
-            if syncActive && attempt < 4 {
-                Instrumentation.log(
-                    "Deferred autosave-restore postponed (sync active)",
-                    area: .processing,
-                    level: .info,
-                    details: "reason=\(reason) attempt=\(attempt)"
-                )
-                self?.scheduleDeferredSave(
-                    context: context,
-                    restoreAutoSave: restoreAutoSave,
-                    reason: reason,
-                    attempt: attempt + 1
-                )
-                return
-            }
-
-            // Re-enable autosave. SwiftData will persist the pending changes
-            // on its next autosave pass, using its internal CloudKit
-            // coordination to choose a safe moment.
-            context.autosaveEnabled = restoreAutoSave
-
+        } catch {
             Instrumentation.log(
-                "Autosave re-enabled (deferred)",
-                area: .processing,
-                level: .info,
-                details: "reason=\(reason) attempt=\(attempt) syncWasActive=\(syncActive)"
+                "setDatasetMetadata caught NSException",
+                area: .processing, level: .error,
+                details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
+            )
+            return
+        }
+
+        do { try writeCtx.save() } catch {
+            Instrumentation.log(
+                "setDatasetMetadata save failed",
+                area: .processing, level: .error,
+                details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
             )
         }
+
+        dataStoreController?.noteLocalChange(bytes: 64)
     }
 
     /// Persists HDRS spectrum tags back to their parent StoredDataset.
-    ///
-    /// Uses the deferred-save pattern to avoid calling `save()` while CloudKit sync
-    /// may be active on background threads.
     func persistHDRSTags(for datasetID: UUID, storedDatasets: [StoredDataset]) {
         guard let ctx = modelContext else { return }
         guard let dataset = storedDatasets.first(where: { $0.id == datasetID }),
@@ -1383,12 +1360,23 @@ final class DatasetViewModel {
         let datasetSpectrumIDs = Set(spectra.compactMap { $0.modelContext != nil ? $0.id : nil })
         let relevantTags = analysis.hdrsSpectrumTags.filter { datasetSpectrumIDs.contains($0.key) }
 
-        let wasAutoSave = ctx.autosaveEnabled
-        ctx.autosaveEnabled = false
+        // Write via a fresh context. ObjCExceptionCatcher is not used here
+        // because its ObjC trampoline breaks Swift's executor tracking.
+        let writeCtx = ModelContext(ctx.container)
+        writeCtx.autosaveEnabled = false
+        let pid = dataset.persistentModelID
+        guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { return }
 
-        dataset.hdrsSpectrumTags = relevantTags
+        fresh.hdrsSpectrumTags = relevantTags
 
-        scheduleDeferredSave(context: ctx, restoreAutoSave: wasAutoSave, reason: "persistHDRSTags")
+        do { try writeCtx.save() } catch {
+            Instrumentation.log(
+                "persistHDRSTags save failed",
+                area: .processing, level: .error,
+                details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
+            )
+        }
+
         dataStoreController?.noteLocalChange(bytes: Int64(relevantTags.count * 64))
     }
 
@@ -1398,25 +1386,20 @@ final class DatasetViewModel {
         for datasetID: UUID,
         storedDatasets: [StoredDataset]
     ) {
-        guard let ctx = modelContext else { return }
         guard let dataset = storedDatasets.first(where: { $0.id == datasetID }),
               dataset.modelContext != nil else { return }
-
-        if UserDefaults.standard.bool(forKey: "icloudSyncInProgress") {
-            Task { @MainActor [weak self] in
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                self?.setDatasetHDRSMetadata(plateType: plateType, for: datasetID, storedDatasets: storedDatasets)
-            }
-            return
-        }
+        guard let container = modelContext?.container else { return }
 
         let metadata = DatasetHDRSMetadata(plateType: plateType)
-        let wasAutoSave = ctx.autosaveEnabled
-        ctx.autosaveEnabled = false
+
+        let writeCtx = ModelContext(container)
+        writeCtx.autosaveEnabled = false
+        let pid = dataset.persistentModelID
+        guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { return }
 
         do {
             try ObjCExceptionCatcher.try {
-                dataset.hdrsMetadataJSON = try? JSONEncoder().encode(metadata)
+                fresh.hdrsMetadataJSON = try? JSONEncoder().encode(metadata)
             }
         } catch {
             Instrumentation.log(
@@ -1424,11 +1407,17 @@ final class DatasetViewModel {
                 area: .processing, level: .error,
                 details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
             )
-            ctx.autosaveEnabled = wasAutoSave
             return
         }
 
-        scheduleDeferredSave(context: ctx, restoreAutoSave: wasAutoSave, reason: "setDatasetHDRSMetadata")
+        do { try writeCtx.save() } catch {
+            Instrumentation.log(
+                "setDatasetHDRSMetadata save failed",
+                area: .processing, level: .error,
+                details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
+            )
+        }
+
         dataStoreController?.noteLocalChange(bytes: 32)
     }
 
@@ -1436,24 +1425,18 @@ final class DatasetViewModel {
 
     /// Assigns an instrument to a single dataset.
     func assignInstrument(_ instrumentID: UUID, to datasetID: UUID, storedDatasets: [StoredDataset]) {
-        guard let ctx = modelContext else { return }
         guard let dataset = storedDatasets.first(where: { $0.id == datasetID }),
               dataset.modelContext != nil else { return }
+        guard let container = modelContext?.container else { return }
 
-        if UserDefaults.standard.bool(forKey: "icloudSyncInProgress") {
-            Task { @MainActor [weak self] in
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                self?.assignInstrument(instrumentID, to: datasetID, storedDatasets: storedDatasets)
-            }
-            return
-        }
-
-        let wasAutoSave = ctx.autosaveEnabled
-        ctx.autosaveEnabled = false
+        let writeCtx = ModelContext(container)
+        writeCtx.autosaveEnabled = false
+        let pid = dataset.persistentModelID
+        guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { return }
 
         do {
             try ObjCExceptionCatcher.try {
-                dataset.instrumentID = instrumentID
+                fresh.instrumentID = instrumentID
             }
         } catch {
             Instrumentation.log(
@@ -1461,8 +1444,15 @@ final class DatasetViewModel {
                 area: .processing, level: .error,
                 details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
             )
-            ctx.autosaveEnabled = wasAutoSave
             return
+        }
+
+        do { try writeCtx.save() } catch {
+            Instrumentation.log(
+                "assignInstrument save failed",
+                area: .processing, level: .error,
+                details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
+            )
         }
 
         // Update search record cache
@@ -1470,7 +1460,6 @@ final class DatasetViewModel {
             searchableRecordCache[datasetID] = existing.patching(instrumentID: instrumentID)
         }
 
-        scheduleDeferredSave(context: ctx, restoreAutoSave: wasAutoSave, reason: "assignInstrument")
         dataStoreController?.noteLocalChange(bytes: 16)
     }
 
@@ -1488,18 +1477,57 @@ final class DatasetViewModel {
             return
         }
 
-        // Assign to the primary dataset plus all siblings from same directory.
-        // Read sourcePath from the cache instead of model properties to avoid
-        // `swift_weakLoadStrong → brk #0x1` if CloudKit sync invalidates objects.
+        // Collect sibling IDs from the cache (no model property access).
         let siblingIDs = storedDatasets.compactMap { dataset -> UUID? in
             guard let dPath = searchableRecordCache[dataset.id]?.sourcePath else { return nil }
             let dDir = (dPath as NSString).deletingLastPathComponent
             return dDir == directory ? dataset.id : nil
         }
 
+        guard let container = modelContext?.container else { return }
+        let writeCtx = ModelContext(container)
+        writeCtx.autosaveEnabled = false
+
+        var assignedCount = 0
         for id in siblingIDs {
-            assignInstrument(instrumentID, to: id, storedDatasets: storedDatasets)
+            guard let dataset = storedDatasets.first(where: { $0.id == id }),
+                  dataset.modelContext != nil else { continue }
+
+            let pid = dataset.persistentModelID
+            guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { continue }
+
+            do {
+                try ObjCExceptionCatcher.try {
+                    MainActor.assumeIsolated {
+                        fresh.instrumentID = instrumentID
+                    }
+                }
+                assignedCount += 1
+            } catch {
+                Instrumentation.log(
+                    "assignInstrument caught NSException",
+                    area: .processing, level: .error,
+                    details: "datasetID=\(id) error=\(error.localizedDescription)"
+                )
+                continue
+            }
+
+            // Update search record cache
+            if let existing = searchableRecordCache[id] {
+                searchableRecordCache[id] = existing.patching(instrumentID: instrumentID)
+            }
         }
+
+        // Single save for the entire batch
+        do { try writeCtx.save() } catch {
+            Instrumentation.log(
+                "assignInstrumentToBatch save failed",
+                area: .processing, level: .error,
+                details: "instrumentID=\(instrumentID) error=\(error.localizedDescription)"
+            )
+        }
+
+        dataStoreController?.noteLocalChange(bytes: Int64(16 * assignedCount))
 
         Instrumentation.log(
             "Batch instrument assignment",
@@ -1768,7 +1796,7 @@ final class DatasetViewModel {
     }
 
     func removeDuplicateDatasets(storedDatasets: [StoredDataset], archivedDatasets: [StoredDataset]) {
-        guard let ctx = modelContext else { return }
+        guard let container = modelContext?.container else { return }
         let targetIDs = duplicateCleanupTargetIDs
         let datasets = (storedDatasets + archivedDatasets).filter { targetIDs.contains($0.id) }
         guard !datasets.isEmpty else {
@@ -1781,18 +1809,24 @@ final class DatasetViewModel {
         let preview = datasetNamePreview(datasets)
         let count = datasets.count
 
-        let wasAutoSave = ctx.autosaveEnabled
-        ctx.autosaveEnabled = false
+        let writeCtx = ModelContext(container)
+        writeCtx.autosaveEnabled = false
 
         for dataset in datasets {
-            ctx.delete(dataset)
+            guard dataset.modelContext != nil else { continue }
+            let pid = dataset.persistentModelID
+            guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { continue }
+            writeCtx.delete(fresh)
+        }
+
+        do { try writeCtx.save() } catch {
+            Instrumentation.log("removeDuplicateDatasets save failed", area: .uiInteraction, level: .error, details: "\(error)")
         }
 
         let details = preview.isEmpty ? "count=\(count)" : "count=\(count) names=\(preview)"
         Instrumentation.log("Duplicate stored datasets deleted", area: .uiInteraction, level: .warning, details: details)
         analysis.statusMessage = "Removed \(count) duplicate dataset(s)."
 
-        scheduleDeferredSave(context: ctx, restoreAutoSave: wasAutoSave, reason: "removeDuplicates")
         requestCloudSync(reason: "datasetDuplicateCleanup")
 
         duplicateCleanupTargetIDs.removeAll()
@@ -1800,7 +1834,6 @@ final class DatasetViewModel {
     }
 
     func archivePendingDatasets(storedDatasets: [StoredDataset]) {
-        guard let ctx = modelContext else { return }
         let targetIDs = pendingArchiveDatasetIDs
         let datasets = storedDatasets.filter { targetIDs.contains($0.id) }
         guard !datasets.isEmpty else {
@@ -1811,20 +1844,27 @@ final class DatasetViewModel {
         let preview = datasetNamePreview(datasets)
         let count = datasets.count
 
-        let wasAutoSave = ctx.autosaveEnabled
-        ctx.autosaveEnabled = false
+        guard let container = modelContext?.container else { return }
+        let writeCtx = ModelContext(container)
+        writeCtx.autosaveEnabled = false
 
         let now = Date()
         for dataset in datasets {
-            dataset.isArchived = true
-            dataset.archivedAt = now
+            guard dataset.modelContext != nil else { continue }
+            let pid = dataset.persistentModelID
+            guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { continue }
+            fresh.isArchived = true
+            fresh.archivedAt = now
+        }
+
+        do { try writeCtx.save() } catch {
+            Instrumentation.log("archivePendingDatasets save failed", area: .uiInteraction, level: .error, details: "\(error)")
         }
 
         let details = preview.isEmpty ? "count=\(count)" : "count=\(count) names=\(preview)"
         Instrumentation.log("Stored datasets archived", area: .uiInteraction, level: .info, details: details)
         analysis.statusMessage = "Archived \(count) stored dataset(s)."
 
-        scheduleDeferredSave(context: ctx, restoreAutoSave: wasAutoSave, reason: "archiveDatasets")
         requestCloudSync(reason: "datasetArchive")
 
         pendingArchiveDatasetIDs.removeAll()
@@ -1832,26 +1872,32 @@ final class DatasetViewModel {
     }
 
     func restoreArchivedSelection(archivedDatasets: [StoredDataset]) {
-        guard let ctx = modelContext else { return }
         let datasets = archivedDatasets.filter { archivedDatasetSelection.contains($0.id) }
         guard !datasets.isEmpty else { return }
         // Capture preview BEFORE mutation (from cache — no model access)
         let preview = datasetNamePreview(datasets)
         let count = datasets.count
 
-        let wasAutoSave = ctx.autosaveEnabled
-        ctx.autosaveEnabled = false
+        guard let container = modelContext?.container else { return }
+        let writeCtx = ModelContext(container)
+        writeCtx.autosaveEnabled = false
 
         for dataset in datasets {
-            dataset.isArchived = false
-            dataset.archivedAt = nil
+            guard dataset.modelContext != nil else { continue }
+            let pid = dataset.persistentModelID
+            guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { continue }
+            fresh.isArchived = false
+            fresh.archivedAt = nil
+        }
+
+        do { try writeCtx.save() } catch {
+            Instrumentation.log("restoreArchivedSelection save failed", area: .uiInteraction, level: .error, details: "\(error)")
         }
 
         let details = preview.isEmpty ? "count=\(count)" : "count=\(count) names=\(preview)"
         Instrumentation.log("Stored datasets restored", area: .uiInteraction, level: .info, details: details)
         analysis.statusMessage = "Restored \(count) archived dataset(s)."
 
-        scheduleDeferredSave(context: ctx, restoreAutoSave: wasAutoSave, reason: "restoreDatasets")
         requestCloudSync(reason: "datasetRestore")
 
         archivedDatasetSelection.removeAll()
@@ -1865,7 +1911,7 @@ final class DatasetViewModel {
     }
 
     func deleteArchivedDatasets(archivedDatasets: [StoredDataset]) {
-        guard let ctx = modelContext else { return }
+        guard let container = modelContext?.container else { return }
         let ids = effectivePermanentDeleteIDs
         let datasets = archivedDatasets.filter { ids.contains($0.id) }
         guard !datasets.isEmpty else {
@@ -1876,18 +1922,24 @@ final class DatasetViewModel {
         let preview = datasetNamePreview(datasets)
         let count = datasets.count
 
-        let wasAutoSave = ctx.autosaveEnabled
-        ctx.autosaveEnabled = false
+        let writeCtx = ModelContext(container)
+        writeCtx.autosaveEnabled = false
 
         for dataset in datasets {
-            ctx.delete(dataset)
+            guard dataset.modelContext != nil else { continue }
+            let pid = dataset.persistentModelID
+            guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { continue }
+            writeCtx.delete(fresh)
+        }
+
+        do { try writeCtx.save() } catch {
+            Instrumentation.log("deleteArchivedDatasets save failed", area: .uiInteraction, level: .error, details: "\(error)")
         }
 
         let details = preview.isEmpty ? "count=\(count)" : "count=\(count) names=\(preview)"
         Instrumentation.log("Archived datasets deleted", area: .uiInteraction, level: .warning, details: details)
         analysis.statusMessage = "Deleted \(count) archived dataset(s)."
 
-        scheduleDeferredSave(context: ctx, restoreAutoSave: wasAutoSave, reason: "deleteArchived")
         requestCloudSync(reason: "datasetDelete")
 
         pendingPermanentDeleteIDs.removeAll()

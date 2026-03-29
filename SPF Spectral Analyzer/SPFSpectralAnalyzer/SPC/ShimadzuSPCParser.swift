@@ -6,12 +6,17 @@ struct ShimadzuSPCRawSpectrum: Sendable {
     let y: [Double]
 }
 
-final class ShimadzuSpectrum: Identifiable {
+final class ShimadzuSpectrum: Identifiable, @unchecked Sendable {
     let id = UUID()
     let name: String
     /// The StoredDataset ID this spectrum was loaded from, used to keep the
     /// session-restore file in sync when individual spectra are removed.
-    var sourceDatasetID: UUID?
+    /// Access is synchronized via `cacheLock`.
+    private var _sourceDatasetID: UUID?
+    var sourceDatasetID: UUID? {
+        get { cacheLock.withLock { _sourceDatasetID } }
+        set { cacheLock.withLock { _sourceDatasetID = newValue } }
+    }
     private var xCache: [Double]?
     private var yCache: [Double]?
     private let xData: Data?
@@ -87,7 +92,7 @@ enum ShimadzuSPCError: Error, CustomStringConvertible {
     }
 }
 
-struct ShimadzuSPCParseResult {
+struct ShimadzuSPCParseResult: Sendable {
     let spectra: [ShimadzuSPCRawSpectrum]
     let skippedDataSets: [String]
     let metadata: ShimadzuSPCMetadata

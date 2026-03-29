@@ -1,6 +1,6 @@
 import Foundation
 
-enum BaselineMethod: String, CaseIterable, Identifiable {
+enum BaselineMethod: String, CaseIterable, Identifiable, Sendable {
     case none = "None"
     case minSubtract = "Min Subtract"
     case poly3 = "Poly Fit (3)"
@@ -8,7 +8,7 @@ enum BaselineMethod: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-enum NormalizationMethod: String, CaseIterable, Identifiable {
+enum NormalizationMethod: String, CaseIterable, Identifiable, Sendable {
     case none = "None"
     case minMax = "Min-Max"
     case area = "Area"
@@ -17,7 +17,7 @@ enum NormalizationMethod: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-struct PeakPoint: Identifiable {
+struct PeakPoint: Identifiable, Sendable {
     let id: Int
     let x: Double
     let y: Double

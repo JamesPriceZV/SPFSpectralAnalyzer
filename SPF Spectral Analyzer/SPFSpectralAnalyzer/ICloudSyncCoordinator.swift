@@ -35,6 +35,7 @@ enum ICloudDefaultsKeys {
     static let skipBackupOnCloseOnce = "icloudSkipBackupOnCloseOnce"
 }
 
+@MainActor
 final class ICloudSyncCoordinator {
     static let shared = ICloudSyncCoordinator()
 
@@ -93,6 +94,9 @@ final class ICloudSyncCoordinator {
             pushDefaultsToICloud()
         }
 
+        // Wrap save in ObjCExceptionCatcher to catch CloudKit NSExceptions
+        // that Swift's do/catch cannot handle. No MainActor.assumeIsolated
+        // needed — ModelContext.save() is not actor-isolated.
         do {
             let context = ModelContext(container)
             try ObjCExceptionCatcher.try {
@@ -100,9 +104,9 @@ final class ICloudSyncCoordinator {
             }
         } catch {
             updateSyncStatus(message: "Sync failed")
-            updateBackupStatus(message: "Backup save caught exception: \(error.localizedDescription)")
-            Instrumentation.log("Backup save NSException", area: .uiInteraction, level: .error, details: error.localizedDescription)
-            return "Backup save failed (exception)"
+            updateBackupStatus(message: "Backup save error: \(error.localizedDescription)")
+            Instrumentation.log("Backup save error", area: .uiInteraction, level: .error, details: error.localizedDescription)
+            return "Backup save failed"
         }
 
         if let size = try? estimateBackupSize(container: container) {
@@ -145,6 +149,10 @@ final class ICloudSyncCoordinator {
             return "iCloud sync unavailable"
         }
 
+        // No MainActor.run needed — this class is @MainActor so we're
+        // already on the main actor. Calling save() directly preserves the
+        // actor isolation context that ObjCExceptionCatcher's ObjC trampoline
+        // would break (causing swift_task_reportUnexpectedExecutor crashes).
         do {
             let context = ModelContext(container)
 
@@ -184,14 +192,15 @@ final class ICloudSyncCoordinator {
                 touchedCount += 1
             }
 
-            // Use ObjCExceptionCatcher to guard against NSException from save
-            // during concurrent CloudKit sync operations.
+            // Wrap save in ObjCExceptionCatcher to catch CloudKit NSExceptions
+            // that Swift's do/catch cannot handle. No MainActor.assumeIsolated
+            // needed — ModelContext.save() is not actor-isolated.
             do {
                 try ObjCExceptionCatcher.try {
                     try? context.save()
                 }
             } catch {
-                Instrumentation.log("Force upload save caught NSException", area: .uiInteraction, level: .error, details: error.localizedDescription)
+                Instrumentation.log("Force upload save error", area: .uiInteraction, level: .error, details: error.localizedDescription)
             }
 
             updateSyncStatus(message: "Last sync: Forced upload")
@@ -216,6 +225,9 @@ final class ICloudSyncCoordinator {
             pullDefaultsFromICloud()
         }
 
+        // No MainActor.run or ObjCExceptionCatcher needed — this class is
+        // @MainActor so we're already on the main actor. Direct fetch
+        // preserves the actor isolation context.
         if let container {
             let context = ModelContext(container)
             var descriptor = FetchDescriptor<StoredDataset>()
@@ -456,6 +468,9 @@ final class ICloudSyncCoordinator {
         for dataset in datasets {
             // Guard against invalidated model objects during CloudKit sync
             guard dataset.modelContext != nil else { continue }
+            // Direct property reads — this class is @MainActor so actor isolation
+            // is already satisfied. The modelContext != nil guard above protects
+            // against invalidated objects during CloudKit sync.
             total += Int64(dataset.fileData?.count ?? 0)
             total += Int64(dataset.metadataJSON?.count ?? 0)
             total += Int64(dataset.headerInfoData?.count ?? 0)

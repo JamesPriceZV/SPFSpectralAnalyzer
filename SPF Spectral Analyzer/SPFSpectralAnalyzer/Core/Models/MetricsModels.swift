@@ -9,6 +9,8 @@ struct MetricsComputationResult: Sendable {
     let dashboard: DashboardMetrics?
     let spfEstimation: SPFEstimationResult?
     var calibrationLogDetails: String = ""
+    /// CoreML-based SPF prediction (nil if model not trained).
+    var mlPrediction: SPFMLPrediction?
 }
 
 struct DashboardMetrics: Sendable {

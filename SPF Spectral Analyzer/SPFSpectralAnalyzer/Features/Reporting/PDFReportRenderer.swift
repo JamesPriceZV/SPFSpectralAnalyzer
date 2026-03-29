@@ -15,18 +15,18 @@ enum PDFReportRenderer {
     static let margin: CGFloat = 50
     static let contentWidth: CGFloat = 612 - 100  // pageWidth - 2*margin
 
-    // Colors
-    static let accentColor = PlatformColor(red: 0.2, green: 0.4, blue: 0.7, alpha: 1.0)
-    static let lightGray = PlatformColor.gray.withAlphaComponent(0.3)
-    static let textBlack = PlatformColor.black
-    static let textGray = PlatformColor.darkGray
+    // Colors — computed properties to avoid non-Sendable static storage
+    static var accentColor: PlatformColor { PlatformColor(red: 0.2, green: 0.4, blue: 0.7, alpha: 1.0) }
+    static var lightGray: PlatformColor { PlatformColor.gray.withAlphaComponent(0.3) }
+    static var textBlack: PlatformColor { PlatformColor.black }
+    static var textGray: PlatformColor { PlatformColor.darkGray }
 
-    // Fonts
-    static let titleFont = PlatformFont.systemFont(ofSize: 22, weight: .bold)
-    static let headingFont = PlatformFont.systemFont(ofSize: 14, weight: .semibold)
-    static let bodyFont = PlatformFont.systemFont(ofSize: 10, weight: .regular)
-    static let bodySemibold = PlatformFont.systemFont(ofSize: 10, weight: .semibold)
-    static let captionFont = PlatformFont.systemFont(ofSize: 9, weight: .regular)
+    // Fonts — computed properties to avoid non-Sendable static storage
+    static var titleFont: PlatformFont { PlatformFont.systemFont(ofSize: 22, weight: .bold) }
+    static var headingFont: PlatformFont { PlatformFont.systemFont(ofSize: 14, weight: .semibold) }
+    static var bodyFont: PlatformFont { PlatformFont.systemFont(ofSize: 10, weight: .regular) }
+    static var bodySemibold: PlatformFont { PlatformFont.systemFont(ofSize: 10, weight: .semibold) }
+    static var captionFont: PlatformFont { PlatformFont.systemFont(ofSize: 9, weight: .regular) }
 
     static func render(data: PDFReportData) -> Data {
         let pdfData = NSMutableData()

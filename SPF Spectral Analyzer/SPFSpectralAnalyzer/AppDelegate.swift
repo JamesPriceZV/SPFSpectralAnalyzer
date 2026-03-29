@@ -3,6 +3,7 @@ import AppKit
 import Security
 import UserNotifications
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let entitlementsSnapshotLoggedKey = "EntitlementsSnapshotLogged"
 

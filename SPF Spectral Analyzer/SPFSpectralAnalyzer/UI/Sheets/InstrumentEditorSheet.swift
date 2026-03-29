@@ -206,10 +206,9 @@ struct InstrumentEditorSheet: View {
         let type = instrumentType
         let noteText: String? = notes.isEmpty ? nil : notes
 
-        // Temporarily pause autosave so our writes don't race with
-        // CloudKit WAL checkpoints (the same pattern as DatasetViewModel).
-        let restoreAutoSave = modelContext.autosaveEnabled
-        modelContext.autosaveEnabled = false
+        // Write via a fresh context so the main context stays clean.
+        let writeCtx = ModelContext(modelContext.container)
+        writeCtx.autosaveEnabled = false
 
         do {
             try ObjCExceptionCatcher.try {
@@ -217,7 +216,7 @@ struct InstrumentEditorSheet: View {
                     let descriptor = FetchDescriptor<StoredInstrument>(
                         predicate: #Predicate { $0.id == existingID }
                     )
-                    guard let instrument = try? self.modelContext.fetch(descriptor).first else { return }
+                    guard let instrument = try? writeCtx.fetch(descriptor).first else { return }
                     instrument.manufacturer = manufacturer
                     instrument.modelName = model
                     instrument.serialNumber = serial
@@ -239,20 +238,16 @@ struct InstrumentEditorSheet: View {
                         instrumentType: type,
                         notes: noteText
                     )
-                    self.modelContext.insert(instrument)
+                    writeCtx.insert(instrument)
                 }
             }
         } catch {
-            // NSException from Core Data during CloudKit sync — log and bail
-            print("[InstrumentEditor] ObjC exception during save: \(error.localizedDescription)")
+            print("[InstrumentEditor] ObjC exception during mutation: \(error.localizedDescription)")
+            return
         }
 
-        // Re-enable autosave after a brief delay. SwiftData will persist the
-        // pending changes on its next autosave pass, coordinating safely with
-        // CloudKit's history tracking.
-        let context = modelContext
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            context.autosaveEnabled = restoreAutoSave
+        do { try writeCtx.save() } catch {
+            print("[InstrumentEditor] Save failed: \(error.localizedDescription)")
         }
     }
 }

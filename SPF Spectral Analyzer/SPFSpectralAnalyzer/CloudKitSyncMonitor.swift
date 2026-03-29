@@ -4,6 +4,7 @@ import CloudKit
 import AppKit
 #endif
 
+@MainActor
 final class CloudKitSyncMonitor {
     static let shared = CloudKitSyncMonitor()
 

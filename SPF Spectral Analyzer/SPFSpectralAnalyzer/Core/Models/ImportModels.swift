@@ -1,6 +1,6 @@
 import Foundation
 
-struct StoredSpectrumInput {
+struct StoredSpectrumInput: Sendable {
     let name: String
     let x: [Double]
     let y: [Double]
