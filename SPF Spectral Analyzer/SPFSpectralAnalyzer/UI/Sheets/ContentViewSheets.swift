@@ -380,21 +380,166 @@ extension ContentView {
             Text("Set as Prototype Sample")
                 .font(.headline)
 
-            Text("Select the PMMA plate type used for this sample dataset. This is required for the ISO 23675 HDRS calculation.")
+            Text("Enter the ISO 24443 metadata and HDRS plate type for this prototype sample dataset.")
                 .font(.callout)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
-            Picker("Plate Type", selection: $datasets.pendingHDRSPlateType) {
-                ForEach(HDRSPlateType.allCases) { plateType in
-                    Text(plateType.label).tag(plateType)
+            // ISO 24443 Metadata
+            VStack(spacing: 12) {
+                Text("ISO 24443 Metadata")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                Grid(alignment: .trailing, verticalSpacing: 10) {
+                    GridRow {
+                        Text("Plate Type:")
+                            .font(.subheadline)
+                            .gridColumnAlignment(.trailing)
+                        Picker("", selection: $datasets.pendingPlateType) {
+                            ForEach(SubstratePlateType.allCases) { type in
+                                Text(type.label).tag(type)
+                            }
+                        }
+                        .labelsHidden()
+                        #if os(macOS)
+                        .pickerStyle(.segmented)
+                        #endif
+                        .gridColumnAlignment(.leading)
+                    }
+
+                    if datasets.pendingPlateType == .pmma {
+                        GridRow {
+                            Text("PMMA Subtype:")
+                                .font(.subheadline)
+                            Picker("", selection: $datasets.pendingPMMASubtype) {
+                                ForEach(PMMAPlateSubtype.allCases) { subtype in
+                                    Text(subtype.label).tag(subtype)
+                                }
+                            }
+                            .labelsHidden()
+                            #if os(macOS)
+                            .pickerStyle(.segmented)
+                            #endif
+                        }
+                    }
+
+                    GridRow {
+                        Text("Application (mg):")
+                            .font(.subheadline)
+                        HStack(spacing: 6) {
+                            TextField("e.g. 14.5", value: $datasets.pendingApplicationQuantityMg, format: .number)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 100)
+                            Text("mg/cm²")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    GridRow {
+                        Text("Formulation:")
+                            .font(.subheadline)
+                        Picker("", selection: $datasets.pendingFormulationType) {
+                            ForEach(FormulationType.allCases.filter { $0 != .unknown }) { type in
+                                Text(type.label).tag(type)
+                            }
+                        }
+                        .labelsHidden()
+                        #if os(macOS)
+                        .pickerStyle(.menu)
+                        #endif
+                        .frame(width: 180, alignment: .leading)
+                    }
                 }
             }
-            #if os(macOS)
-            .pickerStyle(.radioGroup)
-            #else
-            .pickerStyle(.inline)
-            #endif
+
+            Divider()
+
+            // HDRS Plate Type
+            VStack(spacing: 8) {
+                Text("HDRS Plate Type")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                Picker("Plate Type", selection: $datasets.pendingHDRSPlateType) {
+                    ForEach(HDRSPlateType.allCases) { plateType in
+                        Text(plateType.label).tag(plateType)
+                    }
+                }
+                #if os(macOS)
+                .pickerStyle(.radioGroup)
+                #else
+                .pickerStyle(.inline)
+                #endif
+            }
+
+            Divider()
+
+            // Formula Card
+            VStack(spacing: 8) {
+                Text("Formula Card")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                if let cardID = datasets.pendingFormulaCardID,
+                   let card = datasets.formulaCards.first(where: { $0.id == cardID }) {
+                    // Show attached card summary
+                    HStack(spacing: 8) {
+                        Image(systemName: "doc.text.fill")
+                            .foregroundColor(.accentColor)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(card.displayName)
+                                .font(.subheadline)
+                            if card.isParsed {
+                                let count = card.ingredients.count
+                                Text("\(count) ingredient\(count == 1 ? "" : "s") parsed")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text("Pending AI parsing")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        Spacer()
+                        Button("Remove") {
+                            datasets.pendingFormulaCardID = nil
+                        }
+                        .foregroundColor(.red)
+                        .font(.caption)
+                    }
+                    .padding(8)
+                    .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
+                } else {
+                    // Picker for existing formula cards + import new
+                    HStack(spacing: 8) {
+                        if !datasets.formulaCards.isEmpty {
+                            Picker("", selection: $datasets.pendingFormulaCardID) {
+                                Text("None").tag(UUID?.none)
+                                ForEach(datasets.formulaCards) { card in
+                                    Text(card.displayName).tag(Optional(card.id))
+                                }
+                            }
+                            .labelsHidden()
+                            #if os(macOS)
+                            .pickerStyle(.menu)
+                            #endif
+                        }
+
+                        Button {
+                            datasets.showFormulaCardImporter = true
+                        } label: {
+                            Label("Import New...", systemImage: "doc.badge.plus")
+                                .font(.subheadline)
+                        }
+                    }
+                }
+            }
 
             HStack(spacing: 12) {
                 Button("Cancel") {
@@ -411,11 +556,26 @@ extension ContentView {
                             for: datasetID,
                             storedDatasets: storedDatasets
                         )
+                        datasets.setDatasetMetadata(
+                            plateType: datasets.pendingPlateType,
+                            pmmaPlateSubtype: datasets.pendingPlateType == .pmma ? datasets.pendingPMMASubtype : nil,
+                            applicationQuantityMg: datasets.pendingApplicationQuantityMg,
+                            formulationType: datasets.pendingFormulationType,
+                            for: datasetID,
+                            storedDatasets: storedDatasets
+                        )
                         datasets.setDatasetHDRSMetadata(
                             plateType: datasets.pendingHDRSPlateType,
                             for: datasetID,
                             storedDatasets: storedDatasets
                         )
+                        if let cardID = datasets.pendingFormulaCardID {
+                            datasets.setFormulaCard(
+                                id: cardID,
+                                for: datasetID,
+                                storedDatasets: storedDatasets
+                            )
+                        }
                     }
                     datasets.showSamplePlateTypeSheet = false
                     datasets.pendingRoleDatasetID = nil
@@ -424,7 +584,7 @@ extension ContentView {
             }
         }
         .padding(24)
-        .frame(width: 400)
+        .frame(minWidth: 420, idealWidth: 480)
     }
 
     // MARK: - Assign Instrument Sheet
@@ -532,7 +692,7 @@ extension ContentView {
                         Text("Formulation:")
                             .font(.subheadline)
                         Picker("", selection: $datasets.pendingFormulationType) {
-                            ForEach(FormulationType.allCases) { type in
+                            ForEach(FormulationType.allCases.filter { $0 != .unknown }) { type in
                                 Text(type.label).tag(type)
                             }
                         }
@@ -540,7 +700,7 @@ extension ContentView {
                         #if os(macOS)
                         .pickerStyle(.menu)
                         #endif
-                        .frame(width: 160, alignment: .leading)
+                        .frame(width: 180, alignment: .leading)
                     }
                 }
             }

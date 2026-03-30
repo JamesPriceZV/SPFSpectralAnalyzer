@@ -44,29 +44,55 @@ enum PMMAPlateSubtype: String, CaseIterable, Codable, Sendable, Identifiable {
 
 /// UV filter formulation category.
 enum FormulationType: String, CaseIterable, Codable, Sendable, Identifiable {
-    case mineral      // ZnO, TiO2 only
-    case organic      // Chemical/organic UV filters only
-    case combination  // Mineral + Organic
+    case mineralZnO          // Mineral (ZnO)
+    case mineralTiO2         // Mineral (TiO₂)
+    case mineralZnOTiO2      // Mineral (ZnO + TiO₂)
+    case organic             // Organic UV filters only
+    case organicZnO          // Organic + ZnO
+    case organicTiO2         // Organic + TiO₂
     case unknown
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .mineral:     return "Mineral"
-        case .organic:     return "Organic"
-        case .combination: return "Combination"
-        case .unknown:     return "Unknown"
+        case .mineralZnO:     return "Mineral (ZnO)"
+        case .mineralTiO2:    return "Mineral (TiO₂)"
+        case .mineralZnOTiO2: return "Mineral (ZnO + TiO₂)"
+        case .organic:        return "Organic"
+        case .organicZnO:     return "Organic + ZnO"
+        case .organicTiO2:    return "Organic + TiO₂"
+        case .unknown:        return "Unknown"
         }
     }
 
     /// Integer encoding for ML feature columns.
     var featureValue: Int {
         switch self {
-        case .mineral:     return 0
-        case .organic:     return 1
-        case .combination: return 2
-        case .unknown:     return 3
+        case .mineralZnO:     return 0
+        case .mineralTiO2:    return 1
+        case .mineralZnOTiO2: return 2
+        case .organic:        return 3
+        case .organicZnO:     return 4
+        case .organicTiO2:    return 5
+        case .unknown:        return 6
+        }
+    }
+
+    /// Backward-compatible decoding: accepts legacy raw values from earlier versions.
+    nonisolated init?(rawValue: String) {
+        switch rawValue {
+        case "mineralZnO":                    self = .mineralZnO
+        case "mineralTiO2":                   self = .mineralTiO2
+        case "mineralZnOTiO2":                self = .mineralZnOTiO2
+        case "organic":                       self = .organic
+        case "organicZnO":                    self = .organicZnO
+        case "organicTiO2":                   self = .organicTiO2
+        case "unknown":                       self = .unknown
+        // Legacy values from previous schema versions
+        case "mineral":                       self = .mineralZnOTiO2
+        case "mineralOrganic", "combination": self = .organicZnO
+        default: return nil
         }
     }
 }

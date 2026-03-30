@@ -8,23 +8,12 @@ struct iOSDataManagementView: View {
     var analysis: AnalysisViewModel
     @Bindable var datasets: DatasetViewModel
     @Binding var appMode: AppMode
+    // Passed from ContentView's manual fetch (replaces @Query to prevent CloudKit crash)
+    var storedDatasets: [StoredDataset]
+    var archivedDatasets: [StoredDataset]
+    var instruments: [StoredInstrument]
 
     @EnvironmentObject var dataStoreController: DataStoreController
-
-    @Query(
-        filter: #Predicate<StoredDataset> { !$0.isArchived },
-        sort: \StoredDataset.importedAt,
-        order: .reverse
-    ) var storedDatasets: [StoredDataset]
-
-    @Query(
-        filter: #Predicate<StoredDataset> { $0.isArchived },
-        sort: \StoredDataset.archivedAt,
-        order: .reverse
-    ) var archivedDatasets: [StoredDataset]
-
-    @Query(sort: \StoredInstrument.createdAt, order: .reverse)
-    var instruments: [StoredInstrument]
 
     @AppStorage("spfCalculationMethod") private var spfCalculationMethodRawValue = SPFCalculationMethod.colipa.rawValue
 
@@ -258,7 +247,7 @@ struct iOSDataManagementView: View {
                                     .cornerRadius(4)
                             }
                         } else if isProt {
-                            Text("SAMPLE")
+                            Text("PROTOTYPE")
                                 .font(.caption2.bold())
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
@@ -279,8 +268,14 @@ struct iOSDataManagementView: View {
                         }
                     }
 
-                    // ISO 24443 metadata for reference datasets
-                    if isRef {
+                    // Formula card link for prototype samples
+                    if isProt, record?.formulaCardID != nil {
+                        Label("Formula Card", systemImage: "doc.text")
+                            .font(.caption2)
+                            .foregroundColor(.accentColor)
+                    }
+                    // ISO 24443 metadata for reference/prototype datasets
+                    if isRef || isProt {
                         let pt = record?.plateType
                         let mg = record?.applicationQuantityMg
                         let ft = record?.formulationType
@@ -383,16 +378,16 @@ struct iOSDataManagementView: View {
             }
 
             Button {
-                let isHDRS = (SPFCalculationMethod(rawValue: spfCalculationMethodRawValue) ?? .colipa) == .iso23675
-                if isHDRS {
-                    datasets.pendingRoleDatasetID = datasetID
-                    datasets.pendingHDRSPlateType = .moulded
-                    datasets.showSamplePlateTypeSheet = true
-                } else {
-                    datasets.setDatasetRole(.prototype, knownInVivoSPF: nil, for: datasetID, storedDatasets: storedDatasets)
-                }
+                datasets.pendingRoleDatasetID = datasetID
+                datasets.pendingPlateType = SubstratePlateType(rawValue: record?.plateType ?? "") ?? .pmma
+                datasets.pendingApplicationQuantityMg = record?.applicationQuantityMg
+                datasets.pendingFormulationType = FormulationType(rawValue: record?.formulationType ?? "") ?? .unknown
+                datasets.pendingPMMASubtype = PMMAPlateSubtype(rawValue: record?.pmmaPlateSubtype ?? "") ?? .moulded
+                datasets.pendingHDRSPlateType = .moulded
+                datasets.pendingFormulaCardID = record?.formulaCardID
+                datasets.showSamplePlateTypeSheet = true
             } label: {
-                Label("Set as Prototype Sample", systemImage: "flask.fill")
+                Label("Set as Prototype Sample...", systemImage: "flask.fill")
             }
 
             if record?.datasetRole != nil {

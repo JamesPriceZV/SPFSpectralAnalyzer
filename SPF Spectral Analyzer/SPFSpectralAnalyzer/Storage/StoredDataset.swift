@@ -51,13 +51,17 @@ public final class StoredDataset {
     /// Stored as a plain UUID (not a @Relationship) to avoid CloudKit sync crash risk.
     var instrumentID: UUID?
 
+    /// UUID of the associated `StoredFormulaCard`, if any.
+    /// Plain UUID (not @Relationship) for CloudKit safety. Many datasets can share one card.
+    var formulaCardID: UUID?
+
     /// Substrate plate type (ISO 24443): "pmma", "quartz", or "other".
     var plateType: String?
 
     /// Application quantity in mg, parsed from filename or manually entered.
     var applicationQuantityMg: Double?
 
-    /// UV filter formulation category: "mineral", "organic", "combination", or "unknown".
+    /// UV filter formulation category (see FormulationType enum for valid raw values).
     var formulationType: String?
 
     /// PMMA plate subtype: "moulded" or "sandblasted" (only meaningful when plateType == "pmma").
@@ -94,7 +98,8 @@ public final class StoredDataset {
         plateType: String? = nil,
         applicationQuantityMg: Double? = nil,
         formulationType: String? = nil,
-        pmmaPlateSubtype: String? = nil
+        pmmaPlateSubtype: String? = nil,
+        formulaCardID: UUID? = nil
     ) {
         self.id = id
         self.fileName = fileName
@@ -119,6 +124,7 @@ public final class StoredDataset {
         self.applicationQuantityMg = applicationQuantityMg
         self.formulationType = formulationType
         self.pmmaPlateSubtype = pmmaPlateSubtype
+        self.formulaCardID = formulaCardID
     }
 
     var skippedDataSets: [String] {

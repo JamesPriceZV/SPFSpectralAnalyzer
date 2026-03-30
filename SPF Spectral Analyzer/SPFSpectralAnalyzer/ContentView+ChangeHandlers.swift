@@ -11,6 +11,19 @@ extension ContentView {
                 allowsMultipleSelection: true,
                 onCompletion: datasets.handleImport(result:)
             )
+            .fileImporter(
+                isPresented: $datasets.showFormulaCardImporter,
+                allowedContentTypes: [
+                    .pdf,
+                    .png,
+                    .jpeg,
+                    .heic,
+                    UTType(filenameExtension: "xlsx") ?? .data,
+                    UTType(filenameExtension: "docx") ?? .data
+                ],
+                allowsMultipleSelection: false,
+                onCompletion: datasets.handleFormulaCardImport(result:)
+            )
             .onOpenURL { url in
                 guard url.pathExtension.lowercased() == "spc" else { return }
                 Task { await datasets.loadSpectra(from: [url], append: false) }
@@ -55,6 +68,15 @@ extension ContentView {
             .sheet(isPresented: $datasets.showAssignInstrumentSheet) {
                 assignInstrumentSheet
             }
+            .sheet(isPresented: $datasets.showFormulaCardDetail) {
+                if let cardID = datasets.selectedFormulaCardID {
+                    FormulaCardDetailView(
+                        formulaCardID: cardID,
+                        datasets: datasets,
+                        storedDatasets: storedDatasets
+                    )
+                }
+            }
             .sheet(item: $scheduleEventType) { eventType in
                 ScheduleEventSheet(eventType: eventType)
             }
@@ -83,15 +105,8 @@ extension ContentView {
 
     func applyProcessingChangeHandlers<V: View>(_ view: V) -> some View {
         view
-            .onChange(of: storedDatasets.map(\.id)) { _, _ in
-                datasets.debouncedUpdateSearchableTextCache(from: storedDatasets)
-            }
-            .onChange(of: archivedDatasets.map(\.id)) { _, _ in
-                datasets.debouncedUpdateArchivedSearchableTextCache(from: archivedDatasets)
-            }
-            .onChange(of: instruments.map(\.id)) { _, _ in
-                datasets.updateInstrumentCache(from: instruments)
-            }
+            // Cache updates for storedDatasets/archivedDatasets/instruments are now
+            // handled by .onChange(of: datasets.dataVersion) and .onReceive in ContentView.
             .onChange(of: appMode) { _, newMode in
                 // Rebuild caches when switching to Analysis tab to pick up any
                 // new reference datasets tagged during the Data Management session.

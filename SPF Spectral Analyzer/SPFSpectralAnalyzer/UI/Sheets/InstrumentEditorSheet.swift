@@ -206,17 +206,13 @@ struct InstrumentEditorSheet: View {
         let type = instrumentType
         let noteText: String? = notes.isEmpty ? nil : notes
 
-        // Write via a fresh context so the main context stays clean.
-        let writeCtx = ModelContext(modelContext.container)
-        writeCtx.autosaveEnabled = false
-
         do {
             try ObjCExceptionCatcher.try {
                 if let existingID = self.editingInstrumentID {
                     let descriptor = FetchDescriptor<StoredInstrument>(
                         predicate: #Predicate { $0.id == existingID }
                     )
-                    guard let instrument = try? writeCtx.fetch(descriptor).first else { return }
+                    guard let instrument = try? self.modelContext.fetch(descriptor).first else { return }
                     instrument.manufacturer = manufacturer
                     instrument.modelName = model
                     instrument.serialNumber = serial
@@ -238,16 +234,11 @@ struct InstrumentEditorSheet: View {
                         instrumentType: type,
                         notes: noteText
                     )
-                    writeCtx.insert(instrument)
+                    self.modelContext.insert(instrument)
                 }
             }
         } catch {
             print("[InstrumentEditor] ObjC exception during mutation: \(error.localizedDescription)")
-            return
-        }
-
-        do { try writeCtx.save() } catch {
-            print("[InstrumentEditor] Save failed: \(error.localizedDescription)")
         }
     }
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import Combine
 import UniformTypeIdentifiers
 import Foundation
 import SwiftData
@@ -21,18 +22,11 @@ struct ContentView: View {
     #if os(iOS)
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     #endif
-    @Query(
-        filter: #Predicate<StoredDataset> { !$0.isArchived },
-        sort: \StoredDataset.importedAt,
-        order: .reverse
-    ) var storedDatasets: [StoredDataset]
-    @Query(
-        filter: #Predicate<StoredDataset> { $0.isArchived },
-        sort: \StoredDataset.archivedAt,
-        order: .reverse
-    ) var archivedDatasets: [StoredDataset]
-    @Query(sort: \StoredInstrument.createdAt, order: .reverse)
-    var instruments: [StoredInstrument]
+    // Manual fetching replaces @Query to prevent SwiftData framework crash
+    // during CloudKit sync (brk #0x1 in _SwiftData_SwiftUI re-evaluation).
+    @State var storedDatasets: [StoredDataset] = []
+    @State var archivedDatasets: [StoredDataset] = []
+    @State var instruments: [StoredInstrument] = []
 
 
     @State var expandChart = false
@@ -192,6 +186,9 @@ struct ContentView: View {
                 spfAdjustmentFactor = 1.0
             }
 
+            // Manual fetch replaces @Query — synchronous, so data is immediately available.
+            refreshAllData()
+
             // Populate the searchable-text caches for safe dataset filtering
             datasets.updateSearchableTextCache(from: storedDatasets)
             datasets.updateArchivedSearchableTextCache(from: archivedDatasets)
@@ -202,21 +199,14 @@ struct ContentView: View {
 
             // Restore last session datasets on launch and auto-load Reference datasets
             if analysis.spectra.isEmpty {
-                if storedDatasets.isEmpty {
-                    // @Query hasn't populated yet — defer to .onChange handler.
-                    // Do NOT call restoreLastSession here or it will clear
-                    // the saved IDs when it finds zero matching datasets.
-                    sessionRestoreAttempted = false
+                let restored = datasets.restoreLastSessionOrShowDataManagement(storedDatasets: storedDatasets)
+                sessionRestoreAttempted = true
+                if restored {
+                    analysis.applyAlignmentIfNeeded()
+                    rebuildAnalysisCaches()
+                    analysis.updatePeaks()
                 } else {
-                    let restored = datasets.restoreLastSessionOrShowDataManagement(storedDatasets: storedDatasets)
-                    sessionRestoreAttempted = true
-                    if restored {
-                        analysis.applyAlignmentIfNeeded()
-                        rebuildAnalysisCaches()
-                        analysis.updatePeaks()
-                    } else {
-                        appMode = .dataManagement
-                    }
+                    appMode = .dataManagement
                 }
             } else {
                 sessionRestoreAttempted = true
@@ -226,22 +216,22 @@ struct ContentView: View {
             }
             updateAIEstimate()
         }
-        .onChange(of: storedDatasets.count) {
-            // Deferred session restore: if .task ran before @Query populated
-            // storedDatasets, retry once the data arrives.
-            guard !sessionRestoreAttempted, analysis.spectra.isEmpty, !storedDatasets.isEmpty else { return }
-            sessionRestoreAttempted = true
-            datasets.modelContext = modelContext
-            let restored = datasets.restoreLastSessionOrShowDataManagement(storedDatasets: storedDatasets)
-            if restored {
-                analysis.applyAlignmentIfNeeded()
-                rebuildAnalysisCaches()
-                analysis.updatePeaks()
-                updateAIEstimate()
-                appMode = .analyze
-            } else {
-                appMode = .dataManagement
-            }
+        .onChange(of: datasets.dataVersion) { _, _ in
+            // Re-fetch after local mutations (import, role assignment, archive, delete, etc.)
+            refreshAllData()
+            datasets.debouncedUpdateSearchableTextCache(from: storedDatasets)
+            datasets.debouncedUpdateArchivedSearchableTextCache(from: archivedDatasets)
+            datasets.updateInstrumentCache(from: instruments)
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)
+                .debounce(for: .seconds(2), scheduler: RunLoop.main)
+        ) { _ in
+            // Re-fetch after CloudKit sync delivers remote changes
+            refreshAllData()
+            datasets.updateSearchableTextCache(from: storedDatasets)
+            datasets.updateArchivedSearchableTextCache(from: archivedDatasets)
+            datasets.updateInstrumentCache(from: instruments)
         }
         .confirmationDialog("Save AI Analysis?", isPresented: $aiVM.showSavePrompt, titleVisibility: .visible) {
             Button("Save to File") { saveAIResultToDisk() }
@@ -272,6 +262,40 @@ struct ContentView: View {
         .frame(maxWidth: 500)
     }
 
+    /// Manually fetches all datasets and instruments using FetchDescriptor.
+    /// Replaces @Query to prevent SwiftData framework crash during CloudKit sync.
+    private func refreshAllData() {
+        do {
+            let activeDescriptor = FetchDescriptor<StoredDataset>(
+                predicate: #Predicate { !$0.isArchived },
+                sortBy: [SortDescriptor(\.importedAt, order: .reverse)]
+            )
+            storedDatasets = try modelContext.fetch(activeDescriptor)
+
+            let archivedDescriptor = FetchDescriptor<StoredDataset>(
+                predicate: #Predicate { $0.isArchived },
+                sortBy: [SortDescriptor(\.archivedAt, order: .reverse)]
+            )
+            archivedDatasets = try modelContext.fetch(archivedDescriptor)
+
+            let instrumentDescriptor = FetchDescriptor<StoredInstrument>(
+                sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+            )
+            instruments = try modelContext.fetch(instrumentDescriptor)
+
+            let formulaCardDescriptor = FetchDescriptor<StoredFormulaCard>(
+                sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+            )
+            datasets.formulaCards = try modelContext.fetch(formulaCardDescriptor)
+        } catch {
+            Instrumentation.log(
+                "refreshAllData failed",
+                area: .processing, level: .error,
+                details: "\(error.localizedDescription)"
+            )
+        }
+    }
+
     var isRunningUITests: Bool {
         ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
         || ProcessInfo.processInfo.environment["UITEST_MODE"] == "1"
@@ -290,7 +314,10 @@ struct ContentView: View {
                 iOSDataManagementView(
                     analysis: analysis,
                     datasets: datasets,
-                    appMode: $appMode
+                    appMode: $appMode,
+                    storedDatasets: storedDatasets,
+                    archivedDatasets: archivedDatasets,
+                    instruments: instruments
                 )
             }
 

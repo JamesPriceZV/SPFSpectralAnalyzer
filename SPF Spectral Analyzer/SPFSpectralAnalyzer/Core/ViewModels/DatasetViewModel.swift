@@ -63,6 +63,17 @@ final class DatasetViewModel {
     var pendingFormulationType: FormulationType = .unknown
     var pendingPMMASubtype: PMMAPlateSubtype = .moulded
     var pendingHDRSPlateType: HDRSPlateType = .moulded
+    var pendingFormulaCardID: UUID?
+
+    // MARK: - Formula Card State
+    var showFormulaCardImporter = false
+    var showFormulaCardDetail = false
+    var selectedFormulaCardID: UUID?
+    /// Cache of all formula cards for picker and display.
+    var formulaCards: [StoredFormulaCard] = []
+
+    // MARK: - Data Version (triggers re-fetch in ContentView after local mutations)
+    var dataVersion: Int = 0
 
     // MARK: - Instrument Assignment State
     var showAssignInstrumentSheet = false
@@ -208,7 +219,16 @@ final class DatasetViewModel {
     /// This minimizes the number of SwiftData model property accesses during CloudKit sync
     /// activity, where touching an invalidated model object crashes with `brk #0x1`.
     func updateSearchableTextCache(from storedDatasets: [StoredDataset]) {
-        let currentIDs = Set(storedDatasets.map { $0.id })
+        guard let ctx = modelContext else { return }
+        // Re-fetch non-archived datasets through the store coordinator —
+        // @Query results passed via storedDatasets may contain objects
+        // invalidated by CloudKit sync, causing brk #0x1 on property access.
+        let predicate = #Predicate<StoredDataset> { !$0.isArchived }
+        let freshDatasets: [StoredDataset]
+        do {
+            freshDatasets = try ctx.fetch(FetchDescriptor<StoredDataset>(predicate: predicate))
+        } catch { return }
+        let currentIDs = Set(freshDatasets.map { $0.id })
         guard currentIDs != cachedDatasetIDs else { return }
 
         // Only build records for IDs we haven't seen before
@@ -222,7 +242,7 @@ final class DatasetViewModel {
 
         // Build records for newly appeared datasets only
         if !newIDs.isEmpty {
-            for dataset in storedDatasets where newIDs.contains(dataset.id) {
+            for dataset in freshDatasets where newIDs.contains(dataset.id) {
                 if let record = buildSearchRecord(for: dataset) {
                     searchableRecordCache[dataset.id] = record
                 }
@@ -268,7 +288,15 @@ final class DatasetViewModel {
 
     /// Incrementally updates the archived searchable record cache.
     func updateArchivedSearchableTextCache(from archivedDatasets: [StoredDataset]) {
-        let currentIDs = Set(archivedDatasets.map { $0.id })
+        guard let ctx = modelContext else { return }
+        // Re-fetch archived datasets through the store coordinator —
+        // @Query results may contain objects invalidated by CloudKit sync.
+        let predicate = #Predicate<StoredDataset> { $0.isArchived }
+        let freshDatasets: [StoredDataset]
+        do {
+            freshDatasets = try ctx.fetch(FetchDescriptor<StoredDataset>(predicate: predicate))
+        } catch { return }
+        let currentIDs = Set(freshDatasets.map { $0.id })
         guard currentIDs != cachedArchivedDatasetIDs else { return }
 
         let newIDs = currentIDs.subtracting(cachedArchivedDatasetIDs)
@@ -279,7 +307,7 @@ final class DatasetViewModel {
         }
 
         if !newIDs.isEmpty {
-            for dataset in archivedDatasets where newIDs.contains(dataset.id) {
+            for dataset in freshDatasets where newIDs.contains(dataset.id) {
                 if let record = buildSearchRecord(for: dataset) {
                     archivedSearchableRecordCache[dataset.id] = record
                 }
@@ -320,49 +348,53 @@ final class DatasetViewModel {
     /// if CloudKit sync has invalidated the backing store. A predicate-based fetch
     /// goes through the coordinator which handles concurrent access safely.
     private func buildSearchRecord(for dataset: StoredDataset) -> DatasetSearchRecord? {
-        guard dataset.modelContext != nil else { return nil }
+        guard let ctx = modelContext else { return nil }
+
+        // Re-fetch the dataset through a predicate query to get a valid object.
+        // The @Query-provided reference may be invalidated by CloudKit sync between
+        // delivery and property access. Predicate fetches go through the store
+        // coordinator which returns nil for deleted rows instead of trapping with
+        // _SD_get_current_context_tsd → brk #0x1.
+        let dsID = dataset.id
+        let dsPredicate = #Predicate<StoredDataset> { $0.id == dsID }
+        guard let fresh = (try? ctx.fetch(FetchDescriptor<StoredDataset>(predicate: dsPredicate)))?.first else { return nil }
 
         // Fetch spectrum counts via predicate — avoids relationship traversal
-        let dsID = dataset.id
         let spectrumCount: Int
         let validSpectrumCount: Int
-        if let ctx = modelContext {
-            let predicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID }
-            let totalDescriptor = FetchDescriptor<StoredSpectrum>(predicate: predicate)
-            let validPredicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID && !$0.isInvalid }
-            let validDescriptor = FetchDescriptor<StoredSpectrum>(predicate: validPredicate)
-            spectrumCount = (try? ctx.fetchCount(totalDescriptor)) ?? 0
-            validSpectrumCount = (try? ctx.fetchCount(validDescriptor)) ?? 0
-        } else {
-            spectrumCount = 0
-            validSpectrumCount = 0
-        }
+        let predicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID }
+        let totalDescriptor = FetchDescriptor<StoredSpectrum>(predicate: predicate)
+        let validPredicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID && !$0.isInvalid }
+        let validDescriptor = FetchDescriptor<StoredSpectrum>(predicate: validPredicate)
+        spectrumCount = (try? ctx.fetchCount(totalDescriptor)) ?? 0
+        validSpectrumCount = (try? ctx.fetchCount(validDescriptor)) ?? 0
 
         var result: DatasetSearchRecord?
         do {
             try ObjCExceptionCatcher.try {
-                let metadata = self.decodedMetadata(for: dataset)
+                let metadata = DatasetPersistenceService.decodedMetadata(for: fresh)
                 let header = metadata?.mainHeader
                 result = DatasetSearchRecord(
-                    fileName: dataset.fileName,
-                    datasetRole: dataset.datasetRole,
-                    knownInVivoSPF: dataset.knownInVivoSPF,
-                    importedAt: dataset.importedAt,
-                    fileHash: dataset.fileHash,
-                    sourcePath: dataset.sourcePath,
+                    fileName: fresh.fileName,
+                    datasetRole: fresh.datasetRole,
+                    knownInVivoSPF: fresh.knownInVivoSPF,
+                    importedAt: fresh.importedAt,
+                    fileHash: fresh.fileHash,
+                    sourcePath: fresh.sourcePath,
                     dataSetNames: metadata?.dataSetNames ?? [],
                     directoryEntryNames: metadata?.directoryEntryNames ?? [],
                     spectrumCount: spectrumCount,
                     memo: header?.memo,
                     sourceInstrumentText: header?.sourceInstrumentText,
-                    instrumentID: dataset.instrumentID,
+                    instrumentID: fresh.instrumentID,
                     validSpectrumCount: validSpectrumCount,
-                    isArchived: dataset.isArchived,
-                    archivedAt: dataset.archivedAt,
-                    plateType: dataset.plateType,
-                    applicationQuantityMg: dataset.applicationQuantityMg,
-                    formulationType: dataset.formulationType,
-                    pmmaPlateSubtype: dataset.pmmaPlateSubtype
+                    isArchived: fresh.isArchived,
+                    archivedAt: fresh.archivedAt,
+                    plateType: fresh.plateType,
+                    applicationQuantityMg: fresh.applicationQuantityMg,
+                    formulationType: fresh.formulationType,
+                    pmmaPlateSubtype: fresh.pmmaPlateSubtype,
+                    formulaCardID: fresh.formulaCardID
                 )
             }
         } catch {
@@ -370,7 +402,7 @@ final class DatasetViewModel {
                 "buildSearchRecord caught NSException",
                 area: .processing,
                 level: .error,
-                details: "datasetID=\(dataset.id) error=\(error.localizedDescription)"
+                details: "datasetID=\(dsID) error=\(error.localizedDescription)"
             )
             return nil
         }
@@ -558,6 +590,9 @@ final class DatasetViewModel {
 
             onSpectraLoaded?()
 
+            // Trigger ContentView re-fetch since new datasets were persisted
+            dataVersion += 1
+
             let duration = Date().timeIntervalSince(started)
             Instrumentation.log(
                 "Import completed",
@@ -606,23 +641,22 @@ final class DatasetViewModel {
     }
 
     func validateStoredDataset(_ dataset: StoredDataset, appendLog: Bool = false) {
-        // === SNAPSHOT: read all model data upfront in a single pass ===
-        let fileName = dataset.fileName
-        let metadataJSON = dataset.metadataJSON
+        guard let ctx = modelContext else { return }
+        // Re-fetch dataset by ID to get a fresh reference from the store coordinator.
         let dsID = dataset.id
+        let dsPredicate = #Predicate<StoredDataset> { $0.id == dsID }
+        guard let fresh = (try? ctx.fetch(FetchDescriptor<StoredDataset>(predicate: dsPredicate)))?.first else { return }
+        // === SNAPSHOT: read all model data upfront in a single pass ===
+        let fileName = fresh.fileName
+        let metadataJSON = fresh.metadataJSON
 
         // Fetch spectra by predicate instead of traversing the spectraItems
         // relationship, which loads all spectrum objects and can fault during
         // CloudKit sync (swift_weakLoadStrong → brk #0x1).
-        let fetchedSpectra: [StoredSpectrum]
-        if let ctx = modelContext {
-            let predicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID }
-            var descriptor = FetchDescriptor<StoredSpectrum>(predicate: predicate)
-            descriptor.sortBy = [SortDescriptor(\StoredSpectrum.orderIndex)]
-            fetchedSpectra = (try? ctx.fetch(descriptor)) ?? []
-        } else {
-            fetchedSpectra = []
-        }
+        let predicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID }
+        var descriptor = FetchDescriptor<StoredSpectrum>(predicate: predicate)
+        descriptor.sortBy = [SortDescriptor(\StoredSpectrum.orderIndex)]
+        let fetchedSpectra = (try? ctx.fetch(descriptor)) ?? []
 
         // Snapshot spectra into value types so we never touch model objects again
         struct SpectrumValidationSnapshot {
@@ -748,7 +782,7 @@ final class DatasetViewModel {
         // Snapshot ALL datasets upfront in a single pass before any mutations.
         // This prevents accessing model properties after CloudKit sync may have
         // invalidated them between iterations.
-        let snapshots = datasets.map { snapshotForLoad($0) }
+        let snapshots = datasets.compactMap { snapshotForLoad($0) }
 
         if append {
             for snap in snapshots {
@@ -785,7 +819,7 @@ final class DatasetViewModel {
         }
 
         // Snapshot ALL datasets upfront in a single pass before any mutations.
-        let snapshots = datasets.map { snapshotForLoad($0) }
+        let snapshots = datasets.compactMap { snapshotForLoad($0) }
 
         Instrumentation.log(
             "Picker load: snapshots ready",
@@ -854,21 +888,21 @@ final class DatasetViewModel {
     /// Snapshots all data from a `StoredDataset` into value types in a single pass.
     /// Must be called when the model object is known to be valid (e.g., from a fresh `@Query`
     /// result during a user-initiated action). After this returns, no model access is needed.
-    private func snapshotForLoad(_ dataset: StoredDataset) -> DatasetLoadSnapshot {
-        // Fetch spectra by predicate instead of traversing the spectraItems
-        // relationship, which loads all spectrum objects and can fault during CloudKit sync.
+    private func snapshotForLoad(_ dataset: StoredDataset) -> DatasetLoadSnapshot? {
+        guard let ctx = modelContext else { return nil }
+        // Re-fetch the dataset by ID through the store coordinator to get a fresh
+        // reference that won't trap if CloudKit sync invalidated the original.
         let dsID = dataset.id
+        let dsPredicate = #Predicate<StoredDataset> { $0.id == dsID }
+        guard let fresh = (try? ctx.fetch(FetchDescriptor<StoredDataset>(predicate: dsPredicate)))?.first else { return nil }
+
         let spectraPredicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID }
-        let spectraItems: [StoredSpectrum]
-        if let ctx = modelContext {
-            spectraItems = (try? ctx.fetch(FetchDescriptor<StoredSpectrum>(predicate: spectraPredicate))) ?? []
-        } else {
-            spectraItems = dataset.spectraItems
-        }
+        let spectraItems = (try? ctx.fetch(FetchDescriptor<StoredSpectrum>(predicate: spectraPredicate))) ?? []
+
         Instrumentation.log(
             "Snapshot created",
             area: .importParsing, level: .info,
-            details: "datasetID=\(dataset.id) file=\(dataset.fileName) spectraCount=\(spectraItems.count)"
+            details: "datasetID=\(fresh.id) file=\(fresh.fileName) spectraCount=\(spectraItems.count)"
         )
         let spectraSnapshots = spectraItems
             .sorted { $0.orderIndex < $1.orderIndex }
@@ -884,21 +918,21 @@ final class DatasetViewModel {
                 )
             }
         return DatasetLoadSnapshot(
-            id: dataset.id,
-            fileName: dataset.fileName,
-            metadataJSON: dataset.metadataJSON,
-            isReference: dataset.isReference,
-            knownInVivoSPF: dataset.knownInVivoSPF,
-            hdrsSpectrumTags: dataset.hdrsSpectrumTags,
-            skippedDataSets: dataset.skippedDataSets,
-            warnings: dataset.warnings,
+            id: fresh.id,
+            fileName: fresh.fileName,
+            metadataJSON: fresh.metadataJSON,
+            isReference: fresh.isReference,
+            knownInVivoSPF: fresh.knownInVivoSPF,
+            hdrsSpectrumTags: fresh.hdrsSpectrumTags,
+            skippedDataSets: fresh.skippedDataSets,
+            warnings: fresh.warnings,
             spectra: spectraSnapshots
         )
     }
 
     func loadStoredDataset(_ dataset: StoredDataset, append: Bool) {
         // Snapshot once, then delegate to snapshot-based load.
-        let snap = snapshotForLoad(dataset)
+        guard let snap = snapshotForLoad(dataset) else { return }
         loadStoredDatasetFromSnapshot(snap, append: append)
     }
 
@@ -1071,36 +1105,14 @@ final class DatasetViewModel {
             return []
         }
 
-        // 2. Find matching StoredDataset objects
-        let refIDs = Set(resolvedEntries.map(\.id))
-        let refDatasets = storedDatasets.filter { refIDs.contains($0.id) }
-
-        guard !refDatasets.isEmpty else {
-            Instrumentation.log(
-                "Reference resolution: cache entries found but no matching StoredDataset objects",
-                area: .processing, level: .warning,
-                details: "resolvedEntries=\(resolvedEntries.count) storedDatasetCount=\(storedDatasets.count)"
-            )
-            return []
-        }
-
-        // Build a lookup from dataset ID to effective SPF
-        let spfLookup = Dictionary(uniqueKeysWithValues: resolvedEntries.map { ($0.id, $0.effectiveSPF) })
-
-        // 3. Build calibration tuples from spectral data.
-        //    IMPORTANT: We fetch spectra by predicate instead of traversing
-        //    the `spectraItems` relationship. Relationship traversal loads all
-        //    spectrum objects and can hit `swift_weakLoadStrong → brk #0x1`
-        //    if CloudKit sync has invalidated the backing store between the
-        //    `modelContext != nil` guard and the actual property access.
-        //    A FetchDescriptor query goes through the coordinator which is
-        //    safe even during concurrent CloudKit import/export.
+        // 2. Build calibration lookups entirely from cache — no model property
+        //    access on storedDatasets, which may contain objects invalidated by
+        //    CloudKit sync (brk #0x1 on property access).
+        //    The searchableRecordCache already contains fileName for each dataset.
         var calibrationSnapshots: [(labelSPF: Double, name: String, x: [Double], y: [Double])] = []
 
-        // Snapshot the IDs, SPF values, and display names we need before touching any model objects.
-        let refLookups: [(dsID: UUID, effectiveSPF: Double, displayName: String)] = refDatasets.compactMap { dataset in
-            guard let spf = spfLookup[dataset.id] else { return nil }
-            return (dsID: dataset.id, effectiveSPF: spf, displayName: dataset.fileName)
+        let refLookups: [(dsID: UUID, effectiveSPF: Double, displayName: String)] = resolvedEntries.map { entry in
+            (dsID: entry.id, effectiveSPF: entry.effectiveSPF, displayName: entry.record.fileName)
         }
 
         guard let ctx = modelContext else { return calibrationSnapshots }
@@ -1141,7 +1153,7 @@ final class DatasetViewModel {
             "Resolved reference calibration data",
             area: .processing,
             level: .info,
-            details: "datasets=\(refDatasets.count) spectra=\(calibrationSnapshots.count) excluded=\(excludedReferenceDatasetIDs.count)"
+            details: "datasets=\(refLookups.count) spectra=\(calibrationSnapshots.count) excluded=\(excludedReferenceDatasetIDs.count)"
         )
 
         return calibrationSnapshots
@@ -1217,15 +1229,10 @@ final class DatasetViewModel {
     // MARK: - Dataset Role & SPF Assignment
 
     /// Updates the role and known in-vivo SPF for a stored dataset.
+    /// Assigns a role (and optional known in-vivo SPF for references) to a dataset.
     ///
-    /// **Strategy — "cache-first, fresh-context write":**
-    ///
-    /// 1. The searchable-record cache is patched immediately so the UI reflects
-    ///    the new role/SPF without any model property access.
-    /// 2. A disposable `ModelContext` is created, the object is re-fetched by
-    ///    `PersistentIdentifier`, mutated there, and saved explicitly.
-    ///    The main context stays read-only — no dirty objects for autosave to
-    ///    encounter if CloudKit sync invalidates them mid-flight.
+    /// Patches the searchable-record cache first for immediate UI feedback,
+    /// then mutates the model object directly — autosave persists the change.
     func setDatasetRole(
         _ role: DatasetRole?,
         knownInVivoSPF: Double?,
@@ -1235,23 +1242,16 @@ final class DatasetViewModel {
         let roleRawValue = role?.rawValue
         let spfValue = (role == .reference) ? knownInVivoSPF : nil
 
-        // 1. Patch the cache FIRST so the UI renders from safe value types.
+        // Patch the cache FIRST so the UI renders from safe value types.
         patchCacheEntry(for: datasetID, datasetRole: roleRawValue, knownInVivoSPF: spfValue)
 
-        // 2. Write via a fresh context so the main context stays clean.
         guard let dataset = storedDatasets.first(where: { $0.id == datasetID }),
               dataset.modelContext != nil else { return }
-        guard let container = modelContext?.container else { return }
-
-        let writeCtx = ModelContext(container)
-        writeCtx.autosaveEnabled = false
-        let pid = dataset.persistentModelID
-        guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { return }
 
         do {
             try ObjCExceptionCatcher.try {
-                fresh.datasetRole = roleRawValue
-                fresh.knownInVivoSPF = spfValue
+                dataset.datasetRole = roleRawValue
+                dataset.knownInVivoSPF = spfValue
             }
         } catch {
             Instrumentation.log(
@@ -1262,15 +1262,8 @@ final class DatasetViewModel {
             return
         }
 
-        do { try writeCtx.save() } catch {
-            Instrumentation.log(
-                "setDatasetRole save failed",
-                area: .processing, level: .error,
-                details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
-            )
-        }
-
         dataStoreController?.noteLocalChange(bytes: 64)
+        dataVersion += 1
     }
 
     /// Saves ISO 24443 metadata (plate type, application quantity, formulation type) for a dataset.
@@ -1305,27 +1298,22 @@ final class DatasetViewModel {
                 plateType: plateType.rawValue,
                 applicationQuantityMg: applicationQuantityMg,
                 formulationType: formulationType.rawValue,
-                pmmaPlateSubtype: subtypeRaw
+                pmmaPlateSubtype: subtypeRaw,
+                formulaCardID: existing.formulaCardID
             )
             searchableRecordCache[datasetID] = existing
         }
 
-        // 2. Write via a fresh context so the main context stays clean.
+        // 2. Mutate the model object directly — autosave persists the change.
         guard let dataset = storedDatasets.first(where: { $0.id == datasetID }),
               dataset.modelContext != nil else { return }
-        guard let container = modelContext?.container else { return }
-
-        let writeCtx = ModelContext(container)
-        writeCtx.autosaveEnabled = false
-        let pid = dataset.persistentModelID
-        guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { return }
 
         do {
             try ObjCExceptionCatcher.try {
-                fresh.plateType = plateType.rawValue
-                fresh.applicationQuantityMg = applicationQuantityMg
-                fresh.formulationType = formulationType.rawValue
-                fresh.pmmaPlateSubtype = subtypeRaw
+                dataset.plateType = plateType.rawValue
+                dataset.applicationQuantityMg = applicationQuantityMg
+                dataset.formulationType = formulationType.rawValue
+                dataset.pmmaPlateSubtype = subtypeRaw
             }
         } catch {
             Instrumentation.log(
@@ -1336,15 +1324,98 @@ final class DatasetViewModel {
             return
         }
 
-        do { try writeCtx.save() } catch {
+        dataStoreController?.noteLocalChange(bytes: 64)
+        dataVersion += 1
+    }
+
+    /// Associates a formula card with a prototype sample dataset.
+    /// Follows the same cache-first + ObjCExceptionCatcher pattern as setDatasetMetadata.
+    func setFormulaCard(
+        id formulaCardID: UUID?,
+        for datasetID: UUID,
+        storedDatasets: [StoredDataset]
+    ) {
+        // 1. Patch the cache so UI updates immediately.
+        if let existing = searchableRecordCache[datasetID] {
+            searchableRecordCache[datasetID] = existing.patching(formulaCardID: formulaCardID)
+        }
+
+        // 2. Mutate the model object.
+        guard let dataset = storedDatasets.first(where: { $0.id == datasetID }),
+              dataset.modelContext != nil else { return }
+
+        do {
+            try ObjCExceptionCatcher.try {
+                dataset.formulaCardID = formulaCardID
+            }
+        } catch {
             Instrumentation.log(
-                "setDatasetMetadata save failed",
+                "setFormulaCard caught NSException",
                 area: .processing, level: .error,
                 details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
             )
+            return
         }
 
-        dataStoreController?.noteLocalChange(bytes: 64)
+        dataStoreController?.noteLocalChange(bytes: 16)
+        dataVersion += 1
+    }
+
+    /// Handles the result of a formula card file import.
+    /// Creates a new StoredFormulaCard with the file data and sets it as the pending card.
+    func handleFormulaCardImport(result: Result<[URL], Error>) {
+        guard let ctx = modelContext else { return }
+
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            let didAccess = url.startAccessingSecurityScopedResource()
+            defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+
+            guard let fileData = try? Data(contentsOf: url) else {
+                Instrumentation.log(
+                    "handleFormulaCardImport: failed to read file data",
+                    area: .processing, level: .error,
+                    details: "url=\(url.lastPathComponent)"
+                )
+                return
+            }
+
+            let fileExtension = url.pathExtension.lowercased()
+            let fileName = url.lastPathComponent
+
+            let card = StoredFormulaCard(
+                name: url.deletingPathExtension().lastPathComponent,
+                sourceFileData: fileData,
+                sourceFileName: fileName,
+                sourceFileType: fileExtension
+            )
+
+            do {
+                try ObjCExceptionCatcher.try {
+                    ctx.insert(card)
+                }
+            } catch {
+                Instrumentation.log(
+                    "handleFormulaCardImport: insert caught NSException",
+                    area: .processing, level: .error,
+                    details: "error=\(error.localizedDescription)"
+                )
+                return
+            }
+
+            pendingFormulaCardID = card.id
+            formulaCards.append(card)
+            dataStoreController?.noteLocalChange(bytes: Int64(fileData.count))
+            dataVersion += 1
+
+        case .failure(let error):
+            Instrumentation.log(
+                "handleFormulaCardImport failed",
+                area: .processing, level: .error,
+                details: "error=\(error.localizedDescription)"
+            )
+        }
     }
 
     /// Persists HDRS spectrum tags back to their parent StoredDataset.
@@ -1360,24 +1431,10 @@ final class DatasetViewModel {
         let datasetSpectrumIDs = Set(spectra.compactMap { $0.modelContext != nil ? $0.id : nil })
         let relevantTags = analysis.hdrsSpectrumTags.filter { datasetSpectrumIDs.contains($0.key) }
 
-        // Write via a fresh context. ObjCExceptionCatcher is not used here
-        // because its ObjC trampoline breaks Swift's executor tracking.
-        let writeCtx = ModelContext(ctx.container)
-        writeCtx.autosaveEnabled = false
-        let pid = dataset.persistentModelID
-        guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { return }
-
-        fresh.hdrsSpectrumTags = relevantTags
-
-        do { try writeCtx.save() } catch {
-            Instrumentation.log(
-                "persistHDRSTags save failed",
-                area: .processing, level: .error,
-                details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
-            )
-        }
+        dataset.hdrsSpectrumTags = relevantTags
 
         dataStoreController?.noteLocalChange(bytes: Int64(relevantTags.count * 64))
+        dataVersion += 1
     }
 
     /// Persists HDRS classification metadata (plate type) for a stored dataset.
@@ -1388,18 +1445,12 @@ final class DatasetViewModel {
     ) {
         guard let dataset = storedDatasets.first(where: { $0.id == datasetID }),
               dataset.modelContext != nil else { return }
-        guard let container = modelContext?.container else { return }
 
         let metadata = DatasetHDRSMetadata(plateType: plateType)
 
-        let writeCtx = ModelContext(container)
-        writeCtx.autosaveEnabled = false
-        let pid = dataset.persistentModelID
-        guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { return }
-
         do {
             try ObjCExceptionCatcher.try {
-                fresh.hdrsMetadataJSON = try? JSONEncoder().encode(metadata)
+                dataset.hdrsMetadataJSON = try? JSONEncoder().encode(metadata)
             }
         } catch {
             Instrumentation.log(
@@ -1410,15 +1461,8 @@ final class DatasetViewModel {
             return
         }
 
-        do { try writeCtx.save() } catch {
-            Instrumentation.log(
-                "setDatasetHDRSMetadata save failed",
-                area: .processing, level: .error,
-                details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
-            )
-        }
-
         dataStoreController?.noteLocalChange(bytes: 32)
+        dataVersion += 1
     }
 
     // MARK: - Instrument Assignment
@@ -1427,16 +1471,10 @@ final class DatasetViewModel {
     func assignInstrument(_ instrumentID: UUID, to datasetID: UUID, storedDatasets: [StoredDataset]) {
         guard let dataset = storedDatasets.first(where: { $0.id == datasetID }),
               dataset.modelContext != nil else { return }
-        guard let container = modelContext?.container else { return }
-
-        let writeCtx = ModelContext(container)
-        writeCtx.autosaveEnabled = false
-        let pid = dataset.persistentModelID
-        guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { return }
 
         do {
             try ObjCExceptionCatcher.try {
-                fresh.instrumentID = instrumentID
+                dataset.instrumentID = instrumentID
             }
         } catch {
             Instrumentation.log(
@@ -1447,20 +1485,13 @@ final class DatasetViewModel {
             return
         }
 
-        do { try writeCtx.save() } catch {
-            Instrumentation.log(
-                "assignInstrument save failed",
-                area: .processing, level: .error,
-                details: "datasetID=\(datasetID) error=\(error.localizedDescription)"
-            )
-        }
-
         // Update search record cache
         if let existing = searchableRecordCache[datasetID] {
             searchableRecordCache[datasetID] = existing.patching(instrumentID: instrumentID)
         }
 
         dataStoreController?.noteLocalChange(bytes: 16)
+        dataVersion += 1
     }
 
     /// Assigns an instrument to all datasets from the same source directory.
@@ -1484,22 +1515,15 @@ final class DatasetViewModel {
             return dDir == directory ? dataset.id : nil
         }
 
-        guard let container = modelContext?.container else { return }
-        let writeCtx = ModelContext(container)
-        writeCtx.autosaveEnabled = false
-
         var assignedCount = 0
         for id in siblingIDs {
             guard let dataset = storedDatasets.first(where: { $0.id == id }),
                   dataset.modelContext != nil else { continue }
 
-            let pid = dataset.persistentModelID
-            guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { continue }
-
             do {
                 try ObjCExceptionCatcher.try {
                     MainActor.assumeIsolated {
-                        fresh.instrumentID = instrumentID
+                        dataset.instrumentID = instrumentID
                     }
                 }
                 assignedCount += 1
@@ -1518,16 +1542,8 @@ final class DatasetViewModel {
             }
         }
 
-        // Single save for the entire batch
-        do { try writeCtx.save() } catch {
-            Instrumentation.log(
-                "assignInstrumentToBatch save failed",
-                area: .processing, level: .error,
-                details: "instrumentID=\(instrumentID) error=\(error.localizedDescription)"
-            )
-        }
-
         dataStoreController?.noteLocalChange(bytes: Int64(16 * assignedCount))
+        dataVersion += 1
 
         Instrumentation.log(
             "Batch instrument assignment",
@@ -1538,8 +1554,15 @@ final class DatasetViewModel {
 
     /// Updates the instrument display name cache from a list of instruments.
     func updateInstrumentCache(from instruments: [StoredInstrument]) {
+        guard let ctx = modelContext else { return }
+        // Re-fetch instruments through the store coordinator —
+        // @Query results may contain objects invalidated by CloudKit sync.
+        let freshInstruments: [StoredInstrument]
+        do {
+            freshInstruments = try ctx.fetch(FetchDescriptor<StoredInstrument>())
+        } catch { return }
         var cache: [UUID: String] = [:]
-        for instrument in instruments {
+        for instrument in freshInstruments {
             cache[instrument.id] = instrument.displayName
         }
         instrumentCache = cache
@@ -1665,6 +1688,12 @@ final class DatasetViewModel {
         var snapshots: [DatasetLoadSnapshot] = []
         for dataset in datasetsToRestore {
             let dsID = dataset.id
+            // Re-fetch by ID to get a fresh reference from the store coordinator.
+            let dsPredicate = #Predicate<StoredDataset> { $0.id == dsID }
+            guard let fresh = (try? ctx.fetch(FetchDescriptor<StoredDataset>(predicate: dsPredicate)))?.first else {
+                print("[SessionRestore] Dataset \(dsID) no longer in store — skipping.")
+                continue
+            }
             let spectrumPredicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID }
             var descriptor = FetchDescriptor<StoredSpectrum>(predicate: spectrumPredicate)
             descriptor.sortBy = [SortDescriptor(\StoredSpectrum.orderIndex)]
@@ -1677,7 +1706,7 @@ final class DatasetViewModel {
                 }
                 fetched = captured
             } catch {
-                print("[SessionRestore] Spectra fetch fault for \(dataset.fileName): \(error.localizedDescription)")
+                print("[SessionRestore] Spectra fetch fault for \(fresh.fileName): \(error.localizedDescription)")
                 continue
             }
 
@@ -1696,19 +1725,19 @@ final class DatasetViewModel {
                 }
 
             guard !spectraSnapshots.isEmpty else {
-                print("[SessionRestore] No spectra found for dataset \(dataset.fileName) — skipping.")
+                print("[SessionRestore] No spectra found for dataset \(fresh.fileName) — skipping.")
                 continue
             }
 
             snapshots.append(DatasetLoadSnapshot(
-                id: dataset.id,
-                fileName: dataset.fileName,
-                metadataJSON: dataset.metadataJSON,
-                isReference: dataset.isReference,
-                knownInVivoSPF: dataset.knownInVivoSPF,
-                hdrsSpectrumTags: dataset.hdrsSpectrumTags,
-                skippedDataSets: dataset.skippedDataSets,
-                warnings: dataset.warnings,
+                id: fresh.id,
+                fileName: fresh.fileName,
+                metadataJSON: fresh.metadataJSON,
+                isReference: fresh.isReference,
+                knownInVivoSPF: fresh.knownInVivoSPF,
+                hdrsSpectrumTags: fresh.hdrsSpectrumTags,
+                skippedDataSets: fresh.skippedDataSets,
+                warnings: fresh.warnings,
                 spectra: spectraSnapshots
             ))
         }
@@ -1796,7 +1825,7 @@ final class DatasetViewModel {
     }
 
     func removeDuplicateDatasets(storedDatasets: [StoredDataset], archivedDatasets: [StoredDataset]) {
-        guard let container = modelContext?.container else { return }
+        guard let ctx = modelContext else { return }
         let targetIDs = duplicateCleanupTargetIDs
         let datasets = (storedDatasets + archivedDatasets).filter { targetIDs.contains($0.id) }
         guard !datasets.isEmpty else {
@@ -1809,18 +1838,9 @@ final class DatasetViewModel {
         let preview = datasetNamePreview(datasets)
         let count = datasets.count
 
-        let writeCtx = ModelContext(container)
-        writeCtx.autosaveEnabled = false
-
         for dataset in datasets {
             guard dataset.modelContext != nil else { continue }
-            let pid = dataset.persistentModelID
-            guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { continue }
-            writeCtx.delete(fresh)
-        }
-
-        do { try writeCtx.save() } catch {
-            Instrumentation.log("removeDuplicateDatasets save failed", area: .uiInteraction, level: .error, details: "\(error)")
+            ctx.delete(dataset)
         }
 
         let details = preview.isEmpty ? "count=\(count)" : "count=\(count) names=\(preview)"
@@ -1844,21 +1864,11 @@ final class DatasetViewModel {
         let preview = datasetNamePreview(datasets)
         let count = datasets.count
 
-        guard let container = modelContext?.container else { return }
-        let writeCtx = ModelContext(container)
-        writeCtx.autosaveEnabled = false
-
         let now = Date()
         for dataset in datasets {
             guard dataset.modelContext != nil else { continue }
-            let pid = dataset.persistentModelID
-            guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { continue }
-            fresh.isArchived = true
-            fresh.archivedAt = now
-        }
-
-        do { try writeCtx.save() } catch {
-            Instrumentation.log("archivePendingDatasets save failed", area: .uiInteraction, level: .error, details: "\(error)")
+            dataset.isArchived = true
+            dataset.archivedAt = now
         }
 
         let details = preview.isEmpty ? "count=\(count)" : "count=\(count) names=\(preview)"
@@ -1866,6 +1876,7 @@ final class DatasetViewModel {
         analysis.statusMessage = "Archived \(count) stored dataset(s)."
 
         requestCloudSync(reason: "datasetArchive")
+        dataVersion += 1
 
         pendingArchiveDatasetIDs.removeAll()
         selectedStoredDatasetIDs.removeAll()
@@ -1878,20 +1889,10 @@ final class DatasetViewModel {
         let preview = datasetNamePreview(datasets)
         let count = datasets.count
 
-        guard let container = modelContext?.container else { return }
-        let writeCtx = ModelContext(container)
-        writeCtx.autosaveEnabled = false
-
         for dataset in datasets {
             guard dataset.modelContext != nil else { continue }
-            let pid = dataset.persistentModelID
-            guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { continue }
-            fresh.isArchived = false
-            fresh.archivedAt = nil
-        }
-
-        do { try writeCtx.save() } catch {
-            Instrumentation.log("restoreArchivedSelection save failed", area: .uiInteraction, level: .error, details: "\(error)")
+            dataset.isArchived = false
+            dataset.archivedAt = nil
         }
 
         let details = preview.isEmpty ? "count=\(count)" : "count=\(count) names=\(preview)"
@@ -1899,6 +1900,7 @@ final class DatasetViewModel {
         analysis.statusMessage = "Restored \(count) archived dataset(s)."
 
         requestCloudSync(reason: "datasetRestore")
+        dataVersion += 1
 
         archivedDatasetSelection.removeAll()
     }
@@ -1911,7 +1913,7 @@ final class DatasetViewModel {
     }
 
     func deleteArchivedDatasets(archivedDatasets: [StoredDataset]) {
-        guard let container = modelContext?.container else { return }
+        guard let ctx = modelContext else { return }
         let ids = effectivePermanentDeleteIDs
         let datasets = archivedDatasets.filter { ids.contains($0.id) }
         guard !datasets.isEmpty else {
@@ -1922,18 +1924,9 @@ final class DatasetViewModel {
         let preview = datasetNamePreview(datasets)
         let count = datasets.count
 
-        let writeCtx = ModelContext(container)
-        writeCtx.autosaveEnabled = false
-
         for dataset in datasets {
             guard dataset.modelContext != nil else { continue }
-            let pid = dataset.persistentModelID
-            guard let fresh = writeCtx.model(for: pid) as? StoredDataset else { continue }
-            writeCtx.delete(fresh)
-        }
-
-        do { try writeCtx.save() } catch {
-            Instrumentation.log("deleteArchivedDatasets save failed", area: .uiInteraction, level: .error, details: "\(error)")
+            ctx.delete(dataset)
         }
 
         let details = preview.isEmpty ? "count=\(count)" : "count=\(count) names=\(preview)"
@@ -1941,6 +1934,7 @@ final class DatasetViewModel {
         analysis.statusMessage = "Deleted \(count) archived dataset(s)."
 
         requestCloudSync(reason: "datasetDelete")
+        dataVersion += 1
 
         pendingPermanentDeleteIDs.removeAll()
         archivedDatasetSelection.removeAll()

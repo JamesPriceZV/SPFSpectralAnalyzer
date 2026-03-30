@@ -51,11 +51,6 @@ enum DatasetPersistenceService {
                 }
         )
 
-        // Insert new datasets via a fresh context so the main context stays
-        // clean. This prevents _SD_get_current_context_tsd crashes from
-        // autosave encountering dirty-but-invalidated objects.
-        let writeCtx = ModelContext(modelContext.container)
-        writeCtx.autosaveEnabled = false
         var importedBytes: Int64 = 0
 
         for parsed in parsedFiles {
@@ -127,7 +122,7 @@ enum DatasetPersistenceService {
             for spectrum in spectraModels {
                 spectrum.dataset = dataset
             }
-            writeCtx.insert(dataset)
+            modelContext.insert(dataset)
             fileNameToDatasetID[parsed.url.lastPathComponent] = datasetID
             if let uniqueKey {
                 existingDatasetKeys.insert(uniqueKey)
@@ -138,15 +133,6 @@ enum DatasetPersistenceService {
             importedBytes += Int64(dataset.skippedDataJSON?.count ?? 0)
             importedBytes += Int64(dataset.warningsJSON?.count ?? 0)
             importedBytes += spectraBytes
-        }
-
-        // Save all inserts in a single batch
-        do { try writeCtx.save() } catch {
-            Instrumentation.log(
-                "persistParsedFiles save failed",
-                area: .importParsing, level: .error,
-                details: "\(error)"
-            )
         }
 
         if importedBytes > 0 {

@@ -32,6 +32,8 @@ struct DatasetSearchRecord: SearchableRecord {
     let formulationType: String?
     /// PMMA plate subtype raw value ("moulded" or "sandblasted").
     let pmmaPlateSubtype: String?
+    /// UUID of the associated `StoredFormulaCard`, if any.
+    let formulaCardID: UUID?
 
     // MARK: - Display Fields (used by row views)
 
@@ -64,7 +66,8 @@ struct DatasetSearchRecord: SearchableRecord {
         plateType: String? = nil,
         applicationQuantityMg: Double? = nil,
         formulationType: String? = nil,
-        pmmaPlateSubtype: String? = nil
+        pmmaPlateSubtype: String? = nil,
+        formulaCardID: UUID? = nil
     ) {
         self.fileName = fileName
         self.datasetRole = datasetRole
@@ -85,6 +88,7 @@ struct DatasetSearchRecord: SearchableRecord {
         self.applicationQuantityMg = applicationQuantityMg
         self.formulationType = formulationType
         self.pmmaPlateSubtype = pmmaPlateSubtype
+        self.formulaCardID = formulaCardID
 
         // Build allText once for fast unqualified search
         var parts: [String] = []
@@ -126,7 +130,8 @@ struct DatasetSearchRecord: SearchableRecord {
             plateType: self.plateType,
             applicationQuantityMg: self.applicationQuantityMg,
             formulationType: self.formulationType,
-            pmmaPlateSubtype: self.pmmaPlateSubtype
+            pmmaPlateSubtype: self.pmmaPlateSubtype,
+            formulaCardID: self.formulaCardID
         )
     }
 
@@ -150,7 +155,33 @@ struct DatasetSearchRecord: SearchableRecord {
             plateType: self.plateType,
             applicationQuantityMg: self.applicationQuantityMg,
             formulationType: self.formulationType,
-            pmmaPlateSubtype: self.pmmaPlateSubtype
+            pmmaPlateSubtype: self.pmmaPlateSubtype,
+            formulaCardID: self.formulaCardID
+        )
+    }
+
+    func patching(formulaCardID: UUID?) -> DatasetSearchRecord {
+        DatasetSearchRecord(
+            fileName: self.fileName,
+            datasetRole: self.datasetRole,
+            knownInVivoSPF: self.knownInVivoSPF,
+            importedAt: self.importedAt,
+            fileHash: self.fileHash,
+            sourcePath: self.sourcePath,
+            dataSetNames: self.dataSetNames,
+            directoryEntryNames: self.directoryEntryNames,
+            spectrumCount: self.spectrumCount,
+            memo: self.memo,
+            sourceInstrumentText: self.sourceInstrumentText,
+            instrumentID: self.instrumentID,
+            validSpectrumCount: self.validSpectrumCount,
+            isArchived: self.isArchived,
+            archivedAt: self.archivedAt,
+            plateType: self.plateType,
+            applicationQuantityMg: self.applicationQuantityMg,
+            formulationType: self.formulationType,
+            pmmaPlateSubtype: self.pmmaPlateSubtype,
+            formulaCardID: formulaCardID
         )
     }
 

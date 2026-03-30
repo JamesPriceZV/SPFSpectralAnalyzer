@@ -163,7 +163,7 @@ final class DataStoreController: ObservableObject {
     private static let initCountLock = NSLock()
     private static var initCount = 0
 
-    private let schema = Schema([StoredDataset.self, StoredSpectrum.self, StoredInstrument.self, Item.self] as [any PersistentModel.Type])
+    private let schema = Schema([StoredDataset.self, StoredSpectrum.self, StoredInstrument.self, StoredFormulaCard.self, Item.self] as [any PersistentModel.Type])
 
     #if DEBUG
     func runCloudKitSchemaInit() {
@@ -498,6 +498,11 @@ final class DataStoreController: ObservableObject {
                 let dsKnownInVivoSPF = dataset.knownInVivoSPF
                 let dsHdrsTagsJSON = dataset.hdrsTagsJSON
                 let dsInstrumentID = dataset.instrumentID
+                let dsFormulaCardID = dataset.formulaCardID
+                let dsPlateType = dataset.plateType
+                let dsApplicationQuantityMg = dataset.applicationQuantityMg
+                let dsFormulationType = dataset.formulationType
+                let dsPmmaPlateSubtype = dataset.pmmaPlateSubtype
                 let sourceSpectra = dataset.spectraItems
 
                 let newDataset = StoredDataset(
@@ -517,7 +522,12 @@ final class DataStoreController: ObservableObject {
                     datasetRole: dsDatasetRole,
                     knownInVivoSPF: dsKnownInVivoSPF,
                     hdrsTagsJSON: dsHdrsTagsJSON,
-                    instrumentID: dsInstrumentID
+                    instrumentID: dsInstrumentID,
+                    plateType: dsPlateType,
+                    applicationQuantityMg: dsApplicationQuantityMg,
+                    formulationType: dsFormulationType,
+                    pmmaPlateSubtype: dsPmmaPlateSubtype,
+                    formulaCardID: dsFormulaCardID
                 )
                 destinationContext.insert(newDataset)
 
@@ -572,6 +582,32 @@ final class DataStoreController: ObservableObject {
                 destinationContext.insert(newInstrument)
             }
             if !instruments.isEmpty {
+                try? ObjCExceptionCatcher.try {
+                    try? destinationContext.save()
+                }
+            }
+
+            // Migrate StoredFormulaCard objects
+            let formulaCards = (try? sourceContext.fetch(FetchDescriptor<StoredFormulaCard>())) ?? []
+            for card in formulaCards {
+                guard card.modelContext != nil else { continue }
+                let newCard = StoredFormulaCard(
+                    id: card.id,
+                    name: card.name,
+                    createdAt: card.createdAt,
+                    sourceFileData: card.sourceFileData,
+                    sourceFileName: card.sourceFileName,
+                    sourceFileType: card.sourceFileType,
+                    ingredientsJSON: card.ingredientsJSON,
+                    parsedPH: card.parsedPH,
+                    totalWeightGrams: card.totalWeightGrams,
+                    notes: card.notes,
+                    isParsed: card.isParsed,
+                    extractedText: card.extractedText
+                )
+                destinationContext.insert(newCard)
+            }
+            if !formulaCards.isEmpty {
                 try? ObjCExceptionCatcher.try {
                     try? destinationContext.save()
                 }

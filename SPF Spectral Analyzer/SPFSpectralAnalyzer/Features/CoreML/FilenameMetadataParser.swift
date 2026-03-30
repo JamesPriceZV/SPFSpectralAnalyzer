@@ -58,19 +58,13 @@ enum FilenameMetadataParser {
     private static func parseFormulationType(from lowered: String) -> FormulationType {
         let hasTiO2 = lowered.contains("tio2")
         let hasZnO = lowered.contains("zno")
-        let hasCombo = lowered.contains("combo") || lowered.contains("combination")
 
-        if hasCombo {
-            // Explicit "combo" label — treat as Combination (Mineral + Organic)
-            return .combination
-        }
-        if hasTiO2 || hasZnO {
-            return .mineral
-        }
-        // No mineral filter keywords — could be organic or unknown
-        // Commercial formulas likely contain organic UV filters
-        if lowered.contains("commercial formula") {
-            return .combination  // Commercial sunscreens typically combine both
+        if hasTiO2 && hasZnO {
+            return .mineralZnOTiO2
+        } else if hasTiO2 {
+            return .mineralTiO2
+        } else if hasZnO {
+            return .mineralZnO
         }
         return .unknown
     }

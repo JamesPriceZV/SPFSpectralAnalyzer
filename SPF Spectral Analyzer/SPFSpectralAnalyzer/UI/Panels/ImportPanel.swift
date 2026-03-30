@@ -502,7 +502,7 @@ extension ContentView {
                                     .foregroundColor(.blue)
                             }
                         } else if isProt {
-                            Text("SAMPLE")
+                            Text("PROTOTYPE")
                                 .font(.caption2.bold())
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 1)
@@ -526,8 +526,20 @@ extension ContentView {
                         }
                         .foregroundColor(.teal)
                     }
-                    // ISO 24443 metadata for reference datasets
-                    if isRef {
+                    // Formula card link for prototype samples
+                    if isProt, let cardID = record?.formulaCardID {
+                        Button {
+                            datasets.selectedFormulaCardID = cardID
+                            datasets.showFormulaCardDetail = true
+                        } label: {
+                            Label("Formula Card", systemImage: "doc.text")
+                                .font(.caption2)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.accentColor)
+                    }
+                    // ISO 24443 metadata for reference/prototype datasets
+                    if isRef || isProt {
                         HStack(spacing: 4) {
                             if let pt = record?.plateType, !pt.isEmpty {
                                 let plateLabel: String = {
@@ -591,16 +603,16 @@ extension ContentView {
                 Label("Set as Reference...", systemImage: "star.fill")
             }
             Button {
-                let isHDRS = (SPFCalculationMethod(rawValue: spfCalculationMethodRawValue) ?? .colipa) == .iso23675
-                if isHDRS {
-                    datasets.pendingRoleDatasetID = datasetID
-                    datasets.pendingHDRSPlateType = .moulded
-                    datasets.showSamplePlateTypeSheet = true
-                } else {
-                    datasets.setDatasetRole(.prototype, knownInVivoSPF: nil, for: datasetID, storedDatasets: storedDatasets)
-                }
+                datasets.pendingRoleDatasetID = datasetID
+                datasets.pendingPlateType = SubstratePlateType(rawValue: record?.plateType ?? "") ?? .pmma
+                datasets.pendingApplicationQuantityMg = record?.applicationQuantityMg
+                datasets.pendingFormulationType = FormulationType(rawValue: record?.formulationType ?? "") ?? .unknown
+                datasets.pendingPMMASubtype = PMMAPlateSubtype(rawValue: record?.pmmaPlateSubtype ?? "") ?? .moulded
+                datasets.pendingHDRSPlateType = .moulded
+                datasets.pendingFormulaCardID = record?.formulaCardID
+                datasets.showSamplePlateTypeSheet = true
             } label: {
-                Label("Set as Prototype Sample", systemImage: "flask.fill")
+                Label("Set as Prototype Sample...", systemImage: "flask.fill")
             }
             Divider()
             Button {
@@ -725,7 +737,7 @@ extension ContentView {
                                         .foregroundColor(.blue)
                                 }
                             } else if isProt {
-                                Text("SAMPLE")
+                                Text("PROTOTYPE")
                                     .font(.caption2.bold())
                                     .padding(.horizontal, 4)
                                     .padding(.vertical, 1)
