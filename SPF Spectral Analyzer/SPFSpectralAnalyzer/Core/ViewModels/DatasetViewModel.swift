@@ -4,6 +4,16 @@ import SwiftData
 import Observation
 import CryptoKit
 
+// MARK: - Dataset Tab
+
+enum DatasetTab: String, CaseIterable, Identifiable {
+    case samples
+    case references
+    case archived
+
+    var id: String { rawValue }
+}
+
 @MainActor @Observable
 final class DatasetViewModel {
 
@@ -26,6 +36,7 @@ final class DatasetViewModel {
 
     // MARK: - Dataset Selection
 
+    var datasetTab: DatasetTab = .samples
     var selectedStoredDatasetIDs: Set<UUID> = []
     var storedDatasetPickerSelection: Set<UUID> = []
     var datasetDetailPopoverID: UUID?
@@ -1645,6 +1656,37 @@ final class DatasetViewModel {
         if pruned.count != currentIDs.count {
             writeSessionDatasetIDs(pruned)
             print("[SessionSave] Synced session IDs: \(currentIDs.count) → \(pruned.count)")
+        }
+    }
+
+    // MARK: - Selection Persistence
+
+    /// File URL for persisting which datasets are selected (checked) in the left panel.
+    private static var selectionFileURL: URL {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let dir = appSupport.appendingPathComponent("com.zincoverde.SPFSpectralAnalyzer", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("lastSelectedDatasetIDs.json")
+    }
+
+    static func readSelectedDatasetIDs() -> Set<UUID> {
+        guard let data = try? Data(contentsOf: selectionFileURL),
+              let idStrings = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+        let ids = Set(idStrings.compactMap { UUID(uuidString: $0) })
+        if !ids.isEmpty {
+            print("[SelectionRestore] Read \(ids.count) selected IDs from file.")
+        }
+        return ids
+    }
+
+    static func writeSelectedDatasetIDs(_ ids: Set<UUID>) {
+        guard !ids.isEmpty else {
+            try? FileManager.default.removeItem(at: selectionFileURL)
+            return
+        }
+        let idStrings = ids.map { $0.uuidString }
+        if let json = try? JSONEncoder().encode(idStrings) {
+            try? json.write(to: selectionFileURL, options: .atomic)
         }
     }
 

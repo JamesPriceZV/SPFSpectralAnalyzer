@@ -152,18 +152,33 @@ struct OpenAIProvider: AIAnalysisProvider {
     // MARK: - Response Parsing
 
     static func parseResponse(_ data: Data) -> ParsedAIResponse {
+        let tokenUsage = extractTokenUsage(from: data)
+        var response: ParsedAIResponse
         if let decoded = try? JSONDecoder().decode(AIResponse.self, from: data) {
-            return parseStructuredOutput(text: decoded.text)
-        }
-        if let decoded = try? JSONDecoder().decode(OpenAIResponsesResponse.self, from: data),
+            response = parseStructuredOutput(text: decoded.text)
+        } else if let decoded = try? JSONDecoder().decode(OpenAIResponsesResponse.self, from: data),
            let text = decoded.outputText {
-            return parseStructuredOutput(text: text)
+            response = parseStructuredOutput(text: text)
+        } else if let structured = try? JSONDecoder().decode(AIStructuredOutput.self, from: data) {
+            response = ParsedAIResponse(text: structuredText(from: structured), structured: structured)
+        } else {
+            let fallback = String(data: data, encoding: .utf8) ?? "Empty response"
+            response = parseStructuredOutput(text: fallback)
         }
-        if let structured = try? JSONDecoder().decode(AIStructuredOutput.self, from: data) {
-            return ParsedAIResponse(text: structuredText(from: structured), structured: structured)
-        }
-        let fallback = String(data: data, encoding: .utf8) ?? "Empty response"
-        return parseStructuredOutput(text: fallback)
+        response.tokenUsage = tokenUsage
+        return response
+    }
+
+    /// Extract token usage from OpenAI response JSON.
+    /// Works with both Responses API (`usage.input_tokens`/`output_tokens`)
+    /// and Chat Completions API (`usage.prompt_tokens`/`completion_tokens`).
+    static func extractTokenUsage(from data: Data) -> TokenUsage? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let usage = json["usage"] as? [String: Any] else { return nil }
+        let prompt = (usage["prompt_tokens"] as? Int) ?? (usage["input_tokens"] as? Int) ?? 0
+        let completion = (usage["completion_tokens"] as? Int) ?? (usage["output_tokens"] as? Int) ?? 0
+        guard prompt > 0 || completion > 0 else { return nil }
+        return TokenUsage(promptTokens: prompt, completionTokens: completion)
     }
 
     static func parseStructuredOutput(text: String) -> ParsedAIResponse {

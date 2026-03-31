@@ -118,10 +118,46 @@ struct SettingsView: View {
     @AppStorage("swiftDataStoreResetMessage") private var storeResetMessage = ""
     @AppStorage("swiftDataStoreResetHistory") private var storeResetHistoryData = Data()
 
+    @AppStorage("aiClaudeModel") private var aiClaudeModel = "claude-sonnet-4-5-20250514"
+    @AppStorage("aiClaudeTestStatus") private var aiClaudeTestStatus = "Not tested"
+    @AppStorage("aiClaudeTestTimestamp") private var aiClaudeTestTimestamp = 0.0
+
+    @AppStorage("aiGrokModel") private var aiGrokModel = "grok-3"
+    @AppStorage("aiGrokTestStatus") private var aiGrokTestStatus = "Not tested"
+    @AppStorage("aiGrokTestTimestamp") private var aiGrokTestTimestamp = 0.0
+
+    @AppStorage("aiGeminiModel") private var aiGeminiModel = "gemini-2.5-flash"
+    @AppStorage("aiGeminiTestStatus") private var aiGeminiTestStatus = "Not tested"
+    @AppStorage("aiGeminiTestTimestamp") private var aiGeminiTestTimestamp = 0.0
+
+    // Multi-provider routing
+    @AppStorage("aiProviderPriorityOrder") private var aiProviderPriorityOrderJSON = ""
+    @AppStorage("aiAdvancedRoutingEnabled") private var aiAdvancedRoutingEnabled = false
+    @AppStorage("aiFunctionRoutingJSON") private var aiFunctionRoutingJSON = ""
+    @AppStorage("aiEnsembleModeEnabled") private var aiEnsembleModeEnabled = false
+    @AppStorage("aiEnsembleProvidersJSON") private var aiEnsembleProvidersJSON = ""
+    @AppStorage("aiCostTrackingEnabled") private var aiCostTrackingEnabled = false
+
     @State private var showAPIKey = false
     @State private var hasStoredAPIKey = false
     @State private var apiKeyDraft = ""
     @State private var showOpenAIKeyBrowser = false
+
+    // Anthropic Claude state
+    @State private var showClaudeAPIKey = false
+    @State private var hasStoredClaudeAPIKey = false
+    @State private var claudeAPIKeyDraft = ""
+    @State private var draftClaudeModel = "claude-sonnet-4-5-20250514"
+
+    @State private var showGrokAPIKey = false
+    @State private var hasStoredGrokAPIKey = false
+    @State private var grokAPIKeyDraft = ""
+    @State private var draftGrokModel = "grok-3"
+
+    @State private var showGeminiAPIKey = false
+    @State private var hasStoredGeminiAPIKey = false
+    @State private var geminiAPIKeyDraft = ""
+    @State private var draftGeminiModel = "gemini-2.5-flash"
 
     @State private var draftAIEnabled = false
     @State private var draftTemperature = 0.3
@@ -148,6 +184,14 @@ struct SettingsView: View {
     @State private var isFetchingOpenAIModels = false
     @State private var openAIModelFetchStatus: String?
 
+    // Routing draft state
+    @State private var draftPriorityOrder: [AIProviderID] = AIProviderID.defaultPriorityOrder
+    @State private var draftAdvancedRoutingEnabled = false
+    @State private var draftFunctionRouting: [AIAppFunction: FunctionRoutingMode] = [:]
+    @State private var draftEnsembleModeEnabled = false
+    @State private var draftEnsembleProviders: Set<AIProviderID> = [.claude, .openAI]
+    @State private var draftCostTrackingEnabled = false
+
     @State private var draftInstrumentationEnabled = false
     @State private var draftInstrumentationEnhancedDiagnostics = false
     @State private var draftInstrumentationAreaImportParsing = false
@@ -167,6 +211,9 @@ struct SettingsView: View {
     @State private var dnsStatusMessage: String?
     @State private var dnsStatusTimestamp: Date?
     @State private var dnsStatusIPs: [String] = []
+
+    @State private var usageTracker = ProviderUsageTracker()
+    @State private var draftBudgetCaps: [AIProviderID: ProviderBudgetCap] = [:]
 
     @State private var selectedSettingsTab = SettingsTab.general
     @Environment(\.dismiss) private var dismiss
@@ -244,8 +291,39 @@ struct SettingsView: View {
         draftSpfDisplayModeRawValue != spfDisplayModeRawValue ||
         draftSpfEstimationOverrideRawValue != spfEstimationOverrideRawValue ||
         draftSpfCalculationMethodRawValue != spfCalculationMethodRawValue ||
+        draftClaudeModel != aiClaudeModel ||
+        draftGrokModel != aiGrokModel ||
+        draftGeminiModel != aiGeminiModel ||
+        encodedPriorityOrder != aiProviderPriorityOrderJSON ||
+        draftAdvancedRoutingEnabled != aiAdvancedRoutingEnabled ||
+        encodedFunctionRouting != aiFunctionRoutingJSON ||
+        draftEnsembleModeEnabled != aiEnsembleModeEnabled ||
+        encodedEnsembleProviders != aiEnsembleProvidersJSON ||
+        draftCostTrackingEnabled != aiCostTrackingEnabled ||
         draftInstrumentationEnabled != instrumentationEnabled ||
         draftInstrumentationEnhancedDiagnostics != instrumentationEnhancedDiagnostics
+    }
+
+    /// Encode the draft priority order to JSON for comparison and persistence.
+    private var encodedPriorityOrder: String {
+        let rawValues = draftPriorityOrder.map(\.rawValue)
+        guard let data = try? JSONEncoder().encode(rawValues) else { return "" }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    /// Encode the draft function routing to JSON.
+    private var encodedFunctionRouting: String {
+        guard !draftFunctionRouting.isEmpty else { return "" }
+        let dict = Dictionary(uniqueKeysWithValues: draftFunctionRouting.map { ($0.key.rawValue, $0.value) })
+        guard let data = try? JSONEncoder().encode(dict) else { return "" }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    /// Encode the draft ensemble providers to JSON.
+    private var encodedEnsembleProviders: String {
+        let rawValues = draftEnsembleProviders.map(\.rawValue).sorted()
+        guard let data = try? JSONEncoder().encode(rawValues) else { return "" }
+        return String(data: data, encoding: .utf8) ?? ""
     }
 
     private var resolvedOpenAIEndpointURL: URL? {
@@ -316,6 +394,83 @@ struct SettingsView: View {
             unique.insert(trimmed, at: 0)
         }
         return unique
+    }
+
+    // MARK: - Claude Model Choices
+
+    private var defaultClaudeModels: [String] {
+        [
+            "claude-opus-4-5-20250514",
+            "claude-sonnet-4-5-20250514",
+            "claude-haiku-4-5-20251001",
+            "claude-3-5-sonnet-20241022"
+        ]
+    }
+
+    private var claudeModelChoices: [String] {
+        let trimmed = draftClaudeModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        var unique = defaultClaudeModels
+        if !trimmed.isEmpty, !unique.contains(trimmed) {
+            unique.insert(trimmed, at: 0)
+        }
+        return unique
+    }
+
+    private var claudeTestBadgeText: String {
+        guard aiClaudeTestTimestamp > 0 else { return aiClaudeTestStatus }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        let formatted = formatter.string(from: Date(timeIntervalSince1970: aiClaudeTestTimestamp))
+        return "\(aiClaudeTestStatus) • \(formatted)"
+    }
+
+    // MARK: - Grok Model Choices
+
+    private var defaultGrokModels: [String] {
+        ["grok-3", "grok-3-mini", "grok-2"]
+    }
+
+    private var grokModelChoices: [String] {
+        let trimmed = draftGrokModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        var unique = defaultGrokModels
+        if !trimmed.isEmpty, !unique.contains(trimmed) {
+            unique.insert(trimmed, at: 0)
+        }
+        return unique
+    }
+
+    private var grokTestBadgeText: String {
+        guard aiGrokTestTimestamp > 0 else { return aiGrokTestStatus }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        let formatted = formatter.string(from: Date(timeIntervalSince1970: aiGrokTestTimestamp))
+        return "\(aiGrokTestStatus) • \(formatted)"
+    }
+
+    // MARK: - Gemini Model Choices
+
+    private var defaultGeminiModels: [String] {
+        ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]
+    }
+
+    private var geminiModelChoices: [String] {
+        let trimmed = draftGeminiModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        var unique = defaultGeminiModels
+        if !trimmed.isEmpty, !unique.contains(trimmed) {
+            unique.insert(trimmed, at: 0)
+        }
+        return unique
+    }
+
+    private var geminiTestBadgeText: String {
+        guard aiGeminiTestTimestamp > 0 else { return aiGeminiTestStatus }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        let formatted = formatter.string(from: Date(timeIntervalSince1970: aiGeminiTestTimestamp))
+        return "\(aiGeminiTestStatus) • \(formatted)"
     }
 
     private var iCloudBackupStatusText: String {
@@ -553,7 +708,7 @@ struct SettingsView: View {
                 Toggle("Enable AI Analysis", isOn: $draftAIEnabled)
                     .toggleStyle(.switch)
 
-                Text("AI analysis sends selected spectral data to your analysis server or OpenAI.")
+                Text("AI analysis sends selected spectral data to Apple Intelligence, Anthropic Claude, OpenAI, xAI Grok, or Google Gemini.")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -567,7 +722,7 @@ struct SettingsView: View {
                         Text(pref.label).tag(pref)
                     }
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
 
                 let selectedPref = AIProviderPreference(rawValue: draftProviderPreferenceRawValue) ?? .auto
                 Text(selectedPref.description)
@@ -582,6 +737,200 @@ struct SettingsView: View {
                     Text("Apple Intelligence: \(providerManager.onDeviceStatusText)")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                }
+            }
+
+            Section("Provider Priority (Auto Mode)") {
+                Text("Drag to reorder. When Auto is selected, providers are tried in this order.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                List {
+                    ForEach(draftPriorityOrder) { providerID in
+                        HStack(spacing: 10) {
+                            Image(systemName: providerID.iconName)
+                                .frame(width: 20)
+                                .foregroundColor(.accentColor)
+                            Text(providerID.displayName)
+                            Spacer()
+                            providerAvailabilityDot(for: providerID)
+                        }
+                        .padding(.vertical, 2)
+                        .accessibilityLabel("Provider \(providerID.displayName)")
+                        .accessibilityHint("Drag to reorder")
+                    }
+                    .onMove { indices, newOffset in
+                        draftPriorityOrder.move(fromOffsets: indices, toOffset: newOffset)
+                    }
+                }
+                .frame(minHeight: CGFloat(draftPriorityOrder.count * 36 + 8))
+                .listStyle(.plain)
+                .accessibilityIdentifier("providerPriorityList")
+
+                Button("Reset to Default") {
+                    draftPriorityOrder = AIProviderID.defaultPriorityOrder
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+
+            Section("Advanced Routing") {
+                Toggle("Enable Advanced Routing", isOn: $draftAdvancedRoutingEnabled)
+                    .toggleStyle(.switch)
+                Text("Assign a specific provider or Smart routing per AI function. When disabled, all functions use the provider preference above.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if draftAdvancedRoutingEnabled {
+                    ForEach(AIAppFunction.allCases) { function in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(function.displayName)
+                                    .font(.subheadline.bold())
+                                Spacer()
+                                Picker("", selection: functionRoutingBinding(for: function)) {
+                                    Text("Auto (Priority Queue)").tag(FunctionRoutingMode.auto)
+                                    Text("Smart (Task-Based)").tag(FunctionRoutingMode.smart)
+                                    ForEach(AIProviderID.allCases) { id in
+                                        Text(id.displayName).tag(FunctionRoutingMode.specific(id))
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(maxWidth: 200)
+                            }
+                            Text(function.description)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+
+            Section("Ensemble Mode") {
+                Toggle("Enable Ensemble Mode", isOn: $draftEnsembleModeEnabled)
+                    .toggleStyle(.switch)
+                Text("Run multiple providers in parallel and compare results side by side. Only available for Spectral Analysis.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if draftEnsembleModeEnabled {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Select Providers (minimum 2)")
+                            .font(.caption.bold())
+                            .foregroundColor(.secondary)
+
+                        ForEach(AIProviderID.allCases) { providerID in
+                            Toggle(isOn: ensembleProviderBinding(for: providerID)) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: providerID.iconName)
+                                        .frame(width: 16)
+                                        .foregroundColor(.accentColor)
+                                    Text(providerID.displayName)
+                                    Spacer()
+                                    providerAvailabilityDot(for: providerID)
+                                }
+                            }
+                            .toggleStyle(.switch)
+                        }
+
+                        if draftEnsembleProviders.count < 2 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .foregroundColor(.orange)
+                                Text("Select at least 2 providers for ensemble mode.")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Section("Cost Tracking & Budgets") {
+                Toggle("Enable Cost Tracking", isOn: $draftCostTrackingEnabled)
+                    .toggleStyle(.switch)
+                Text("Track token usage and estimated costs per provider. Over-budget providers are skipped in Auto mode.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if draftCostTrackingEnabled {
+                    // Monthly usage dashboard
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("This Month's Usage")
+                            .font(.subheadline.bold())
+
+                        ForEach(usageTracker.currentMonthSummaries, id: \.providerID) { summary in
+                            let cap = draftBudgetCaps[summary.providerID] ?? ProviderBudgetCap.defaults(for: summary.providerID)
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Image(systemName: summary.providerID.iconName)
+                                        .frame(width: 16)
+                                        .foregroundColor(.accentColor)
+                                    Text(summary.providerID.displayName)
+                                        .font(.caption.bold())
+                                    Spacer()
+                                    Text("\(summary.callCount) calls")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                if cap.monthlyBudgetUSD > 0 {
+                                    ProgressView(
+                                        value: min(summary.totalCostUSD, cap.monthlyBudgetUSD),
+                                        total: cap.monthlyBudgetUSD
+                                    )
+                                    .tint(summary.totalCostUSD >= cap.monthlyBudgetUSD ? .red : .accentColor)
+                                }
+
+                                HStack {
+                                    Text(String(format: "$%.4f spent", summary.totalCostUSD))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    if cap.monthlyBudgetUSD > 0 {
+                                        Text("/ $\(String(format: "%.2f", cap.monthlyBudgetUSD)) budget")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Text("\(summary.totalPromptTokens + summary.totalCompletionTokens) tokens")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    }
+
+                    // Budget caps
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Monthly Budget Caps")
+                            .font(.subheadline.bold())
+
+                        ForEach(AIProviderID.allCases) { providerID in
+                            if providerID != .onDevice {
+                                HStack {
+                                    Text(providerID.displayName)
+                                        .font(.caption)
+                                        .frame(width: 120, alignment: .leading)
+                                    Text("$")
+                                        .font(.caption)
+                                    TextField("Budget", value: budgetCapBinding(for: providerID), format: .number)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(width: 80)
+                                    Text("/mo")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+
+                    Button("Reset Monthly Usage", role: .destructive) {
+                        usageTracker.resetCurrentMonth()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
             }
 
@@ -698,6 +1047,178 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showOpenAIKeyBrowser) {
                 OpenAIKeyBrowserSheet(apiKeyDraft: $apiKeyDraft, hasStoredAPIKey: $hasStoredAPIKey)
+            }
+
+            Section("Anthropic Claude") {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        if showClaudeAPIKey {
+                            TextField("Anthropic API Key", text: $claudeAPIKeyDraft)
+                                .textFieldStyle(.roundedBorder)
+                        } else {
+                            SecureField("Anthropic API Key", text: $claudeAPIKeyDraft)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        Button(showClaudeAPIKey ? "Hide" : "Show") {
+                            showClaudeAPIKey.toggle()
+                        }
+                    }
+
+                    HStack {
+                        Button("Save Key") {
+                            saveClaudeAPIKey()
+                        }
+                        .disabled(claudeAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        Button("Clear Key") {
+                            clearClaudeAPIKey()
+                        }
+                        .disabled(!hasStoredClaudeAPIKey)
+
+                        Button("Test Claude") {
+                            Task { await testClaudeConnection() }
+                        }
+                        .disabled(!hasStoredClaudeAPIKey || draftClaudeModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        Text(hasStoredClaudeAPIKey ? "Key stored" : "No key stored")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        if claudeTestBadgeText != "Not tested" {
+                            Text(claudeTestBadgeText)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+                    }
+
+                    Picker("Claude Model", selection: $draftClaudeModel) {
+                        ForEach(claudeModelChoices, id: \.self) { model in
+                            Text(model).tag(model)
+                        }
+                    }
+                    TextField("Custom model", text: $draftClaudeModel)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.caption)
+                }
+            }
+
+            Section("xAI Grok") {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        if showGrokAPIKey {
+                            TextField("Grok API Key", text: $grokAPIKeyDraft)
+                                .textFieldStyle(.roundedBorder)
+                        } else {
+                            SecureField("Grok API Key", text: $grokAPIKeyDraft)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        Button(showGrokAPIKey ? "Hide" : "Show") {
+                            showGrokAPIKey.toggle()
+                        }
+                    }
+
+                    HStack {
+                        Button("Save Key") {
+                            saveGrokAPIKey()
+                        }
+                        .disabled(grokAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        Button("Clear Key") {
+                            clearGrokAPIKey()
+                        }
+                        .disabled(!hasStoredGrokAPIKey)
+
+                        Button("Test Grok") {
+                            Task { await testGrokConnection() }
+                        }
+                        .disabled(!hasStoredGrokAPIKey || draftGrokModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        Text(hasStoredGrokAPIKey ? "Key stored" : "No key stored")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        if grokTestBadgeText != "Not tested" {
+                            Text(grokTestBadgeText)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+                    }
+
+                    Picker("Grok Model", selection: $draftGrokModel) {
+                        ForEach(grokModelChoices, id: \.self) { model in
+                            Text(model).tag(model)
+                        }
+                    }
+                    TextField("Custom model", text: $draftGrokModel)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.caption)
+                }
+            }
+
+            Section("Google Gemini") {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        if showGeminiAPIKey {
+                            TextField("Gemini API Key", text: $geminiAPIKeyDraft)
+                                .textFieldStyle(.roundedBorder)
+                        } else {
+                            SecureField("Gemini API Key", text: $geminiAPIKeyDraft)
+                                .textFieldStyle(.roundedBorder)
+                        }
+
+                        Button(showGeminiAPIKey ? "Hide" : "Show") {
+                            showGeminiAPIKey.toggle()
+                        }
+                    }
+
+                    HStack {
+                        Button("Save Key") {
+                            saveGeminiAPIKey()
+                        }
+                        .disabled(geminiAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        Button("Clear Key") {
+                            clearGeminiAPIKey()
+                        }
+                        .disabled(!hasStoredGeminiAPIKey)
+
+                        Button("Test Gemini") {
+                            Task { await testGeminiConnection() }
+                        }
+                        .disabled(!hasStoredGeminiAPIKey || draftGeminiModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        Text(hasStoredGeminiAPIKey ? "Key stored" : "No key stored")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        if geminiTestBadgeText != "Not tested" {
+                            Text(geminiTestBadgeText)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+                    }
+
+                    Picker("Gemini Model", selection: $draftGeminiModel) {
+                        ForEach(geminiModelChoices, id: \.self) { model in
+                            Text(model).tag(model)
+                        }
+                    }
+                    TextField("Custom model", text: $draftGeminiModel)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.caption)
+
+                    Text("Note: Gemini uses API key as a query parameter, not a header.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
             Section("Connection") {
@@ -1396,6 +1917,53 @@ struct SettingsView: View {
 
         hasStoredAPIKey = KeychainStore.readPassword(account: KeychainKeys.openAIAPIKey) != nil
         apiKeyDraft = ""
+
+        draftClaudeModel = aiClaudeModel
+        hasStoredClaudeAPIKey = KeychainStore.readPassword(account: KeychainKeys.anthropicAPIKey) != nil
+        claudeAPIKeyDraft = ""
+
+        draftGrokModel = aiGrokModel
+        hasStoredGrokAPIKey = KeychainStore.readPassword(account: KeychainKeys.grokAPIKey) != nil
+        grokAPIKeyDraft = ""
+
+        draftGeminiModel = aiGeminiModel
+        hasStoredGeminiAPIKey = KeychainStore.readPassword(account: KeychainKeys.geminiAPIKey) != nil
+        geminiAPIKeyDraft = ""
+
+        // Routing
+        if !aiProviderPriorityOrderJSON.isEmpty,
+           let data = aiProviderPriorityOrderJSON.data(using: .utf8),
+           let rawValues = try? JSONDecoder().decode([String].self, from: data) {
+            let decoded = rawValues.compactMap { AIProviderID(rawValue: $0) }
+            draftPriorityOrder = decoded.isEmpty ? AIProviderID.defaultPriorityOrder : decoded
+        } else {
+            draftPriorityOrder = AIProviderID.defaultPriorityOrder
+        }
+        draftAdvancedRoutingEnabled = aiAdvancedRoutingEnabled
+        if !aiFunctionRoutingJSON.isEmpty,
+           let data = aiFunctionRoutingJSON.data(using: .utf8),
+           let dict = try? JSONDecoder().decode([String: FunctionRoutingMode].self, from: data) {
+            var routing: [AIAppFunction: FunctionRoutingMode] = [:]
+            for (key, mode) in dict {
+                if let function = AIAppFunction(rawValue: key) {
+                    routing[function] = mode
+                }
+            }
+            draftFunctionRouting = routing
+        } else {
+            draftFunctionRouting = [:]
+        }
+        draftEnsembleModeEnabled = aiEnsembleModeEnabled
+        if !aiEnsembleProvidersJSON.isEmpty,
+           let data = aiEnsembleProvidersJSON.data(using: .utf8),
+           let rawValues = try? JSONDecoder().decode([String].self, from: data) {
+            let decoded = Set(rawValues.compactMap { AIProviderID(rawValue: $0) })
+            draftEnsembleProviders = decoded.count >= 2 ? decoded : [.claude, .openAI]
+        } else {
+            draftEnsembleProviders = [.claude, .openAI]
+        }
+        draftCostTrackingEnabled = aiCostTrackingEnabled
+        draftBudgetCaps = usageTracker.budgetCaps
     }
 
     private func applyDraft() {
@@ -1436,9 +2004,91 @@ struct SettingsView: View {
         instrumentationLevelWarnings = draftInstrumentationLevelWarnings
         instrumentationLevelVerbose = draftInstrumentationLevelVerbose
 
+        aiClaudeModel = draftClaudeModel
+        aiGrokModel = draftGrokModel
+        aiGeminiModel = draftGeminiModel
+
         if !apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             saveAPIKey()
         }
+        if !claudeAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            saveClaudeAPIKey()
+        }
+        if !grokAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            saveGrokAPIKey()
+        }
+        if !geminiAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            saveGeminiAPIKey()
+        }
+
+        // Routing
+        aiProviderPriorityOrderJSON = encodedPriorityOrder
+        aiAdvancedRoutingEnabled = draftAdvancedRoutingEnabled
+        aiFunctionRoutingJSON = encodedFunctionRouting
+        aiEnsembleModeEnabled = draftEnsembleModeEnabled
+        aiEnsembleProvidersJSON = encodedEnsembleProviders
+        aiCostTrackingEnabled = draftCostTrackingEnabled
+    }
+
+    // MARK: - Routing Helpers
+
+    private func functionRoutingBinding(for function: AIAppFunction) -> Binding<FunctionRoutingMode> {
+        Binding(
+            get: { draftFunctionRouting[function] ?? .auto },
+            set: { draftFunctionRouting[function] = $0 }
+        )
+    }
+
+    private func budgetCapBinding(for providerID: AIProviderID) -> Binding<Double> {
+        Binding(
+            get: {
+                draftBudgetCaps[providerID]?.monthlyBudgetUSD
+                    ?? ProviderBudgetCap.defaults(for: providerID).monthlyBudgetUSD
+            },
+            set: { newValue in
+                var cap = draftBudgetCaps[providerID] ?? ProviderBudgetCap.defaults(for: providerID)
+                cap.monthlyBudgetUSD = max(newValue, 0)
+                draftBudgetCaps[providerID] = cap
+                usageTracker.budgetCaps[providerID] = cap
+            }
+        )
+    }
+
+    private func ensembleProviderBinding(for providerID: AIProviderID) -> Binding<Bool> {
+        Binding(
+            get: { draftEnsembleProviders.contains(providerID) },
+            set: { isOn in
+                if isOn {
+                    draftEnsembleProviders.insert(providerID)
+                } else if draftEnsembleProviders.count > 2 {
+                    draftEnsembleProviders.remove(providerID)
+                }
+            }
+        )
+    }
+
+    // MARK: - Provider Availability
+
+    @ViewBuilder
+    private func providerAvailabilityDot(for providerID: AIProviderID) -> some View {
+        let isAvailable: Bool = {
+            switch providerID {
+            case .onDevice:
+                return AIProviderManager().isOnDeviceAvailable
+            case .openAI:
+                return KeychainStore.readPassword(account: KeychainKeys.openAIAPIKey) != nil
+            case .claude:
+                return KeychainStore.readPassword(account: KeychainKeys.anthropicAPIKey) != nil
+            case .grok:
+                return KeychainStore.readPassword(account: KeychainKeys.grokAPIKey) != nil
+            case .gemini:
+                return KeychainStore.readPassword(account: KeychainKeys.geminiAPIKey) != nil
+            }
+        }()
+        Circle()
+            .fill(isAvailable ? Color.green : Color.red.opacity(0.5))
+            .frame(width: 8, height: 8)
+            .help(isAvailable ? "Available" : "Not configured")
     }
 
     private func saveAPIKey() {
@@ -1453,6 +2103,48 @@ struct SettingsView: View {
         KeychainStore.deletePassword(account: KeychainKeys.openAIAPIKey)
         hasStoredAPIKey = false
         apiKeyDraft = ""
+    }
+
+    private func saveClaudeAPIKey() {
+        let trimmed = claudeAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        KeychainStore.savePassword(trimmed, account: KeychainKeys.anthropicAPIKey)
+        hasStoredClaudeAPIKey = true
+        claudeAPIKeyDraft = ""
+    }
+
+    private func clearClaudeAPIKey() {
+        KeychainStore.deletePassword(account: KeychainKeys.anthropicAPIKey)
+        hasStoredClaudeAPIKey = false
+        claudeAPIKeyDraft = ""
+    }
+
+    private func saveGrokAPIKey() {
+        let trimmed = grokAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        KeychainStore.savePassword(trimmed, account: KeychainKeys.grokAPIKey)
+        hasStoredGrokAPIKey = true
+        grokAPIKeyDraft = ""
+    }
+
+    private func clearGrokAPIKey() {
+        KeychainStore.deletePassword(account: KeychainKeys.grokAPIKey)
+        hasStoredGrokAPIKey = false
+        grokAPIKeyDraft = ""
+    }
+
+    private func saveGeminiAPIKey() {
+        let trimmed = geminiAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        KeychainStore.savePassword(trimmed, account: KeychainKeys.geminiAPIKey)
+        hasStoredGeminiAPIKey = true
+        geminiAPIKeyDraft = ""
+    }
+
+    private func clearGeminiAPIKey() {
+        KeychainStore.deletePassword(account: KeychainKeys.geminiAPIKey)
+        hasStoredGeminiAPIKey = false
+        geminiAPIKeyDraft = ""
     }
 
     private func testOpenAIConnection() async {
@@ -1498,6 +2190,154 @@ struct SettingsView: View {
             }
             aiOpenAITestTimestamp = Date().timeIntervalSince1970
         }
+    }
+
+    private func testClaudeConnection() async {
+        guard let apiKey = KeychainStore.readPassword(account: KeychainKeys.anthropicAPIKey), !apiKey.isEmpty else {
+            aiClaudeTestStatus = "API key missing"
+            aiClaudeTestTimestamp = Date().timeIntervalSince1970
+            return
+        }
+
+        let requestBody: [String: Any] = [
+            "model": draftClaudeModel.trimmingCharacters(in: .whitespacesAndNewlines),
+            "max_tokens": 1,
+            "messages": [["role": "user", "content": "Hi"]]
+        ]
+
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: requestBody),
+              let url = URL(string: "https://api.anthropic.com/v1/messages") else {
+            aiClaudeTestStatus = "Invalid request"
+            aiClaudeTestTimestamp = Date().timeIntervalSince1970
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 10
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.httpBody = bodyData
+
+        do {
+            let (_, response) = try await openAITestSession.data(for: request)
+            if let http = response as? HTTPURLResponse {
+                if (200...299).contains(http.statusCode) {
+                    aiClaudeTestStatus = "Reachable (\(http.statusCode))"
+                } else if http.statusCode == 401 {
+                    aiClaudeTestStatus = "Unauthorized"
+                } else {
+                    aiClaudeTestStatus = "HTTP \(http.statusCode)"
+                }
+            } else {
+                aiClaudeTestStatus = "Unreachable"
+            }
+        } catch {
+            aiClaudeTestStatus = error.localizedDescription
+        }
+        aiClaudeTestTimestamp = Date().timeIntervalSince1970
+    }
+
+    private func testGrokConnection() async {
+        guard let apiKey = KeychainStore.readPassword(account: KeychainKeys.grokAPIKey), !apiKey.isEmpty else {
+            aiGrokTestStatus = "API key missing"
+            aiGrokTestTimestamp = Date().timeIntervalSince1970
+            return
+        }
+
+        let requestBody: [String: Any] = [
+            "model": draftGrokModel.trimmingCharacters(in: .whitespacesAndNewlines),
+            "max_tokens": 1,
+            "messages": [
+                ["role": "user", "content": "Hi"]
+            ]
+        ]
+
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: requestBody),
+              let url = URL(string: "https://api.x.ai/v1/chat/completions") else {
+            aiGrokTestStatus = "Invalid request"
+            aiGrokTestTimestamp = Date().timeIntervalSince1970
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 10
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = bodyData
+
+        do {
+            let (_, response) = try await openAITestSession.data(for: request)
+            if let http = response as? HTTPURLResponse {
+                if (200...299).contains(http.statusCode) {
+                    aiGrokTestStatus = "Reachable (\(http.statusCode))"
+                } else if http.statusCode == 401 {
+                    aiGrokTestStatus = "Unauthorized"
+                } else {
+                    aiGrokTestStatus = "HTTP \(http.statusCode)"
+                }
+            } else {
+                aiGrokTestStatus = "Unreachable"
+            }
+        } catch {
+            aiGrokTestStatus = error.localizedDescription
+        }
+        aiGrokTestTimestamp = Date().timeIntervalSince1970
+    }
+
+    private func testGeminiConnection() async {
+        guard let apiKey = KeychainStore.readPassword(account: KeychainKeys.geminiAPIKey), !apiKey.isEmpty else {
+            aiGeminiTestStatus = "API key missing"
+            aiGeminiTestTimestamp = Date().timeIntervalSince1970
+            return
+        }
+
+        let model = draftGeminiModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !model.isEmpty,
+              let url = URL(string: "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(apiKey)") else {
+            aiGeminiTestStatus = "Invalid request"
+            aiGeminiTestTimestamp = Date().timeIntervalSince1970
+            return
+        }
+
+        let requestBody: [String: Any] = [
+            "contents": [["parts": [["text": "Hi"]]]],
+            "generationConfig": ["maxOutputTokens": 1]
+        ]
+
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            aiGeminiTestStatus = "Invalid request"
+            aiGeminiTestTimestamp = Date().timeIntervalSince1970
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 10
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = bodyData
+
+        do {
+            let (_, response) = try await openAITestSession.data(for: request)
+            if let http = response as? HTTPURLResponse {
+                if (200...299).contains(http.statusCode) {
+                    aiGeminiTestStatus = "Reachable (\(http.statusCode))"
+                } else if http.statusCode == 400 {
+                    aiGeminiTestStatus = "Bad request (check model)"
+                } else if http.statusCode == 403 {
+                    aiGeminiTestStatus = "API key invalid"
+                } else {
+                    aiGeminiTestStatus = "HTTP \(http.statusCode)"
+                }
+            } else {
+                aiGeminiTestStatus = "Unreachable"
+            }
+        } catch {
+            aiGeminiTestStatus = error.localizedDescription
+        }
+        aiGeminiTestTimestamp = Date().timeIntervalSince1970
     }
 
     private func fetchOpenAIModels() async {

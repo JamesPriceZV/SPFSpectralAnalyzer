@@ -182,6 +182,27 @@ struct FoundationModelsProvider: AIAnalysisProvider {
             lines.append("... and \(payload.spectra.count - 10) more spectra")
         }
 
+        // Include CoreML prediction if available
+        if let ml = payload.mlPrediction {
+            lines.append("")
+            lines.append("On-device ML model prediction:")
+            lines.append(String(format: "  Predicted SPF: %.1f (90%% confidence interval: %.1f–%.1f)", ml.spfEstimate, ml.confidenceLow, ml.confidenceHigh))
+            lines.append("  This prediction is based on a boosted tree regressor trained on paired in-vivo/in-vitro data.")
+        }
+
+        // Include formula card ingredients if available
+        if let ingredients = payload.formulaIngredients, !ingredients.isEmpty {
+            lines.append("")
+            lines.append("Prototype formula composition:")
+            for ing in ingredients {
+                var desc = "  \(ing.name)"
+                if let inci = ing.inciName { desc += " (INCI: \(inci))" }
+                if let pct = ing.percentage { desc += String(format: " — %.1f%%", pct) }
+                if let cat = ing.category { desc += " [\(cat)]" }
+                lines.append(desc)
+            }
+        }
+
         return lines.joined(separator: "\n")
     }
 }

@@ -60,68 +60,83 @@ extension ContentView {
             .padding(.top, 12)
             .padding(.bottom, 8)
 
-            if !storedDatasets.isEmpty {
+            if !storedDatasets.isEmpty || !archivedDatasets.isEmpty {
                 Divider()
                     .padding(.horizontal, 12)
 
-                // MARK: Action buttons — pinned above dataset list
+                // MARK: Action buttons — conditional on active tab
                 VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Button("Load Selected") {
-                            datasets.loadStoredDatasetSelection(append: false, storedDatasets: storedDatasets)
+                    if datasets.datasetTab == .archived {
+                        HStack(spacing: 8) {
+                            Button("Restore Selected") {
+                                datasets.restoreArchivedSelection(archivedDatasets: archivedDatasets)
+                            }
+                            .accessibilityIdentifier("restoreArchivedButton")
+                            .glassButtonStyle(isProminent: true)
+                            .disabled(datasets.archivedDatasetSelection.isEmpty)
+                            .help("Restore selected archived datasets back to the active list.")
+
+                            Button("Delete Permanently") {
+                                datasets.requestPermanentDeleteSelection()
+                            }
+                            .accessibilityIdentifier("deleteArchivedButton")
+                            .glassButtonStyle()
+                            .disabled(datasets.archivedDatasetSelection.isEmpty)
+                            .help("Permanently delete selected archived datasets.")
+
+                            Spacer()
                         }
-                        .accessibilityIdentifier("loadSelectedButton")
-                        .glassButtonStyle(isProminent: true)
-                        .help("Replace current spectra with the selected datasets.")
+                    } else {
+                        HStack(spacing: 8) {
+                            Button("Load Selected") {
+                                datasets.loadStoredDatasetSelection(append: false, storedDatasets: storedDatasets)
+                            }
+                            .accessibilityIdentifier("loadSelectedButton")
+                            .glassButtonStyle(isProminent: true)
+                            .help("Replace current spectra with the selected datasets.")
 
-                        Button("Append Selected") {
-                            datasets.loadStoredDatasetSelection(append: true, storedDatasets: storedDatasets)
+                            Button("Append Selected") {
+                                datasets.loadStoredDatasetSelection(append: true, storedDatasets: storedDatasets)
+                            }
+                            .accessibilityIdentifier("appendSelectedButton")
+                            .glassButtonStyle()
+                            .help("Add selected datasets to the current spectra without clearing.")
+
+                            Spacer()
+
+                            Button("Validate Headers") {
+                                datasets.validateStoredDatasetSelection(storedDatasets: storedDatasets)
+                            }
+                            .accessibilityIdentifier("validateHeadersButton")
+                            .glassButtonStyle()
+                            .help("Check SPC header consistency across selected stored datasets.")
+
+                            Button("Validate Loaded") {
+                                datasets.validateLoadedSpectra(activeHeader: activeHeader)
+                            }
+                            .accessibilityIdentifier("validateLoadedButton")
+                            .glassButtonStyle()
+                            .help("Run validation checks on currently loaded spectra (empty data, non-finite values).")
                         }
-                        .accessibilityIdentifier("appendSelectedButton")
-                        .glassButtonStyle()
-                        .help("Add selected datasets to the current spectra without clearing.")
 
-                        Spacer()
+                        HStack(spacing: 8) {
+                            Button("Archive Selected") {
+                                datasets.deleteStoredDatasetSelection(storedDatasets: storedDatasets)
+                            }
+                            .accessibilityIdentifier("archiveSelectedButton")
+                            .glassButtonStyle()
+                            .disabled(datasets.selectedStoredDatasetIDs.isEmpty)
+                            .help("Move selected datasets to the archive. They can be restored later.")
 
-                        Button("Validate Headers") {
-                            datasets.validateStoredDatasetSelection(storedDatasets: storedDatasets)
+                            Button("Remove Duplicates") {
+                                datasets.prepareDuplicateCleanup(storedDatasets: storedDatasets, archivedDatasets: archivedDatasets)
+                            }
+                            .accessibilityIdentifier("removeDuplicatesButton")
+                            .glassButtonStyle()
+                            .help("Find and remove duplicate datasets based on content hashing.")
+
+                            Spacer()
                         }
-                        .accessibilityIdentifier("validateHeadersButton")
-                        .glassButtonStyle()
-                        .help("Check SPC header consistency across selected stored datasets.")
-
-                        Button("Validate Loaded") {
-                            datasets.validateLoadedSpectra(activeHeader: activeHeader)
-                        }
-                        .accessibilityIdentifier("validateLoadedButton")
-                        .glassButtonStyle()
-                        .help("Run validation checks on currently loaded spectra (empty data, non-finite values).")
-                    }
-
-                    HStack(spacing: 8) {
-                        Button("Archive Selected") {
-                            datasets.deleteStoredDatasetSelection(storedDatasets: storedDatasets)
-                        }
-                        .accessibilityIdentifier("archiveSelectedButton")
-                        .glassButtonStyle()
-                        .disabled(datasets.selectedStoredDatasetIDs.isEmpty)
-                        .help("Move selected datasets to the archive. They can be restored later.")
-
-                        Button("Remove Duplicates") {
-                            datasets.prepareDuplicateCleanup(storedDatasets: storedDatasets, archivedDatasets: archivedDatasets)
-                        }
-                        .accessibilityIdentifier("removeDuplicatesButton")
-                        .glassButtonStyle()
-                        .help("Find and remove duplicate datasets based on content hashing.")
-
-                        Button("Archived\u{2026}") {
-                            datasets.showArchivedDatasetSheet = true
-                        }
-                        .accessibilityIdentifier("archivedDatasetsButton")
-                        .glassButtonStyle()
-                        .help("View and restore previously archived datasets.")
-
-                        Spacer()
                     }
                 }
                 .padding(.horizontal, 12)
@@ -130,15 +145,31 @@ extension ContentView {
                 Divider()
                     .padding(.horizontal, 12)
 
-                // MARK: Dataset list — fills remaining space
+                // MARK: Dataset tabs + list — fills remaining space
                 VStack(alignment: .leading, spacing: 8) {
+                    // Tab picker with counts
+                    let sampleCount = datasets.searchableRecordCache.values.filter {
+                        $0.datasetRole != DatasetRole.reference.rawValue
+                    }.count
+                    let refCount = datasets.searchableRecordCache.values.filter {
+                        $0.datasetRole == DatasetRole.reference.rawValue
+                    }.count
+
+                    Picker("", selection: $datasets.datasetTab) {
+                        Text("Samples (\(sampleCount))").tag(DatasetTab.samples)
+                        Text("References (\(refCount))").tag(DatasetTab.references)
+                        Text("Archived (\(archivedDatasets.count))").tag(DatasetTab.archived)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+
+                    // Search field
                     HStack(spacing: 6) {
-                        Text("Stored Datasets: \(storedDatasets.count)")
-                            .font(.headline)
-                        Spacer()
-                        TextField("Search", text: $datasets.datasetSearchText)
+                        TextField("Search", text: datasets.datasetTab == .archived
+                            ? $datasets.archivedSearchText
+                            : $datasets.datasetSearchText)
                             .textFieldStyle(.roundedBorder)
-                            .frame(maxWidth: 200)
                             .accessibilityIdentifier("datasetSearchField")
                         Button {
                             datasets.showDatasetSearchHelp.toggle()
@@ -154,26 +185,38 @@ extension ContentView {
                         }
                     }
                     .padding(.horizontal, 12)
-                    .padding(.top, 8)
 
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 8) {
-                            let datasetIDs = storedDatasets.map(\.id)
-                            let filteredIDs = datasets.filteredDatasetIDs(from: datasetIDs)
-                            ForEach(filteredIDs, id: \.self) { datasetID in
-                                storedDatasetRow(datasetID)
+                            switch datasets.datasetTab {
+                            case .samples:
+                                let sampleIDs = storedDatasets
+                                    .filter { datasets.searchableRecordCache[$0.id]?.datasetRole != DatasetRole.reference.rawValue }
+                                    .map(\.id)
+                                let filteredIDs = datasets.filteredDatasetIDs(from: sampleIDs)
+                                ForEach(filteredIDs, id: \.self) { datasetID in
+                                    storedDatasetRow(datasetID)
+                                }
+                            case .references:
+                                let refIDs = storedDatasets
+                                    .filter { datasets.searchableRecordCache[$0.id]?.datasetRole == DatasetRole.reference.rawValue }
+                                    .map(\.id)
+                                let filteredIDs = datasets.filteredDatasetIDs(from: refIDs)
+                                ForEach(filteredIDs, id: \.self) { datasetID in
+                                    storedDatasetRow(datasetID)
+                                }
+                            case .archived:
+                                let archivedIDs = archivedDatasets.map(\.id)
+                                let filteredIDs = datasets.filteredArchivedDatasetIDs(from: archivedIDs)
+                                ForEach(filteredIDs, id: \.self) { datasetID in
+                                    archivedDatasetRow(datasetID)
+                                }
                             }
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 4)
                     }
                 }
-            } else if !archivedDatasets.isEmpty {
-                Button("View Archived Datasets") {
-                    datasets.showArchivedDatasetSheet = true
-                }
-                .glassButtonStyle()
-                .padding(12)
             }
         }
         .background(panelBackground)
@@ -475,13 +518,8 @@ extension ContentView {
             return datasets.instrumentCache[instID]
         }()
 
-        return Button {
-            if isSelected {
-                datasets.selectedStoredDatasetIDs.remove(datasetID)
-            } else {
-                datasets.selectedStoredDatasetIDs.insert(datasetID)
-            }
-        } label: {
+        return VStack(alignment: .leading, spacing: 0) {
+            // Main row — tappable for selection
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
@@ -525,18 +563,6 @@ extension ContentView {
                                 .font(.caption2)
                         }
                         .foregroundColor(.teal)
-                    }
-                    // Formula card link for prototype samples
-                    if isProt, let cardID = record?.formulaCardID {
-                        Button {
-                            datasets.selectedFormulaCardID = cardID
-                            datasets.showFormulaCardDetail = true
-                        } label: {
-                            Label("Formula Card", systemImage: "doc.text")
-                                .font(.caption2)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(.accentColor)
                     }
                     // ISO 24443 metadata for reference/prototype datasets
                     if isRef || isProt {
@@ -585,11 +611,46 @@ extension ContentView {
                         .foregroundColor(.accentColor)
                 }
             }
-            .padding(8)
-            .background(isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
-            .cornerRadius(10)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if isSelected {
+                    datasets.selectedStoredDatasetIDs.remove(datasetID)
+                } else {
+                    datasets.selectedStoredDatasetIDs.insert(datasetID)
+                }
+                DatasetViewModel.writeSelectedDatasetIDs(datasets.selectedStoredDatasetIDs)
+            }
+
+            // Formula card link — separate from the selection tap area.
+            // The .sheet is attached here (not in the global chain) to avoid
+            // the macOS limitation where too many .sheet modifiers on a single
+            // view causes later ones to silently fail.
+            if isProt, let cardID = record?.formulaCardID {
+                Button {
+                    datasets.selectedFormulaCardID = cardID
+                    datasets.showFormulaCardDetail = true
+                } label: {
+                    Label("Formula Card", systemImage: "doc.text")
+                        .font(.caption2)
+                }
+                .buttonStyle(.borderless)
+                .foregroundColor(.accentColor)
+                .padding(.leading, 4)
+                .padding(.top, 2)
+                .sheet(isPresented: $datasets.showFormulaCardDetail) {
+                    if let activeCardID = datasets.selectedFormulaCardID {
+                        FormulaCardDetailView(
+                            formulaCardID: activeCardID,
+                            datasets: datasets,
+                            storedDatasets: storedDatasets
+                        )
+                    }
+                }
+            }
         }
-        .buttonStyle(.plain)
+        .padding(8)
+        .background(isSelected ? Color.accentColor.opacity(0.12) : Color.clear)
+        .cornerRadius(10)
         .contextMenu {
             Button {
                 datasets.pendingRoleDatasetID = datasetID

@@ -11,6 +11,21 @@ struct AIRequestPayload: Encodable {
     var yAxisMode: String
     var metricsRange: [Double]
     var spectra: [AISpectrumPayload]
+    var mlPrediction: AIMLPredictionPayload?
+    var formulaIngredients: [AIFormulaIngredientPayload]?
+}
+
+struct AIMLPredictionPayload: Encodable {
+    var spfEstimate: Double
+    var confidenceLow: Double
+    var confidenceHigh: Double
+}
+
+struct AIFormulaIngredientPayload: Encodable {
+    var name: String
+    var inciName: String?
+    var percentage: Double?
+    var category: String?
 }
 
 struct AISpectrumPayload: Encodable {
@@ -38,11 +53,18 @@ enum AIAuthError: LocalizedError {
     case invalidOpenAIEndpoint
     case missingOpenAIModel
     case openAIConnectionFailed(String)
+    case missingClaudeModel
+    case invalidClaudeEndpoint
+    case claudeConnectionFailed(String)
+    case missingGrokModel
+    case grokConnectionFailed(String)
+    case missingGeminiModel
+    case geminiConnectionFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            return "OpenAI API key is not configured."
+            return "API key is not configured."
         case .missingOpenAIEndpoint:
             return "OpenAI endpoint is not configured."
         case .invalidOpenAIEndpoint:
@@ -51,13 +73,27 @@ enum AIAuthError: LocalizedError {
             return "OpenAI model is not configured."
         case .openAIConnectionFailed(let message):
             return "OpenAI connection failed: \(message)"
+        case .missingClaudeModel:
+            return "Anthropic Claude model is not configured."
+        case .invalidClaudeEndpoint:
+            return "Anthropic API endpoint is invalid."
+        case .claudeConnectionFailed(let message):
+            return "Claude connection failed: \(message)"
+        case .missingGrokModel:
+            return "xAI Grok model is not configured."
+        case .grokConnectionFailed(let message):
+            return "Grok connection failed: \(message)"
+        case .missingGeminiModel:
+            return "Google Gemini model is not configured."
+        case .geminiConnectionFailed(let message):
+            return "Gemini connection failed: \(message)"
         }
     }
 }
 
 // MARK: - AI Structured Output
 
-struct AIStructuredOutput: Codable {
+struct AIStructuredOutput: Codable, Sendable {
     var summary: String?
     var insights: [String]
     var risks: [String]
@@ -65,7 +101,7 @@ struct AIStructuredOutput: Codable {
     var recommendations: [AIRecommendation]?
 }
 
-struct AIRecommendation: Codable, Identifiable {
+struct AIRecommendation: Codable, Identifiable, Sendable {
     let id = UUID()
     var ingredient: String
     var amount: String
@@ -78,9 +114,10 @@ struct AIRecommendation: Codable, Identifiable {
     }
 }
 
-struct ParsedAIResponse {
+struct ParsedAIResponse: Sendable {
     let text: String
     let structured: AIStructuredOutput?
+    var tokenUsage: TokenUsage?
 }
 
 struct AIResponse: Decodable {

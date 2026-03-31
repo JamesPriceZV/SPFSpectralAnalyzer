@@ -68,15 +68,14 @@ extension ContentView {
             .sheet(isPresented: $datasets.showAssignInstrumentSheet) {
                 assignInstrumentSheet
             }
-            .sheet(isPresented: $datasets.showFormulaCardDetail) {
-                if let cardID = datasets.selectedFormulaCardID {
-                    FormulaCardDetailView(
-                        formulaCardID: cardID,
-                        datasets: datasets,
-                        storedDatasets: storedDatasets
-                    )
-                }
+            .sheet(item: $pendingShareContent) { content in
+                ShareSheet(items: content.shareItems)
+                    #if os(macOS)
+                    .frame(width: 1, height: 1)
+                    #endif
             }
+            // Formula card detail sheet moved to ImportPanel (attached directly to the button)
+            // to avoid macOS sheet-stacking limitation.
             .sheet(item: $scheduleEventType) { eventType in
                 ScheduleEventSheet(eventType: eventType)
             }

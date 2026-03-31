@@ -208,6 +208,26 @@ extension ContentView {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Spacer()
+
+                    Menu {
+                        Button {
+                            shareDataPackage()
+                        } label: {
+                            Label("Send Data Package", systemImage: "shippingbox")
+                        }
+
+                        Button {
+                            shareAnalysisScreenshot()
+                        } label: {
+                            Label("Send Chart Screenshot", systemImage: "camera")
+                        }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .help("Share analysis via Messages, AirDrop, etc.")
+                    .glassButtonStyle()
+                    .disabled(analysis.displayedSpectra.isEmpty)
+
                     Button {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             expandChart.toggle()

@@ -4,6 +4,9 @@ import Security
 enum KeychainKeys {
     static let service = "ShimadzuDataAnalyser"
     static let openAIAPIKey = "openai_api_key"
+    static let anthropicAPIKey = "anthropic_api_key"
+    static let grokAPIKey = "grok_api_key"
+    static let geminiAPIKey = "gemini_api_key"
     static let oauthAccessToken = "oauth_access_token"
     static let oauthRefreshToken = "oauth_refresh_token"
 }

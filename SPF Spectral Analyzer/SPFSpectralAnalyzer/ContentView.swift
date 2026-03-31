@@ -69,6 +69,17 @@ struct ContentView: View {
     @AppStorage("aiResponseTextSize") var aiResponseTextSize = 12.0
     @AppStorage("aiCostPerThousandTokens") var aiCostPerThousandTokens = 0.01
     @AppStorage("aiProviderPreference") var aiProviderPreferenceRawValue = AIProviderPreference.auto.rawValue
+    @AppStorage("aiClaudeModel") var aiClaudeModel = "claude-sonnet-4-5-20250514"
+    @AppStorage("aiGrokModel") var aiGrokModel = "grok-3"
+    @AppStorage("aiGeminiModel") var aiGeminiModel = "gemini-2.5-flash"
+
+    // Multi-provider routing
+    @AppStorage("aiProviderPriorityOrder") var aiProviderPriorityOrderJSON = ""
+    @AppStorage("aiAdvancedRoutingEnabled") var aiAdvancedRoutingEnabled = false
+    @AppStorage("aiFunctionRoutingJSON") var aiFunctionRoutingJSON = ""
+    @AppStorage("aiEnsembleModeEnabled") var aiEnsembleModeEnabled = false
+    @AppStorage("aiEnsembleProvidersJSON") var aiEnsembleProvidersJSON = ""
+    @AppStorage("aiCostTrackingEnabled") var aiCostTrackingEnabled = false
 
     @AppStorage("spfDisplayMode") var spfDisplayModeRawValue = SpfDisplayMode.calibrated.rawValue
     @AppStorage("spfEstimationOverride") var spfEstimationOverrideRawValue = SPFEstimationOverride.automatic.rawValue
@@ -90,6 +101,7 @@ struct ContentView: View {
     @AppStorage("toolbarShowLabels") var toolbarShowLabels = false
 
     @State var aiVM = AIViewModel()
+    @State var pendingShareContent: ShareableContent?
 
     @EnvironmentObject var instrumentManager: InstrumentManager
 
@@ -196,6 +208,13 @@ struct ContentView: View {
 
             // Sync persisted reference exclusions to the ViewModel
             syncExcludedReferencesToViewModel()
+
+            // Restore persisted dataset selections (checkmarks in left panel)
+            let savedSelections = DatasetViewModel.readSelectedDatasetIDs()
+            let validSelections = savedSelections.intersection(Set(storedDatasets.map(\.id)))
+            if !validSelections.isEmpty {
+                datasets.selectedStoredDatasetIDs = validSelections
+            }
 
             // Restore last session datasets on launch and auto-load Reference datasets
             if analysis.spectra.isEmpty {

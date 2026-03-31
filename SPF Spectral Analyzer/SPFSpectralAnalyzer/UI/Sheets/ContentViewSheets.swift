@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 extension ContentView {
 
@@ -585,6 +586,19 @@ extension ContentView {
         }
         .padding(24)
         .frame(minWidth: 420, idealWidth: 480)
+        .fileImporter(
+            isPresented: $datasets.showFormulaCardImporter,
+            allowedContentTypes: [
+                .pdf,
+                .png,
+                .jpeg,
+                .heic,
+                UTType(filenameExtension: "xlsx") ?? .data,
+                UTType(filenameExtension: "docx") ?? .data
+            ],
+            allowsMultipleSelection: false,
+            onCompletion: datasets.handleFormulaCardImport(result:)
+        )
     }
 
     // MARK: - Assign Instrument Sheet

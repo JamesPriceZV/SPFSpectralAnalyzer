@@ -40,6 +40,16 @@ final class AIViewModel {
     var historySelectionB: UUID?
     let historyMaxEntries = 20
 
+    // MARK: - Ensemble Mode
+
+    /// The selected provider ID from ensemble comparison.
+    var selectedEnsembleProviderID: AIProviderID?
+
+    /// Convenience accessor for ensemble results from the provider manager.
+    var ensembleResult: EnsembleAnalysisResult? {
+        providerManager.ensembleResult
+    }
+
     // MARK: - Sidebar Structured Sections
 
     var sidebarInsightsText = ""

@@ -352,6 +352,22 @@ extension ContentView {
                 .background(panelBackground)
                 .cornerRadius(16)
 
+                // MARK: Ensemble Comparison
+                if let ensemble = aiVM.ensembleResult, ensemble.providerResults.count > 1 {
+                    EnsembleAnalysisView(ensemble: ensemble) { selectedResult in
+                        aiVM.selectedEnsembleProviderID = selectedResult.providerID
+                        let result = AIAnalysisResult(
+                            text: selectedResult.response.text,
+                            createdAt: Date(),
+                            preset: aiPromptPreset,
+                            selectionScope: effectiveAIScope
+                        )
+                        aiVM.result = result
+                        aiVM.structuredOutput = selectedResult.response.structured
+                        updateSidebarFromAIResult(result)
+                    }
+                }
+
                 // MARK: Key Insights / Risks / Next Steps (full-width)
                 if aiVM.result != nil {
                     VStack(alignment: .leading, spacing: 8) {

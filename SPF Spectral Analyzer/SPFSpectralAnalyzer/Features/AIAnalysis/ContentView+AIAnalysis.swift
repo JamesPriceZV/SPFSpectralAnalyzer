@@ -47,18 +47,18 @@ extension ContentView {
             }
             do {
                 let payload = await buildAIRequestPayload()
-                let apiKey = KeychainStore.readPassword(account: KeychainKeys.openAIAPIKey)
-
+                let credentials = buildProviderCredentials()
+                let overBudget = aiCostTrackingEnabled ? aiVM.providerManager.usageTracker.overBudgetProviderIDs : []
                 let parsed = try await aiVM.providerManager.analyze(
-                    preference: aiProviderPreference,
+                    function: .spectralAnalysis,
                     payload: payload,
                     prompt: effectiveAIPrompt,
                     structuredOutputEnabled: aiStructuredOutputEnabled,
-                    openAIEndpoint: aiOpenAIEndpoint,
-                    openAIModel: aiOpenAIModel,
-                    openAIAPIKey: apiKey,
-                    temperature: aiTemperature,
-                    maxTokens: aiMaxTokens
+                    priorityOrder: decodedPriorityOrder,
+                    functionRouting: decodedFunctionRouting,
+                    ensembleConfig: buildEnsembleConfig(),
+                    credentials: credentials,
+                    overBudgetIDs: overBudget
                 )
 
                 await MainActor.run {
@@ -74,6 +74,17 @@ extension ContentView {
                     appendAIHistory(result: result)
                     updateSidebarFromAIResult(result)
                     aiVM.showSavePrompt = true
+
+                    // Record token usage for cost tracking
+                    if aiCostTrackingEnabled,
+                       let providerID = aiVM.providerManager.activeProviderID,
+                       let tokenUsage = parsed.tokenUsage {
+                        aiVM.providerManager.usageTracker.recordUsage(
+                            providerID: providerID,
+                            function: .spectralAnalysis,
+                            usage: tokenUsage
+                        )
+                    }
                 }
 
                 logAIDiagnostics("AI analysis completed via \(aiVM.providerManager.activeProviderName ?? "unknown")")
@@ -87,6 +98,75 @@ extension ContentView {
                 aiVM.isRunning = false
             }
         }
+    }
+
+    // MARK: - Provider Routing Helpers
+
+    /// Build a ProviderCredentials bundle from current @AppStorage values.
+    func buildProviderCredentials() -> ProviderCredentials {
+        ProviderCredentials(
+            openAIEndpoint: aiOpenAIEndpoint,
+            openAIModel: aiOpenAIModel,
+            openAIAPIKey: KeychainStore.readPassword(account: KeychainKeys.openAIAPIKey),
+            claudeModel: aiClaudeModel,
+            claudeAPIKey: KeychainStore.readPassword(account: KeychainKeys.anthropicAPIKey),
+            grokModel: aiGrokModel,
+            grokAPIKey: KeychainStore.readPassword(account: KeychainKeys.grokAPIKey),
+            geminiModel: aiGeminiModel,
+            geminiAPIKey: KeychainStore.readPassword(account: KeychainKeys.geminiAPIKey),
+            temperature: aiTemperature,
+            maxTokens: aiMaxTokens
+        )
+    }
+
+    /// Decode the user's custom priority order from JSON, or return default.
+    var decodedPriorityOrder: [AIProviderID] {
+        guard !aiProviderPriorityOrderJSON.isEmpty,
+              let data = aiProviderPriorityOrderJSON.data(using: .utf8),
+              let rawValues = try? JSONDecoder().decode([String].self, from: data) else {
+            return AIProviderID.defaultPriorityOrder
+        }
+        let decoded = rawValues.compactMap { AIProviderID(rawValue: $0) }
+        return decoded.isEmpty ? AIProviderID.defaultPriorityOrder : decoded
+    }
+
+    /// Decode function routing from JSON, or map legacy provider preference.
+    var decodedFunctionRouting: [AIAppFunction: FunctionRoutingMode] {
+        if aiAdvancedRoutingEnabled,
+           !aiFunctionRoutingJSON.isEmpty,
+           let data = aiFunctionRoutingJSON.data(using: .utf8),
+           let dict = try? JSONDecoder().decode([String: FunctionRoutingMode].self, from: data) {
+            var routing: [AIAppFunction: FunctionRoutingMode] = [:]
+            for (key, mode) in dict {
+                if let function = AIAppFunction(rawValue: key) {
+                    routing[function] = mode
+                }
+            }
+            return routing
+        }
+        // Legacy preference mapping
+        let pref = AIProviderPreference(rawValue: aiProviderPreferenceRawValue) ?? .auto
+        switch pref {
+        case .auto:    return [:]
+        case .onDevice: return [.spectralAnalysis: .specific(.onDevice)]
+        case .claude:   return [.spectralAnalysis: .specific(.claude)]
+        case .openAI:   return [.spectralAnalysis: .specific(.openAI)]
+        case .grok:     return [.spectralAnalysis: .specific(.grok)]
+        case .gemini:   return [.spectralAnalysis: .specific(.gemini)]
+        }
+    }
+
+    /// Build ensemble config from @AppStorage settings.
+    func buildEnsembleConfig() -> EnsembleConfig {
+        guard aiEnsembleModeEnabled else { return EnsembleConfig() }
+        var providers: Set<AIProviderID> = [.claude, .openAI]
+        if !aiEnsembleProvidersJSON.isEmpty,
+           let data = aiEnsembleProvidersJSON.data(using: .utf8),
+           let rawValues = try? JSONDecoder().decode([String].self, from: data) {
+            let decoded = Set(rawValues.compactMap { AIProviderID(rawValue: $0) })
+            if decoded.count >= 2 { providers = decoded }
+        }
+        return EnsembleConfig(isEnabled: true, selectedProviders: providers)
     }
 
     func resolvedOpenAIEndpointURL(from endpoint: String) -> URL? {
@@ -199,6 +279,12 @@ extension ContentView {
             return results
         }
 
+        // Run CoreML prediction on the first spectrum (prototype) if model is ready
+        let mlPayload = buildMLPredictionPayload(spectra: spectra, yAxisMode: yAxis)
+
+        // Include formula card ingredients if a prototype sample has a formula card
+        let ingredientPayload = buildFormulaIngredientPayload(spectra: spectra)
+
         return AIRequestPayload(
             preset: aiVM.useCustomPrompt ? "custom" : aiPromptPreset.rawValue,
             prompt: effectiveAIPrompt,
@@ -207,8 +293,79 @@ extension ContentView {
             selectionScope: effectiveAIScope.rawValue,
             yAxisMode: analysis.yAxisMode.rawValue,
             metricsRange: [analysis.chartWavelengthRange.lowerBound, analysis.chartWavelengthRange.upperBound],
-            spectra: payloadSpectra
+            spectra: payloadSpectra,
+            mlPrediction: mlPayload,
+            formulaIngredients: ingredientPayload
         )
+    }
+
+    /// Run CoreML SPF prediction on the first available spectrum.
+    private func buildMLPredictionPayload(spectra: [ShimadzuSpectrum], yAxisMode: SpectralYAxisMode) -> AIMLPredictionPayload? {
+        let predictionService = SPFPredictionService.shared
+        guard predictionService.status.isReady else { return nil }
+
+        // Find the first prototype spectrum, or fall back to the first spectrum
+        let targetSpectrum: ShimadzuSpectrum?
+        if let protoSpectrum = spectra.first(where: { spectrum in
+            guard let dsID = spectrum.sourceDatasetID else { return false }
+            return storedDatasets.first(where: { $0.id == dsID })?.isPrototype == true
+        }) {
+            targetSpectrum = protoSpectrum
+        } else {
+            targetSpectrum = spectra.first
+        }
+
+        guard let spectrum = targetSpectrum else { return nil }
+
+        // Look up auxiliary metadata from StoredDataset
+        let dataset = spectrum.sourceDatasetID.flatMap { dsID in
+            storedDatasets.first(where: { $0.id == dsID })
+        }
+
+        // Determine post-irradiation from spectrum name
+        let isPostIrrad = FilenameMetadataParser.parse(filename: spectrum.name).isPostIrradiation
+
+        guard let prediction = predictionService.predict(
+            x: spectrum.x, y: spectrum.y,
+            yAxisMode: yAxisMode,
+            plateType: dataset?.substratePlateType ?? .pmma,
+            applicationQuantityMg: dataset?.applicationQuantityMg,
+            formulationType: dataset?.formulationCategory ?? .unknown,
+            isPostIrradiation: isPostIrrad
+        ) else { return nil }
+
+        return AIMLPredictionPayload(
+            spfEstimate: prediction.spfEstimate,
+            confidenceLow: prediction.confidenceLow,
+            confidenceHigh: prediction.confidenceHigh
+        )
+    }
+
+    /// Extract formula card ingredients for prototype samples in scope.
+    private func buildFormulaIngredientPayload(spectra: [ShimadzuSpectrum]) -> [AIFormulaIngredientPayload]? {
+        // Find the first prototype dataset with a formula card
+        for spectrum in spectra {
+            guard let dsID = spectrum.sourceDatasetID,
+                  let dataset = storedDatasets.first(where: { $0.id == dsID }),
+                  dataset.isPrototype,
+                  let cardID = dataset.formulaCardID,
+                  let card = datasets.formulaCards.first(where: { $0.id == cardID }) else {
+                continue
+            }
+
+            let ingredients = card.ingredients
+            guard !ingredients.isEmpty else { continue }
+
+            return ingredients.map { ingredient in
+                AIFormulaIngredientPayload(
+                    name: ingredient.name,
+                    inciName: ingredient.inciName,
+                    percentage: ingredient.percentage,
+                    category: ingredient.category
+                )
+            }
+        }
+        return nil
     }
 
     func buildOpenAIResponsesBody() async throws -> Data {
