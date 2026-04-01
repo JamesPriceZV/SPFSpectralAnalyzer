@@ -3,7 +3,8 @@ import SwiftUI
 import Charts
 
 /// Standalone iOS view for the Analysis tab.
-/// Replaces the macOS-oriented 3-pane `analysisPanel` ContentView extension on iPhone/iPad.
+/// iPhone: ScrollView with sheet-based Pipeline/AI panels.
+/// iPad: NavigationSplitView with dataset sidebar + chart detail.
 struct iOSAnalysisView: View {
     @Bindable var analysis: AnalysisViewModel
     var datasets: DatasetViewModel
@@ -13,100 +14,273 @@ struct iOSAnalysisView: View {
     @AppStorage("aiEnabled") private var aiEnabled = false
     @AppStorage("spfCalculationMethod") private var spfCalculationMethodRawValue = SPFCalculationMethod.colipa.rawValue
 
-    @State private var showDatasets = false
-    @State private var showPipeline = false
-    @State private var showAI = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    // Sheet state — only one sheet at a time
+    @State private var activeSheet: AnalysisSheet?
+    @Namespace private var glassNamespace
+
+    private enum AnalysisSheet: Identifiable {
+        case pipeline, ai, datasets
+        var id: String {
+            switch self {
+            case .pipeline: return "pipeline"
+            case .ai: return "ai"
+            case .datasets: return "datasets"
+            }
+        }
+    }
 
     var body: some View {
-        NavigationStack {
+        if sizeClass == .regular {
+            iPadLayout
+        } else {
+            iPhoneLayout
+        }
+    }
+
+    // MARK: - iPad Layout (NavigationSplitView)
+
+    private var iPadLayout: some View {
+        NavigationSplitView {
+            datasetSidebar
+                .navigationTitle("Datasets")
+        } detail: {
             ScrollView {
                 VStack(spacing: 16) {
-                    // MARK: - Dashboard Metrics
                     if let metrics = analysis.dashboardMetrics {
                         dashboardSection(metrics)
                     }
-
-                    // MARK: - Spectral Chart
                     chartCard
-
-                    // MARK: - Chart Controls
                     chartControls
-
-                    // MARK: - Collapsible Sections
-                    DisclosureGroup("Datasets (\(analysis.spectra.count))", isExpanded: $showDatasets) {
-                        datasetList
-                    }
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
-
-                    DisclosureGroup("Processing Pipeline", isExpanded: $showPipeline) {
-                        pipelineControls
-                    }
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
-
-                    if aiEnabled {
-                        DisclosureGroup("AI Analysis", isExpanded: $showAI) {
-                            aiSection
-                        }
-                        .padding(12)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
-                    }
                 }
                 .padding()
             }
             .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Analysis")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        analysis.runPipeline()
-                    } label: {
-                        Label("Apply Pipeline", systemImage: "wand.and.stars")
+            .toolbar { analysisToolbar }
+        }
+        .navigationSplitViewStyle(.prominentDetail)
+        .sheet(item: $activeSheet) { sheet in
+            sheetContent(for: sheet)
+        }
+    }
+
+    // MARK: - iPhone Layout (ScrollView)
+
+    private var iPhoneLayout: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    if let metrics = analysis.dashboardMetrics {
+                        dashboardSection(metrics)
                     }
-                    .disabled(analysis.spectra.isEmpty)
+                    chartCard
+                    chartControls
+
+                    // Datasets quick-access button
+                    Button {
+                        activeSheet = .datasets
+                    } label: {
+                        HStack {
+                            Label("Datasets (\(analysis.spectra.count))", systemImage: "list.bullet")
+                            Spacer()
+                            Image(systemName: "chevron.up")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(12)
+                        .glassSurface(cornerRadius: 12, isInteractive: true)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding()
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .navigationTitle("Analysis")
+            .toolbar { analysisToolbar }
+            .sheet(item: $activeSheet) { sheet in
+                sheetContent(for: sheet)
+            }
+        }
+    }
+
+    // MARK: - Shared Toolbar
+
+    @ToolbarContentBuilder
+    private var analysisToolbar: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            if aiEnabled {
+                Button {
+                    runAI()
+                    activeSheet = .ai
+                } label: {
+                    Label("AI Analysis", systemImage: "sparkles")
+                }
+                .disabled(aiVM.isRunning || analysis.spectra.isEmpty)
+                .accessibilityLabel("Run AI analysis")
+            }
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Menu {
+                Button {
+                    analysis.runPipeline()
+                } label: {
+                    Label("Apply Pipeline", systemImage: "wand.and.stars")
+                }
+                .disabled(analysis.spectra.isEmpty)
+
+                Button {
+                    activeSheet = .pipeline
+                } label: {
+                    Label("Pipeline Settings", systemImage: "slider.horizontal.3")
+                }
+            } label: {
+                Label("More", systemImage: "ellipsis.circle")
+            }
+            .accessibilityLabel("More options")
+        }
+    }
+
+    // MARK: - Sheet Content
+
+    @ViewBuilder
+    private func sheetContent(for sheet: AnalysisSheet) -> some View {
+        switch sheet {
+        case .pipeline:
+            NavigationStack {
+                ScrollView {
+                    pipelineControls
+                        .padding()
+                }
+                .navigationTitle("Processing Pipeline")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { activeSheet = nil }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+
+        case .ai:
+            NavigationStack {
+                ScrollView {
+                    aiSection
+                        .padding()
+                }
+                .navigationTitle("AI Analysis")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { activeSheet = nil }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+
+        case .datasets:
+            NavigationStack {
+                ScrollView {
+                    datasetList
+                        .padding()
+                }
+                .navigationTitle("Datasets (\(analysis.spectra.count))")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { activeSheet = nil }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
+    }
+
+    // MARK: - Dataset Sidebar (iPad)
+
+    private var datasetSidebar: some View {
+        List {
+            if analysis.spectra.isEmpty {
+                ContentUnavailableView(
+                    "No Spectra",
+                    systemImage: "waveform.path.ecg",
+                    description: Text("Load datasets from the Data tab.")
+                )
+            } else {
+                let spectraSnapshot = Array(analysis.spectra)
+                ForEach(Array(spectraSnapshot.enumerated()), id: \.offset) { index, spectrum in
+                    let isSelected = analysis.selectedSpectrumIndices.contains(index)
+                    Button {
+                        if analysis.selectedSpectrumIndices.contains(index) {
+                            analysis.selectedSpectrumIndices.remove(index)
+                        } else {
+                            analysis.selectedSpectrumIndices.insert(index)
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(isSelected ? .accentColor : .secondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(spectrum.name)
+                                    .font(.subheadline)
+                                    .lineLimit(2)
+                                    .foregroundColor(.primary)
+                                Text("\(spectrum.x.count) pts")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
     }
 
-    // MARK: - Dashboard
+    // MARK: - Dashboard (Liquid Glass Cards)
 
     private func dashboardSection(_ metrics: DashboardMetrics) -> some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible(), spacing: 8),
-            GridItem(.flexible(), spacing: 8)
-        ], spacing: 8) {
-            dashboardCard(
-                title: "SPF Compliance",
-                value: String(format: "%.0f%%", metrics.compliancePercent),
-                detail: "\(metrics.complianceCount)/\(metrics.totalCount) samples",
-                statusColor: metrics.compliancePercent >= 80 ? .green : (metrics.compliancePercent >= 50 ? .orange : .red)
-            )
-            dashboardCard(
-                title: "Avg UVA/UVB",
-                value: String(format: "%.3f", metrics.avgUvaUvb),
-                detail: metrics.avgUvaUvb >= 0.33 ? "Passes \u{2265} 0.33" : "Below 0.33",
-                statusColor: metrics.avgUvaUvb >= 0.33 ? .green : .orange
-            )
-            dashboardCard(
-                title: "Avg Critical \u{03BB}",
-                value: String(format: "%.1f nm", metrics.avgCritical),
-                detail: metrics.avgCritical >= 370 ? "Passes \u{2265} 370" : "Below 370",
-                statusColor: metrics.avgCritical >= 370 ? .green : .orange
-            )
-            if let drop = metrics.postIncubationDropPercent {
+        GlassEffectContainer(spacing: 12) {
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 8),
+                GridItem(.flexible(), spacing: 8)
+            ], spacing: 8) {
                 dashboardCard(
-                    title: "SPF Drop",
-                    value: String(format: "%.1f%%", drop),
-                    detail: "Post-incubation",
-                    statusColor: drop < 10 ? .green : (drop < 20 ? .orange : .red)
+                    title: "SPF Compliance",
+                    value: String(format: "%.0f%%", metrics.compliancePercent),
+                    detail: "\(metrics.complianceCount)/\(metrics.totalCount) samples",
+                    statusColor: metrics.compliancePercent >= 80 ? .green : (metrics.compliancePercent >= 50 ? .orange : .red)
                 )
+                dashboardCard(
+                    title: "Avg UVA/UVB",
+                    value: String(format: "%.3f", metrics.avgUvaUvb),
+                    detail: metrics.avgUvaUvb >= 0.33 ? "Passes \u{2265} 0.33" : "Below 0.33",
+                    statusColor: metrics.avgUvaUvb >= 0.33 ? .green : .orange
+                )
+                dashboardCard(
+                    title: "Avg Critical \u{03BB}",
+                    value: String(format: "%.1f nm", metrics.avgCritical),
+                    detail: metrics.avgCritical >= 370 ? "Passes \u{2265} 370" : "Below 370",
+                    statusColor: metrics.avgCritical >= 370 ? .green : .orange
+                )
+                if let drop = metrics.postIncubationDropPercent {
+                    dashboardCard(
+                        title: "SPF Drop",
+                        value: String(format: "%.1f%%", drop),
+                        detail: "Post-incubation",
+                        statusColor: drop < 10 ? .green : (drop < 20 ? .orange : .red)
+                    )
+                }
             }
         }
     }
 
-    private func dashboardCard(title: String, value: String, detail: String, interpretation: String? = nil, statusColor: Color = .secondary) -> some View {
+    private func dashboardCard(title: String, value: String, detail: String, statusColor: Color = .secondary) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Circle()
@@ -126,14 +300,9 @@ struct iOSAnalysisView: View {
         }
         .frame(maxWidth: .infinity, minHeight: 80, alignment: .leading)
         .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.secondarySystemGroupedBackground))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(statusColor.opacity(0.3), lineWidth: 1)
-                )
-        )
+        .glassClearSurface(cornerRadius: 12, tint: statusColor.opacity(0.15))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(value), \(detail)")
     }
 
     // MARK: - Chart
@@ -276,21 +445,19 @@ struct iOSAnalysisView: View {
         }
     }
 
-    // MARK: - Chart Controls
+    // MARK: - Chart Controls (Glass Toggle Bar)
 
     private var chartControls: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Chart display toggles — compact button style for iPhone
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 8) {
-                compactToggle("All", isOn: $analysis.showAllSpectra)
-                compactToggle("Sel", isOn: $analysis.showSelectedOnly)
-                compactToggle("Avg", isOn: $analysis.showAverage)
-                compactToggle("Legend", isOn: $analysis.showLegend)
-                compactToggle("Labels", isOn: $analysis.showLabels)
+            // Chart display toggles — interactive glass capsules
+            GlassEffectContainer(spacing: 8) {
+                HStack(spacing: 8) {
+                    glassToggle("All", isOn: $analysis.showAllSpectra)
+                    glassToggle("Sel", isOn: $analysis.showSelectedOnly)
+                    glassToggle("Avg", isOn: $analysis.showAverage)
+                    glassToggle("Legend", isOn: $analysis.showLegend)
+                    glassToggle("Labels", isOn: $analysis.showLabels)
+                }
             }
 
             // Y Axis picker
@@ -328,28 +495,28 @@ struct iOSAnalysisView: View {
         .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemGroupedBackground)))
     }
 
-    private func compactToggle(_ label: String, isOn: Binding<Bool>) -> some View {
+    private func glassToggle(_ label: String, isOn: Binding<Bool>) -> some View {
         Button {
-            isOn.wrappedValue.toggle()
+            withAnimation(.smooth(duration: 0.25)) {
+                isOn.wrappedValue.toggle()
+            }
         } label: {
             Text(label)
                 .font(.caption2.weight(.medium))
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(isOn.wrappedValue ? Color.accentColor.opacity(0.2) : Color(.tertiarySystemGroupedBackground))
-                )
-                .foregroundColor(isOn.wrappedValue ? .accentColor : .secondary)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(isOn.wrappedValue ? Color.accentColor.opacity(0.4) : Color.clear, lineWidth: 1)
-                )
+                .foregroundColor(isOn.wrappedValue ? .white : .secondary)
         }
         .buttonStyle(.plain)
+        .glassEffect(
+            isOn.wrappedValue ? .regular.interactive().tint(.accentColor) : .regular.interactive(),
+            in: Capsule()
+        )
+        .accessibilityLabel("\(label) \(isOn.wrappedValue ? "on" : "off")")
+        .accessibilityAddTraits(isOn.wrappedValue ? .isSelected : [])
     }
 
-    // MARK: - Dataset List
+    // MARK: - Dataset List (shared by iPhone sheet + iPad sidebar)
 
     private var datasetList: some View {
         let spectraSnapshot = Array(analysis.spectra)
@@ -380,20 +547,17 @@ struct iOSAnalysisView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.top, 8)
     }
 
     // MARK: - Pipeline Controls
 
     private var pipelineControls: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Alignment
             Toggle("Align X-Axis", isOn: $analysis.useAlignment)
                 .toggleStyle(.switch)
 
             Divider()
 
-            // Smoothing
             VStack(alignment: .leading, spacing: 6) {
                 Text("Smoothing")
                     .font(.subheadline.bold())
@@ -415,7 +579,6 @@ struct iOSAnalysisView: View {
 
             Divider()
 
-            // Baseline
             VStack(alignment: .leading, spacing: 6) {
                 Text("Baseline")
                     .font(.subheadline.bold())
@@ -429,7 +592,6 @@ struct iOSAnalysisView: View {
 
             Divider()
 
-            // Normalization
             VStack(alignment: .leading, spacing: 6) {
                 Text("Normalization")
                     .font(.subheadline.bold())
@@ -443,7 +605,6 @@ struct iOSAnalysisView: View {
 
             Divider()
 
-            // Peak Detection
             VStack(alignment: .leading, spacing: 6) {
                 Toggle("Detect Peaks", isOn: $analysis.detectPeaks)
                     .toggleStyle(.switch)
@@ -453,17 +614,15 @@ struct iOSAnalysisView: View {
                 }
             }
 
-            // Apply button
             Button {
                 analysis.runPipeline()
             } label: {
                 Label("Apply Pipeline", systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glassProminent)
             .disabled(analysis.spectra.isEmpty)
         }
-        .padding(.top, 8)
     }
 
     // MARK: - AI Section
@@ -481,12 +640,12 @@ struct iOSAnalysisView: View {
                 runAI()
             } label: {
                 Label(
-                    aiVM.isRunning ? "Analyzing…" : "Run AI Analysis",
+                    aiVM.isRunning ? "Analyzing\u{2026}" : "Run AI Analysis",
                     systemImage: "sparkles"
                 )
                 .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glassProminent)
             .tint(.purple)
             .disabled(aiVM.isRunning || analysis.spectra.isEmpty)
 
@@ -501,7 +660,6 @@ struct iOSAnalysisView: View {
                     .background(RoundedRectangle(cornerRadius: 8).fill(Color(.tertiarySystemGroupedBackground)))
             }
         }
-        .padding(.top, 8)
     }
 }
 #endif

@@ -3,7 +3,7 @@ import SwiftUI
 import SwiftData
 
 /// Standalone iOS view for the Data Management tab.
-/// Replaces the macOS-oriented `importPanel` ContentView extension on iPhone/iPad.
+/// iPhone: List-based layout. iPad: NavigationSplitView with dataset sidebar + detail.
 struct iOSDataManagementView: View {
     var analysis: AnalysisViewModel
     @Bindable var datasets: DatasetViewModel
@@ -18,8 +18,81 @@ struct iOSDataManagementView: View {
     @AppStorage("spfCalculationMethod") private var spfCalculationMethodRawValue = SPFCalculationMethod.colipa.rawValue
 
     @Environment(\.modelContext) var modelContext
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    @State private var selectedDetailID: UUID?
+    @State private var presentedFormulaCardID: UUID?
 
     var body: some View {
+        Group {
+            if sizeClass == .regular {
+                iPadLayout
+            } else {
+                iPhoneLayout
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { presentedFormulaCardID != nil },
+            set: { if !$0 { presentedFormulaCardID = nil } }
+        )) {
+            if let cardID = presentedFormulaCardID {
+                FormulaCardDetailView(
+                    formulaCardID: cardID,
+                    datasets: datasets,
+                    storedDatasets: storedDatasets
+                )
+            }
+        }
+        .onChange(of: datasets.selectedStoredDatasetIDs) { _, newValue in
+            DatasetViewModel.writeSelectedDatasetIDs(newValue)
+        }
+    }
+
+    // MARK: - iPad Layout
+
+    private var iPadLayout: some View {
+        NavigationSplitView {
+            datasetListContent
+                .navigationTitle("Datasets")
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        actionsMenu
+                    }
+                    ToolbarItem(placement: .secondaryAction) {
+                        Button {
+                            datasets.appendOnImport = false
+                            datasets.showImporter = true
+                        } label: {
+                            Label("Import", systemImage: "folder.badge.plus")
+                        }
+                    }
+                }
+        } detail: {
+            if let detailID = selectedDetailID,
+               let record = datasets.searchableRecordCache[detailID] {
+                DatasetDetailPanel(
+                    datasetID: detailID,
+                    record: record,
+                    datasets: datasets,
+                    storedDatasets: storedDatasets,
+                    appMode: $appMode,
+                    instruments: instruments,
+                    presentedFormulaCardID: $presentedFormulaCardID
+                )
+            } else {
+                ContentUnavailableView(
+                    "Select a Dataset",
+                    systemImage: "doc.text.magnifyingglass",
+                    description: Text("Choose a dataset from the sidebar to view details.")
+                )
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
+    }
+
+    // MARK: - iPhone Layout
+
+    private var iPhoneLayout: some View {
         NavigationStack {
             List {
                 // Import section
@@ -131,6 +204,68 @@ struct iOSDataManagementView: View {
         }
     }
 
+    // MARK: - Shared Dataset List Content (used by iPad sidebar)
+
+    private var datasetListContent: some View {
+        List(selection: $selectedDetailID) {
+            // Import section
+            Section {
+                Button {
+                    datasets.appendOnImport = false
+                    datasets.showImporter = true
+                } label: {
+                    Label("Browse SPC Files", systemImage: "folder.badge.plus")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.borderedProminent)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            }
+
+            // Sync status
+            if dataStoreController.cloudSyncEnabled {
+                Section {
+                    HStack(spacing: 8) {
+                        Image(systemName: "icloud.fill")
+                            .foregroundColor(.green)
+                            .font(.caption)
+                        Text("iCloud Sync Active")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            // Datasets
+            if !storedDatasets.isEmpty {
+                let datasetIDs = storedDatasets.map(\.id)
+                let filteredIDs = datasets.filteredDatasetIDs(from: datasetIDs)
+                Section("Stored Datasets — \(storedDatasets.count)") {
+                    ForEach(filteredIDs, id: \.self) { datasetID in
+                        datasetRow(datasetID)
+                    }
+                }
+            } else if !archivedDatasets.isEmpty {
+                Section {
+                    Button("View Archived Datasets") {
+                        datasets.showArchivedDatasetSheet = true
+                    }
+                }
+            } else {
+                Section {
+                    ContentUnavailableView(
+                        "No Datasets",
+                        systemImage: "doc.text.magnifyingglass",
+                        description: Text("Import SPC files to get started.")
+                    )
+                    .listRowBackground(Color.clear)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .searchable(text: $datasets.datasetSearchText, prompt: "Search datasets")
+    }
+
     // MARK: - Actions Menu
 
     private var actionsMenu: some View {
@@ -238,7 +373,7 @@ struct iOSDataManagementView: View {
                                 .foregroundColor(.blue)
                                 .cornerRadius(4)
                             if let spf = spfValue {
-                                Text("SPF \(spf, specifier: "%.0f")")
+                                Text("SPF \(Int(spf))")
                                     .font(.caption2.bold())
                                     .padding(.horizontal, 5)
                                     .padding(.vertical, 2)
@@ -269,10 +404,15 @@ struct iOSDataManagementView: View {
                     }
 
                     // Formula card link for prototype samples
-                    if isProt, record?.formulaCardID != nil {
-                        Label("Formula Card", systemImage: "doc.text")
-                            .font(.caption2)
-                            .foregroundColor(.accentColor)
+                    if isProt, let cardID = record?.formulaCardID {
+                        Button {
+                            presentedFormulaCardID = cardID
+                        } label: {
+                            Label("Formula Card", systemImage: "doc.text")
+                                .font(.caption2)
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundColor(.accentColor)
                     }
                     // ISO 24443 metadata for reference/prototype datasets
                     if isRef || isProt {
@@ -399,6 +539,145 @@ struct iOSDataManagementView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - iPad Detail Panel
+
+/// Shows detailed info for a selected dataset on iPad's detail column.
+private struct DatasetDetailPanel: View {
+    let datasetID: UUID
+    let record: DatasetSearchRecord
+    @Bindable var datasets: DatasetViewModel
+    var storedDatasets: [StoredDataset]
+    @Binding var appMode: AppMode
+    var instruments: [StoredInstrument]
+    @Binding var presentedFormulaCardID: UUID?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                // Header
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(record.fileName)
+                        .font(.title2.bold())
+                    HStack(spacing: 8) {
+                        if record.isReference {
+                            roleBadge("REF", color: .blue)
+                            if let spf = record.knownInVivoSPF {
+                                roleBadge("SPF \(Int(spf))", color: .purple)
+                            }
+                        } else if record.isPrototype {
+                            roleBadge("PROTOTYPE", color: .green)
+                        }
+                    }
+                    Text("Imported \(DatasetViewModel.storedDateFormatter.string(from: record.importedAt))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Divider()
+
+                // Quick info
+                infoSection
+
+                Divider()
+
+                // Actions
+                actionButtons
+            }
+            .padding()
+        }
+        .navigationTitle("Dataset Details")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var infoSection: some View {
+        LazyVGrid(columns: [
+            GridItem(.flexible(), spacing: 12),
+            GridItem(.flexible(), spacing: 12)
+        ], spacing: 12) {
+            infoCard(title: "Spectra", value: "\(record.spectrumCount)", icon: "waveform.path.ecg")
+            infoCard(title: "Datasets", value: "\(record.dataSetNames.count)", icon: "doc.on.doc")
+            if let inst = record.instrumentID, let name = datasets.instrumentCache[inst] {
+                infoCard(title: "Instrument", value: name, icon: "camera.metering.spot")
+            }
+            if let pt = record.plateType, !pt.isEmpty {
+                infoCard(title: "Plate Type", value: SubstratePlateType(rawValue: pt)?.label ?? pt, icon: "square.grid.2x2")
+            }
+            if let mg = record.applicationQuantityMg {
+                infoCard(title: "Application", value: String(format: "%.1f mg", mg), icon: "drop")
+            }
+            if let ft = record.formulationType, ft != FormulationType.unknown.rawValue {
+                infoCard(title: "Formulation", value: FormulationType(rawValue: ft)?.label ?? ft, icon: "flask")
+            }
+        }
+    }
+
+    private func infoCard(title: String, value: String, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(title, systemImage: icon)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.subheadline.bold())
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .glassClearSurface(cornerRadius: 12)
+    }
+
+    private var actionButtons: some View {
+        VStack(spacing: 12) {
+            if record.isPrototype, let cardID = record.formulaCardID {
+                Button {
+                    presentedFormulaCardID = cardID
+                } label: {
+                    Label("View Formula Card", systemImage: "doc.text")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glass)
+            }
+
+            Button {
+                datasets.selectedStoredDatasetIDs = [datasetID]
+                datasets.loadStoredDatasetSelection(append: false, storedDatasets: storedDatasets)
+                appMode = .analyze
+            } label: {
+                Label("Load & Analyze", systemImage: "arrow.down.doc")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glassProminent)
+
+            Button {
+                datasets.selectedStoredDatasetIDs = [datasetID]
+                datasets.loadStoredDatasetSelection(append: true, storedDatasets: storedDatasets)
+            } label: {
+                Label("Append to Loaded", systemImage: "doc.badge.plus")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.glass)
+
+            Button(role: .destructive) {
+                datasets.selectedStoredDatasetIDs = [datasetID]
+                datasets.deleteStoredDatasetSelection(storedDatasets: storedDatasets)
+            } label: {
+                Label("Archive", systemImage: "archivebox")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private func roleBadge(_ text: String, color: Color) -> some View {
+        Text(text)
+            .font(.caption2.bold())
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(color.opacity(0.2))
+            .foregroundColor(color)
+            .cornerRadius(4)
     }
 }
 #endif

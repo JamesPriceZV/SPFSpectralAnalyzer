@@ -18,6 +18,7 @@ struct SpectralCameraView: View {
                 captureSection
                 if let image = capturedImage {
                     imagePreviewSection(image)
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
                 }
                 if let result = analysisResult {
                     resultsSection(result)
@@ -49,27 +50,29 @@ struct SpectralCameraView: View {
     }
 
     private var captureSection: some View {
-        HStack(spacing: 16) {
-            Button {
-                showCamera = true
-            } label: {
-                Label("Take Photo", systemImage: "camera.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
+        GlassEffectContainer(spacing: 12) {
+            HStack(spacing: 16) {
+                Button {
+                    showCamera = true
+                } label: {
+                    Label("Take Photo", systemImage: "camera.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glassProminent)
 
-            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                Label("Choose Photo", systemImage: "photo.on.rectangle")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .onChange(of: selectedPhotoItem) { _, newItem in
-                guard let newItem else { return }
-                Task {
-                    if let data = try? await newItem.loadTransferable(type: Data.self),
-                       let image = UIImage(data: data) {
-                        capturedImage = image
-                        analyzeImage(image)
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    Label("Choose Photo", systemImage: "photo.on.rectangle")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.glass)
+                .onChange(of: selectedPhotoItem) { _, newItem in
+                    guard let newItem else { return }
+                    Task {
+                        if let data = try? await newItem.loadTransferable(type: Data.self),
+                           let image = UIImage(data: data) {
+                            capturedImage = image
+                            analyzeImage(image)
+                        }
                     }
                 }
             }
@@ -84,11 +87,7 @@ struct SpectralCameraView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(maxHeight: 300)
-                .cornerRadius(12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
     }
 
@@ -104,11 +103,13 @@ struct SpectralCameraView: View {
                 }
             }
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                colorMetricCard(title: "Dominant Hue", value: String(format: "%.0f°", result.dominantHue))
-                colorMetricCard(title: "Avg Brightness", value: String(format: "%.2f", result.averageBrightness))
-                colorMetricCard(title: "Saturation", value: String(format: "%.2f", result.averageSaturation))
-                colorMetricCard(title: "Color Temp", value: result.estimatedColorTemperature)
+            GlassEffectContainer(spacing: 8) {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    colorMetricCard(title: "Dominant Hue", value: String(format: "%.0f°", result.dominantHue))
+                    colorMetricCard(title: "Avg Brightness", value: String(format: "%.2f", result.averageBrightness))
+                    colorMetricCard(title: "Saturation", value: String(format: "%.2f", result.averageSaturation))
+                    colorMetricCard(title: "Color Temp", value: result.estimatedColorTemperature)
+                }
             }
 
             if let note = result.interpretationNote {
@@ -116,10 +117,10 @@ struct SpectralCameraView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(8)
-                    .background(Color.secondary.opacity(0.08))
-                    .cornerRadius(8)
+                    .glassClearSurface(cornerRadius: 8)
             }
         }
+        .transition(.opacity)
     }
 
     private func colorMetricCard(title: String, value: String) -> some View {
@@ -132,8 +133,9 @@ struct SpectralCameraView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(Color.secondary.opacity(0.06))
-        .cornerRadius(8)
+        .glassClearSurface(cornerRadius: 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(value)")
     }
 
     private func analyzeImage(_ image: UIImage) {

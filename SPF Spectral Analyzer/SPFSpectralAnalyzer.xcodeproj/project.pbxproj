@@ -289,6 +289,7 @@
 		5540A9252F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D72F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc */; };
 		5540A9262F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DE2F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc */; };
 		5540A9272F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F02F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc */; };
+		5554A8EC2F7DB09700271D2C /* MSAL in Frameworks */ = {isa = PBXBuildFile; productRef = 5554A8EB2F7DB09700271D2C /* MSAL */; };
 		55CABC722F64A542001BA1CF /* Diagnostics1600.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = 55CABC702F64A542001BA1CF /* Diagnostics1600.xlsx */; };
 		55CABC732F64A542001BA1CF /* Diagnostics1514.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = 55CABC6F2F64A542001BA1CF /* Diagnostics1514.xlsx */; };
 		55CABC752F64A995001BA1CF /* CloudKit Debug1621.txt in Resources */ = {isa = PBXBuildFile; fileRef = 55CABC742F64A995001BA1CF /* CloudKit Debug1621.txt */; };
@@ -457,6 +458,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5554A8EC2F7DB09700271D2C /* MSAL in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -649,6 +651,7 @@
 			);
 			name = "SPF Spectral Analyzer";
 			packageProductDependencies = (
+				5554A8EB2F7DB09700271D2C /* MSAL */,
 			);
 			productName = "SPF Spectral Analyzer";
 			productReference = 554A4F112F5CAC7E007FC99A /* SPF Spectral Analyzer.app */;
@@ -732,6 +735,9 @@
 			);
 			mainGroup = 554A4F082F5CAC7E007FC99A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5554A8EA2F7DB09700271D2C /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 554A4F122F5CAC7E007FC99A /* Products */;
 			projectDirPath = "";
@@ -1481,6 +1487,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5554A8EA2F7DB09700271D2C /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AzureAD/microsoft-authentication-library-for-objc";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5554A8EB2F7DB09700271D2C /* MSAL */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5554A8EA2F7DB09700271D2C /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */;
+			productName = MSAL;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 554A4F092F5CAC7E007FC99A /* Project object */;
 }

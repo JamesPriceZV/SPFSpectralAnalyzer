@@ -192,6 +192,21 @@ struct SettingsView: View {
     @State private var draftEnsembleProviders: Set<AIProviderID> = [.claude, .openAI]
     @State private var draftCostTrackingEnabled = false
 
+    // M365 Enterprise
+    @AppStorage(M365Config.StorageKeys.clientId) private var m365ClientId = M365Config.defaultClientId
+    @AppStorage(M365Config.StorageKeys.tenantId) private var m365TenantId = M365Config.defaultTenantId
+    @AppStorage(M365Config.StorageKeys.enterpriseGroundingEnabled) private var m365GroundingEnabled = false
+    @AppStorage(M365Config.StorageKeys.groundingConfigJSON) private var m365GroundingConfigJSON = ""
+    @AppStorage(M365Config.StorageKeys.exportConfigJSON) private var m365ExportConfigJSON = ""
+
+    @State private var m365AuthManager = MSALAuthManager()
+    @State private var draftM365ClientId = M365Config.defaultClientId
+    @State private var draftM365TenantId = M365Config.defaultTenantId
+    @State private var draftGroundingConfig = EnterpriseGroundingConfig.default
+    @State private var draftExportConfig = SharePointExportConfig.default
+    @State private var draftSiteFilterText = ""
+    @State private var m365SignInError: String?
+
     @State private var draftInstrumentationEnabled = false
     @State private var draftInstrumentationEnhancedDiagnostics = false
     @State private var draftInstrumentationAreaImportParsing = false
@@ -223,6 +238,7 @@ struct SettingsView: View {
     private enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "General"
         case ai = "AI"
+        case enterprise = "Enterprise"
         case sync = "iCloud Sync"
         case advanced = "Advanced"
 
@@ -232,6 +248,7 @@ struct SettingsView: View {
             switch self {
             case .general: return "gearshape"
             case .ai: return "sparkles"
+            case .enterprise: return "building.2"
             case .sync: return "icloud"
             case .advanced: return "wrench.and.screwdriver"
             }
@@ -300,6 +317,10 @@ struct SettingsView: View {
         draftEnsembleModeEnabled != aiEnsembleModeEnabled ||
         encodedEnsembleProviders != aiEnsembleProvidersJSON ||
         draftCostTrackingEnabled != aiCostTrackingEnabled ||
+        draftM365ClientId != m365ClientId ||
+        draftM365TenantId != m365TenantId ||
+        encodedGroundingConfig != m365GroundingConfigJSON ||
+        encodedExportConfig != m365ExportConfigJSON ||
         draftInstrumentationEnabled != instrumentationEnabled ||
         draftInstrumentationEnhancedDiagnostics != instrumentationEnhancedDiagnostics
     }
@@ -323,6 +344,18 @@ struct SettingsView: View {
     private var encodedEnsembleProviders: String {
         let rawValues = draftEnsembleProviders.map(\.rawValue).sorted()
         guard let data = try? JSONEncoder().encode(rawValues) else { return "" }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    /// Encode the draft grounding config to JSON.
+    private var encodedGroundingConfig: String {
+        guard let data = try? JSONEncoder().encode(draftGroundingConfig) else { return "" }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    /// Encode the draft export config to JSON.
+    private var encodedExportConfig: String {
+        guard let data = try? JSONEncoder().encode(draftExportConfig) else { return "" }
         return String(data: data, encoding: .utf8) ?? ""
     }
 
@@ -428,7 +461,16 @@ struct SettingsView: View {
     // MARK: - Grok Model Choices
 
     private var defaultGrokModels: [String] {
-        ["grok-3", "grok-3-mini", "grok-2"]
+        [
+            "grok-4.20-0309-reasoning",
+            "grok-4.20-0309-non-reasoning",
+            "grok-4.20-multi-agent-0309",
+            "grok-4-1-fast-reasoning",
+            "grok-4-1-fast-non-reasoning",
+            "grok-4",
+            "grok-3",
+            "grok-3-mini"
+        ]
     }
 
     private var grokModelChoices: [String] {
@@ -591,23 +633,10 @@ struct SettingsView: View {
         return parts.isEmpty ? "No proxy enabled" : parts.joined(separator: " • ")
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Picker("", selection: $selectedSettingsTab) {
-                ForEach(SettingsTab.allCases) { tab in
-                    #if os(iOS)
-                    Image(systemName: tab.icon).tag(tab)
-                    #else
-                    Label(tab.rawValue, systemImage: tab.icon).tag(tab)
-                    #endif
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 4)
+    // MARK: - Settings Form Sections (shared between iOS NavigationLink pages and macOS segmented tabs)
 
-            Form {
+    @ViewBuilder
+    private var settingsFormContent: some View {
             if selectedSettingsTab == .general {
             Section("SPF Estimation") {
                 Picker("Calculation Method", selection: spfCalculationMethodSelection) {
@@ -741,30 +770,54 @@ struct SettingsView: View {
             }
 
             Section("Provider Priority (Auto Mode)") {
-                Text("Drag to reorder. When Auto is selected, providers are tried in this order.")
+                Text("Providers are tried in this order when Auto is selected.")
                     .font(.caption)
                     .foregroundColor(.secondary)
 
-                List {
-                    ForEach(draftPriorityOrder) { providerID in
-                        HStack(spacing: 10) {
-                            Image(systemName: providerID.iconName)
-                                .frame(width: 20)
-                                .foregroundColor(.accentColor)
-                            Text(providerID.displayName)
-                            Spacer()
-                            providerAvailabilityDot(for: providerID)
+                ForEach(Array(draftPriorityOrder.enumerated()), id: \.element) { index, providerID in
+                    HStack(spacing: 10) {
+                        Text("\(index + 1).")
+                            .font(.caption.monospacedDigit())
+                            .foregroundColor(.secondary)
+                            .frame(width: 20)
+                        Image(systemName: providerID.iconName)
+                            .frame(width: 20)
+                            .foregroundColor(.accentColor)
+                        Text(providerID.displayName)
+                        Spacer()
+                        providerAvailabilityDot(for: providerID)
+                        #if os(iOS)
+                        // Up/down buttons avoid nested-scroll drag conflicts on iOS
+                        Button {
+                            guard index > 0 else { return }
+                            draftPriorityOrder.move(fromOffsets: IndexSet(integer: index), toOffset: index - 1)
+                        } label: {
+                            Image(systemName: "chevron.up")
+                                .font(.caption2)
                         }
-                        .padding(.vertical, 2)
-                        .accessibilityLabel("Provider \(providerID.displayName)")
-                        .accessibilityHint("Drag to reorder")
+                        .buttonStyle(.borderless)
+                        .disabled(index == 0)
+
+                        Button {
+                            guard index < draftPriorityOrder.count - 1 else { return }
+                            draftPriorityOrder.move(fromOffsets: IndexSet(integer: index), toOffset: index + 2)
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .font(.caption2)
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(index == draftPriorityOrder.count - 1)
+                        #endif
                     }
-                    .onMove { indices, newOffset in
-                        draftPriorityOrder.move(fromOffsets: indices, toOffset: newOffset)
-                    }
+                    .padding(.vertical, 4)
+                    .accessibilityLabel("Provider \(providerID.displayName), priority \(index + 1)")
+                    .accessibilityHint("Use arrows to reorder")
                 }
-                .frame(minHeight: CGFloat(draftPriorityOrder.count * 36 + 8))
-                .listStyle(.plain)
+                #if os(macOS)
+                .onMove { indices, newOffset in
+                    draftPriorityOrder.move(fromOffsets: indices, toOffset: newOffset)
+                }
+                #endif
                 .accessibilityIdentifier("providerPriorityList")
 
                 Button("Reset to Default") {
@@ -915,7 +968,7 @@ struct SettingsView: View {
                                         .frame(width: 120, alignment: .leading)
                                     Text("$")
                                         .font(.caption)
-                                    TextField("Budget", value: budgetCapBinding(for: providerID), format: .number)
+                                    TextField("", value: budgetCapBinding(for: providerID), format: .number)
                                         .textFieldStyle(.roundedBorder)
                                         .frame(width: 80)
                                     Text("/mo")
@@ -1050,175 +1103,175 @@ struct SettingsView: View {
             }
 
             Section("Anthropic Claude") {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        if showClaudeAPIKey {
-                            TextField("Anthropic API Key", text: $claudeAPIKeyDraft)
-                                .textFieldStyle(.roundedBorder)
-                        } else {
-                            SecureField("Anthropic API Key", text: $claudeAPIKeyDraft)
-                                .textFieldStyle(.roundedBorder)
-                        }
-
-                        Button(showClaudeAPIKey ? "Hide" : "Show") {
-                            showClaudeAPIKey.toggle()
-                        }
+                HStack {
+                    if showClaudeAPIKey {
+                        TextField("Anthropic API Key", text: $claudeAPIKeyDraft)
+                            .textFieldStyle(.roundedBorder)
+                    } else {
+                        SecureField("Anthropic API Key", text: $claudeAPIKeyDraft)
+                            .textFieldStyle(.roundedBorder)
                     }
 
-                    HStack {
-                        Button("Save Key") {
-                            saveClaudeAPIKey()
-                        }
-                        .disabled(claudeAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button(showClaudeAPIKey ? "Hide" : "Show") {
+                        showClaudeAPIKey.toggle()
+                    }
+                }
 
-                        Button("Clear Key") {
-                            clearClaudeAPIKey()
-                        }
-                        .disabled(!hasStoredClaudeAPIKey)
+                HStack {
+                    Button("Save Key") {
+                        saveClaudeAPIKey()
+                    }
+                    .disabled(claudeAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                        Button("Test Claude") {
-                            Task { await testClaudeConnection() }
-                        }
-                        .disabled(!hasStoredClaudeAPIKey || draftClaudeModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button("Clear Key") {
+                        clearClaudeAPIKey()
+                    }
+                    .disabled(!hasStoredClaudeAPIKey)
 
-                        Text(hasStoredClaudeAPIKey ? "Key stored" : "No key stored")
+                    Button("Test Claude") {
+                        Task { await testClaudeConnection() }
+                    }
+                    .disabled(!hasStoredClaudeAPIKey || draftClaudeModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                    Text(hasStoredClaudeAPIKey ? "Key stored" : "No key stored")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    if claudeTestBadgeText != "Not tested" {
+                        Text(claudeTestBadgeText)
                             .font(.caption)
                             .foregroundColor(.secondary)
-
-                        if claudeTestBadgeText != "Not tested" {
-                            Text(claudeTestBadgeText)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
                     }
 
-                    Picker("Claude Model", selection: $draftClaudeModel) {
-                        ForEach(claudeModelChoices, id: \.self) { model in
-                            Text(model).tag(model)
-                        }
-                    }
-                    TextField("Custom model", text: $draftClaudeModel)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.caption)
+                    Spacer()
                 }
+
+                Picker("Claude Model", selection: $draftClaudeModel) {
+                    ForEach(claudeModelChoices, id: \.self) { model in
+                        Text(model).tag(model)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                TextField("Custom model", text: $draftClaudeModel)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.caption)
             }
 
             Section("xAI Grok") {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        if showGrokAPIKey {
-                            TextField("Grok API Key", text: $grokAPIKeyDraft)
-                                .textFieldStyle(.roundedBorder)
-                        } else {
-                            SecureField("Grok API Key", text: $grokAPIKeyDraft)
-                                .textFieldStyle(.roundedBorder)
-                        }
-
-                        Button(showGrokAPIKey ? "Hide" : "Show") {
-                            showGrokAPIKey.toggle()
-                        }
+                HStack {
+                    if showGrokAPIKey {
+                        TextField("Grok API Key", text: $grokAPIKeyDraft)
+                            .textFieldStyle(.roundedBorder)
+                    } else {
+                        SecureField("Grok API Key", text: $grokAPIKeyDraft)
+                            .textFieldStyle(.roundedBorder)
                     }
 
-                    HStack {
-                        Button("Save Key") {
-                            saveGrokAPIKey()
-                        }
-                        .disabled(grokAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button(showGrokAPIKey ? "Hide" : "Show") {
+                        showGrokAPIKey.toggle()
+                    }
+                }
 
-                        Button("Clear Key") {
-                            clearGrokAPIKey()
-                        }
-                        .disabled(!hasStoredGrokAPIKey)
+                HStack {
+                    Button("Save Key") {
+                        saveGrokAPIKey()
+                    }
+                    .disabled(grokAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                        Button("Test Grok") {
-                            Task { await testGrokConnection() }
-                        }
-                        .disabled(!hasStoredGrokAPIKey || draftGrokModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button("Clear Key") {
+                        clearGrokAPIKey()
+                    }
+                    .disabled(!hasStoredGrokAPIKey)
 
-                        Text(hasStoredGrokAPIKey ? "Key stored" : "No key stored")
+                    Button("Test Grok") {
+                        Task { await testGrokConnection() }
+                    }
+                    .disabled(!hasStoredGrokAPIKey || draftGrokModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                    Text(hasStoredGrokAPIKey ? "Key stored" : "No key stored")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    if grokTestBadgeText != "Not tested" {
+                        Text(grokTestBadgeText)
                             .font(.caption)
                             .foregroundColor(.secondary)
-
-                        if grokTestBadgeText != "Not tested" {
-                            Text(grokTestBadgeText)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
                     }
 
-                    Picker("Grok Model", selection: $draftGrokModel) {
-                        ForEach(grokModelChoices, id: \.self) { model in
-                            Text(model).tag(model)
-                        }
-                    }
-                    TextField("Custom model", text: $draftGrokModel)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.caption)
+                    Spacer()
                 }
+
+                Picker("Grok Model", selection: $draftGrokModel) {
+                    ForEach(grokModelChoices, id: \.self) { model in
+                        Text(model).tag(model)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                TextField("Custom model", text: $draftGrokModel)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.caption)
             }
 
             Section("Google Gemini") {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        if showGeminiAPIKey {
-                            TextField("Gemini API Key", text: $geminiAPIKeyDraft)
-                                .textFieldStyle(.roundedBorder)
-                        } else {
-                            SecureField("Gemini API Key", text: $geminiAPIKeyDraft)
-                                .textFieldStyle(.roundedBorder)
-                        }
-
-                        Button(showGeminiAPIKey ? "Hide" : "Show") {
-                            showGeminiAPIKey.toggle()
-                        }
+                HStack {
+                    if showGeminiAPIKey {
+                        TextField("Gemini API Key", text: $geminiAPIKeyDraft)
+                            .textFieldStyle(.roundedBorder)
+                    } else {
+                        SecureField("Gemini API Key", text: $geminiAPIKeyDraft)
+                            .textFieldStyle(.roundedBorder)
                     }
 
-                    HStack {
-                        Button("Save Key") {
-                            saveGeminiAPIKey()
-                        }
-                        .disabled(geminiAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                        Button("Clear Key") {
-                            clearGeminiAPIKey()
-                        }
-                        .disabled(!hasStoredGeminiAPIKey)
-
-                        Button("Test Gemini") {
-                            Task { await testGeminiConnection() }
-                        }
-                        .disabled(!hasStoredGeminiAPIKey || draftGeminiModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                        Text(hasStoredGeminiAPIKey ? "Key stored" : "No key stored")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        if geminiTestBadgeText != "Not tested" {
-                            Text(geminiTestBadgeText)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
+                    Button(showGeminiAPIKey ? "Hide" : "Show") {
+                        showGeminiAPIKey.toggle()
                     }
+                }
 
-                    Picker("Gemini Model", selection: $draftGeminiModel) {
-                        ForEach(geminiModelChoices, id: \.self) { model in
-                            Text(model).tag(model)
-                        }
+                HStack {
+                    Button("Save Key") {
+                        saveGeminiAPIKey()
                     }
-                    TextField("Custom model", text: $draftGeminiModel)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.caption)
+                    .disabled(geminiAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                    Text("Note: Gemini uses API key as a query parameter, not a header.")
+                    Button("Clear Key") {
+                        clearGeminiAPIKey()
+                    }
+                    .disabled(!hasStoredGeminiAPIKey)
+
+                    Button("Test Gemini") {
+                        Task { await testGeminiConnection() }
+                    }
+                    .disabled(!hasStoredGeminiAPIKey || draftGeminiModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                    Text(hasStoredGeminiAPIKey ? "Key stored" : "No key stored")
                         .font(.caption)
                         .foregroundColor(.secondary)
+
+                    if geminiTestBadgeText != "Not tested" {
+                        Text(geminiTestBadgeText)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
                 }
+
+                Picker("Gemini Model", selection: $draftGeminiModel) {
+                    ForEach(geminiModelChoices, id: \.self) { model in
+                        Text(model).tag(model)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                TextField("Custom model", text: $draftGeminiModel)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.caption)
+
+                Text("Note: Gemini uses API key as a query parameter, not a header.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
             Section("Connection") {
@@ -1358,9 +1411,27 @@ struct SettingsView: View {
                     }
                 }
                 #else
-                Text("Train models on Mac. The trained model loads automatically on all platforms.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                if mlPredict.status.isReady {
+                    Text("Model loaded and ready for predictions.")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                } else if case .error(let msg) = mlPredict.status {
+                    Text("Model error: \(msg)")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                } else {
+                    Text("No trained model found. Train on Mac — the model syncs automatically.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Button {
+                    mlPredict.loadModelIfAvailable()
+                } label: {
+                    Label("Reload Model", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
                 #endif
 
                 if mlTrain.availableSpectrumCount < MLTrainingService.minimumSpectra {
@@ -1814,56 +1885,357 @@ struct SettingsView: View {
             }
             } // end Advanced tab
 
+            if selectedSettingsTab == .enterprise {
+            Section("Microsoft 365 Account") {
+                if m365AuthManager.isSignedIn {
+                    HStack {
+                        Image(systemName: "person.crop.circle.badge.checkmark")
+                            .foregroundColor(.green)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Signed in")
+                                .font(.subheadline.bold())
+                            if let username = m365AuthManager.username {
+                                Text(username)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        Spacer()
+                        Button("Sign Out") {
+                            Task { try? await m365AuthManager.signOut() }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                } else {
+                    HStack {
+                        Image(systemName: "person.crop.circle.badge.xmark")
+                            .foregroundColor(.secondary)
+                        Text("Not signed in")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button("Sign In") {
+                            Task {
+                                m365SignInError = nil
+                                do {
+                                    let scopes = draftGroundingConfig.requiredScopes
+                                    _ = try await m365AuthManager.signIn(scopes: scopes)
+                                } catch {
+                                    m365SignInError = error.localizedDescription
+                                }
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
+                    if let m365SignInError {
+                        Text(m365SignInError)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+                }
+
+                Text("Sign in with your Microsoft 365 work account to enable enterprise features.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Section("Tenant Configuration") {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Client ID (Entra App Registration)")
+                        .font(.caption.bold())
+                    TextField("Client ID", text: $draftM365ClientId)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(.body, design: .monospaced))
+                        .accessibilityIdentifier("m365ClientId")
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Tenant ID")
+                        .font(.caption.bold())
+                    TextField("Tenant ID", text: $draftM365TenantId)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(.body, design: .monospaced))
+                        .accessibilityIdentifier("m365TenantId")
+                }
+                Text("Enter your Entra app registration credentials. These are required for all M365 features.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if draftM365ClientId == M365Config.defaultClientId || draftM365TenantId == M365Config.defaultTenantId {
+                    Label("Placeholder values detected. Update with your Entra app registration.", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+            }
+
+            Section("Enterprise Grounding") {
+                Toggle("Enable Enterprise Grounding", isOn: $draftGroundingConfig.isEnabled)
+                    .toggleStyle(.switch)
+                    .accessibilityIdentifier("m365GroundingToggle")
+
+                Text("Enrich AI analysis with relevant documents from your Microsoft 365 tenant (SharePoint, OneDrive, Copilot Connectors).")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if draftGroundingConfig.isEnabled {
+                    // Per-function toggles
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Grounding Scope")
+                            .font(.subheadline.bold())
+
+                        Toggle("Spectral Analysis", isOn: $draftGroundingConfig.enabledForSpectralAnalysis)
+                            .toggleStyle(.switch)
+                        Text("Inject relevant SOPs, protocols, and product history into spectral analysis prompts.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Toggle("Formula Card Parsing", isOn: $draftGroundingConfig.enabledForFormulaCardParsing)
+                            .toggleStyle(.switch)
+                        Text("Cross-reference ingredient lists with enterprise formulation databases.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    // Data source checkboxes
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Data Sources")
+                            .font(.subheadline.bold())
+
+                        ForEach(RetrievalDataSource.allCases) { source in
+                            Toggle(isOn: Binding(
+                                get: { draftGroundingConfig.enabledDataSources.contains(source) },
+                                set: { isOn in
+                                    if isOn {
+                                        draftGroundingConfig.enabledDataSources.insert(source)
+                                    } else {
+                                        draftGroundingConfig.enabledDataSources.remove(source)
+                                    }
+                                }
+                            )) {
+                                Label(source.displayName, systemImage: source.iconName)
+                            }
+                            .toggleStyle(.switch)
+                        }
+                    }
+
+                    // Max results slider
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Max Results per Source: \(draftGroundingConfig.maxResultsPerSource)")
+                            .font(.subheadline.bold())
+                        Slider(
+                            value: Binding(
+                                get: { Double(draftGroundingConfig.maxResultsPerSource) },
+                                set: { draftGroundingConfig.maxResultsPerSource = Int($0) }
+                            ),
+                            in: 1...25,
+                            step: 1
+                        )
+                        Text("Higher values provide more context but increase latency and token usage.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            Section("SharePoint Site Filters") {
+                Text("Scope retrieval to specific SharePoint sites. Leave empty to search all accessible sites.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                ForEach(Array(draftGroundingConfig.sharePointSiteFilters.enumerated()), id: \.offset) { index, filter in
+                    HStack {
+                        Image(systemName: "building.columns.fill")
+                            .foregroundColor(.accentColor)
+                            .frame(width: 16)
+                        Text(filter)
+                            .font(.system(.caption, design: .monospaced))
+                            .lineLimit(1)
+                        Spacer()
+                        Button {
+                            draftGroundingConfig.sharePointSiteFilters.remove(at: index)
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                HStack {
+                    TextField("https://tenant.sharepoint.com/sites/...", text: $draftSiteFilterText)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(.caption, design: .monospaced))
+                    Button("Add") {
+                        let trimmed = draftSiteFilterText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !trimmed.isEmpty {
+                            draftGroundingConfig.sharePointSiteFilters.append(trimmed)
+                            draftSiteFilterText = ""
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(draftSiteFilterText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+
+            Section("SharePoint Export") {
+                Toggle("Enable SharePoint Export", isOn: $draftExportConfig.isEnabled)
+                    .toggleStyle(.switch)
+                    .accessibilityIdentifier("m365ExportToggle")
+
+                Text("Export analysis results and files to SharePoint document libraries.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if draftExportConfig.isEnabled {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Destination Site")
+                            .font(.caption.bold())
+                        TextField("https://tenant.sharepoint.com/sites/...", text: $draftExportConfig.destinationSitePath)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.caption, design: .monospaced))
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Destination Folder")
+                            .font(.caption.bold())
+                        TextField("/Shared Documents/Results/", text: $draftExportConfig.destinationFolderPath)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.caption, design: .monospaced))
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("File Naming Template")
+                            .font(.caption.bold())
+                        TextField("{date}_{product}_{type}", text: $draftExportConfig.namingTemplate)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.caption, design: .monospaced))
+                        Text("Placeholders: {date}, {product}, {type}, {spf}")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Toggle("Auto-Export on Analysis Complete", isOn: $draftExportConfig.autoExportResults)
+                        .toggleStyle(.switch)
+                    Text("Automatically upload analysis results to SharePoint when AI analysis finishes.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            } // end Enterprise tab
+    }
+
+    // MARK: - iOS Settings Navigation
+
+    #if os(iOS)
+    private var iOSSettingsList: some View {
+        List {
+            Section("General") {
+                NavigationLink(value: SettingsTab.general) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("SPF Estimation")
+                            Text("Calculation method, correction factors")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "function")
+                            .foregroundColor(.accentColor)
+                    }
+                }
+            }
+            Section("AI & Providers") {
+                NavigationLink(value: SettingsTab.ai) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("AI Providers & Routing")
+                            Text("Keys, models, ensemble, cost tracking")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(.purple)
+                    }
+                }
+            }
+            Section("Cloud & Enterprise") {
+                NavigationLink(value: SettingsTab.enterprise) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Enterprise / M365")
+                            Text("Microsoft 365, SharePoint, grounding")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "building.2")
+                            .foregroundColor(.blue)
+                    }
+                }
+                NavigationLink(value: SettingsTab.sync) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("iCloud & Data")
+                            Text("Sync, backup, polling interval")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "icloud")
+                            .foregroundColor(.cyan)
+                    }
+                }
+            }
+            Section("Developer") {
+                NavigationLink(value: SettingsTab.advanced) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Instrumentation")
+                            Text("Debug areas, outputs, severity levels")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "wrench.and.screwdriver")
+                            .foregroundColor(.orange)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Settings")
+        .navigationDestination(for: SettingsTab.self) { tab in
+            Form {
+                settingsFormContent
             }
             .formStyle(.grouped)
-            #if os(iOS)
             .scrollDismissesKeyboard(.interactively)
-            #endif
-            #if os(macOS)
-            .padding(20)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .scrollIndicators(.visible)
-            #endif
-
-            #if os(macOS)
-            Divider()
-
-            HStack {
-                Spacer()
-                Button("Apply") {
-                    applyDraft()
-                }
-                .disabled(!settingsAreDirty)
-                Button("Save") {
-                    applyDraft()
-                    dismiss()
-                }
-                Button("Close") {
-                    dismiss()
+            .navigationTitle(tab.rawValue)
+            .onAppear { selectedSettingsTab = tab }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Apply") { applyDraft() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(!settingsAreDirty)
                 }
             }
-            .padding(20)
-            .background(.regularMaterial)
-            #endif
         }
+    }
+    #endif
+
+    // MARK: - Body
+
+    var body: some View {
         #if os(iOS)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Apply") {
-                    applyDraft()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!settingsAreDirty)
-            }
+        NavigationStack {
+            iOSSettingsList
         }
-        #endif
         #if DEBUG
         .sheet(isPresented: $showICloudDebugPanel) {
             CloudKitDebugPanel()
         }
-        #endif
-        #if os(macOS)
-        .frame(minWidth: 560, minHeight: 640)
         #endif
         .onAppear {
             loadDraft()
@@ -1875,6 +2247,55 @@ struct SettingsView: View {
                 }
             }
         }
+        #else
+        VStack(alignment: .leading, spacing: 0) {
+            Picker("", selection: $selectedSettingsTab) {
+                ForEach(SettingsTab.allCases) { tab in
+                    Label(tab.rawValue, systemImage: tab.icon).tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 4)
+
+            Form {
+                settingsFormContent
+            }
+            .formStyle(.grouped)
+            .padding(20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .scrollIndicators(.visible)
+
+            Divider()
+
+            HStack {
+                Spacer()
+                Button("Apply") { applyDraft() }
+                    .disabled(!settingsAreDirty)
+                Button("Save") { applyDraft(); dismiss() }
+                Button("Close") { dismiss() }
+            }
+            .padding(20)
+            .background(.regularMaterial)
+        }
+        #if DEBUG
+        .sheet(isPresented: $showICloudDebugPanel) {
+            CloudKitDebugPanel()
+        }
+        #endif
+        .frame(minWidth: 560, minHeight: 640)
+        .onAppear {
+            loadDraft()
+            MLTrainingService.shared.updateAvailableCount(modelContext: modelContext)
+            Task {
+                await refreshBackupSize()
+                if hasStoredAPIKey, canResolveOpenAIHost {
+                    await fetchOpenAIModels()
+                }
+            }
+        }
+        #endif
     }
 
     private func loadDraft() {
@@ -1964,6 +2385,29 @@ struct SettingsView: View {
         }
         draftCostTrackingEnabled = aiCostTrackingEnabled
         draftBudgetCaps = usageTracker.budgetCaps
+
+        // M365 Enterprise
+        draftM365ClientId = m365ClientId
+        draftM365TenantId = m365TenantId
+        if !m365GroundingConfigJSON.isEmpty,
+           let data = m365GroundingConfigJSON.data(using: .utf8),
+           let config = try? JSONDecoder().decode(EnterpriseGroundingConfig.self, from: data) {
+            draftGroundingConfig = config
+        } else {
+            draftGroundingConfig = .default
+        }
+        if !m365ExportConfigJSON.isEmpty,
+           let data = m365ExportConfigJSON.data(using: .utf8),
+           let config = try? JSONDecoder().decode(SharePointExportConfig.self, from: data) {
+            draftExportConfig = config
+        } else {
+            draftExportConfig = .default
+        }
+        // Configure auth manager with current tenant
+        if draftM365ClientId != M365Config.defaultClientId,
+           draftM365TenantId != M365Config.defaultTenantId {
+            m365AuthManager.configure(clientId: draftM365ClientId, tenantId: draftM365TenantId)
+        }
     }
 
     private func applyDraft() {
@@ -2028,6 +2472,17 @@ struct SettingsView: View {
         aiEnsembleModeEnabled = draftEnsembleModeEnabled
         aiEnsembleProvidersJSON = encodedEnsembleProviders
         aiCostTrackingEnabled = draftCostTrackingEnabled
+
+        // M365 Enterprise
+        m365ClientId = draftM365ClientId
+        m365TenantId = draftM365TenantId
+        m365GroundingConfigJSON = encodedGroundingConfig
+        m365ExportConfigJSON = encodedExportConfig
+        // Reconfigure auth manager if tenant changed
+        if draftM365ClientId != M365Config.defaultClientId,
+           draftM365TenantId != M365Config.defaultTenantId {
+            m365AuthManager.configure(clientId: draftM365ClientId, tenantId: draftM365TenantId)
+        }
     }
 
     // MARK: - Routing Helpers

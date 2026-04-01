@@ -82,7 +82,7 @@ extension ContentView {
                             .font(.caption)
                             .lineLimit(1)
                         if let spf = effectiveSPF {
-                            Text("SPF \(spf, specifier: "%.0f")")
+                            Text("SPF \(Int(spf))")
                                 .font(.caption2.bold())
                                 .padding(.horizontal, 4)
                                 .padding(.vertical, 1)

@@ -49,10 +49,45 @@ extension ContentView {
                 let payload = await buildAIRequestPayload()
                 let credentials = buildProviderCredentials()
                 let overBudget = aiCostTrackingEnabled ? aiVM.providerManager.usageTracker.overBudgetProviderIDs : []
+
+                // Enterprise grounding: enrich prompt with M365 context if enabled
+                var analysisPrompt = effectiveAIPrompt
+                let groundingConfig = decodedGroundingConfig
+                if groundingConfig.isActiveFor(.spectralAnalysis),
+                   aiVM.m365AuthManager.isSignedIn {
+                    do {
+                        let metrics = await currentSpectralMetrics()
+                        let query = aiVM.groundingEngine.generateSpectralQuery(
+                            criticalWavelength: metrics?.criticalWavelength,
+                            uvaUvbRatio: metrics?.uvaUvbRatio,
+                            meanUVBTransmittance: metrics?.meanUVBTransmittance,
+                            spfEstimate: nil,
+                            productName: nil,
+                            analysisPreset: aiPromptPreset.rawValue
+                        )
+                        let context = try await aiVM.groundingEngine.fetchGroundingContext(
+                            query: query,
+                            config: groundingConfig,
+                            authManager: aiVM.m365AuthManager
+                        )
+                        analysisPrompt = aiVM.groundingEngine.buildEnrichedPrompt(
+                            originalPrompt: effectiveAIPrompt,
+                            groundingContext: context
+                        )
+                        await MainActor.run { aiVM.isEnterpriseGrounded = true }
+                        Instrumentation.log("Enterprise grounding applied", area: .aiAnalysis, level: .info)
+                    } catch {
+                        await MainActor.run { aiVM.isEnterpriseGrounded = false }
+                        Instrumentation.log("Enterprise grounding failed (continuing without)", area: .aiAnalysis, level: .warning, details: error.localizedDescription)
+                    }
+                } else {
+                    await MainActor.run { aiVM.isEnterpriseGrounded = false }
+                }
+
                 let parsed = try await aiVM.providerManager.analyze(
                     function: .spectralAnalysis,
                     payload: payload,
-                    prompt: effectiveAIPrompt,
+                    prompt: analysisPrompt,
                     structuredOutputEnabled: aiStructuredOutputEnabled,
                     priorityOrder: decodedPriorityOrder,
                     functionRouting: decodedFunctionRouting,
@@ -167,6 +202,24 @@ extension ContentView {
             if decoded.count >= 2 { providers = decoded }
         }
         return EnsembleConfig(isEnabled: true, selectedProviders: providers)
+    }
+
+    /// Decode enterprise grounding configuration from JSON @AppStorage.
+    var decodedGroundingConfig: EnterpriseGroundingConfig {
+        guard let jsonString = UserDefaults.standard.string(forKey: M365Config.StorageKeys.groundingConfigJSON),
+              !jsonString.isEmpty,
+              let data = jsonString.data(using: .utf8),
+              let config = try? JSONDecoder().decode(EnterpriseGroundingConfig.self, from: data) else {
+            return .default
+        }
+        return config
+    }
+
+    /// Get current spectral metrics from the selected spectra for grounding query generation.
+    func currentSpectralMetrics() async -> SpectralMetrics? {
+        let spectra = aiSpectraForScope()
+        guard let first = spectra.first else { return nil }
+        return SpectralMetricsCalculator.metrics(x: first.x, y: first.y, yAxisMode: analysis.yAxisMode)
     }
 
     func resolvedOpenAIEndpointURL(from endpoint: String) -> URL? {

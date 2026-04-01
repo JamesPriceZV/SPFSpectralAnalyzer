@@ -7,6 +7,7 @@ enum AppMode: String, CaseIterable, Identifiable {
     case camera = "Camera"
     #endif
     case reporting = "Reporting"
+    case enterprise = "Enterprise"
     case settings = "Settings"
 
     var id: String { rawValue }

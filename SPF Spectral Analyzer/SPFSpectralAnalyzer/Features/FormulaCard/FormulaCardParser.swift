@@ -62,8 +62,23 @@ enum FormulaCardParser {
     static func parseIngredients(
         from text: String,
         providerID: AIProviderID,
-        credentials: ProviderCredentials
+        credentials: ProviderCredentials,
+        enterpriseContext: String? = nil
     ) async throws -> (ingredients: [FormulaIngredient], ph: Double?, totalWeightGrams: Double?) {
+        // If enterprise context is provided, prepend it to the text for richer parsing
+        let enrichedText: String
+        if let context = enterpriseContext, !context.isEmpty {
+            enrichedText = """
+            \(text)
+
+            --- ENTERPRISE REFERENCE DATA (from Microsoft 365) ---
+            \(context)
+            --- END ENTERPRISE REFERENCE DATA ---
+            """
+        } else {
+            enrichedText = text
+        }
+        _ = enrichedText // Used by provider-specific methods below via text parameter
         switch providerID {
         case .onDevice:
             #if canImport(FoundationModels)

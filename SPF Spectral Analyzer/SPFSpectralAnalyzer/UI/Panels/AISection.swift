@@ -103,6 +103,13 @@ extension ContentView {
                             }
                         }
 
+                        // M365 Enterprise grounding badge
+                        EnterpriseGroundingBadge(
+                            isSignedIn: aiVM.m365AuthManager.isSignedIn,
+                            isGrounded: aiVM.isEnterpriseGrounded,
+                            citationCount: aiVM.groundingCitations.count
+                        )
+
                         if aiVM.isRunning {
                             ProgressView()
                         }
@@ -366,6 +373,11 @@ extension ContentView {
                         aiVM.structuredOutput = selectedResult.response.structured
                         updateSidebarFromAIResult(result)
                     }
+                }
+
+                // MARK: Enterprise Grounding Citations
+                if aiVM.isEnterpriseGrounded && !aiVM.groundingCitations.isEmpty {
+                    EnterpriseCitationsPanel(citations: aiVM.groundingCitations)
                 }
 
                 // MARK: Key Insights / Risks / Next Steps (full-width)

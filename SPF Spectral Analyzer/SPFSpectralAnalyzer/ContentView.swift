@@ -4,6 +4,7 @@ import Combine
 import UniformTypeIdentifiers
 import Foundation
 import SwiftData
+import CoreData
 import CryptoKit
 
 struct ContentView: View {
@@ -329,6 +330,7 @@ struct ContentView: View {
     var contentArea: some View {
         TabView(selection: $appMode) {
             #if os(iOS)
+            // Primary lab workflow tabs
             Tab("Data", systemImage: "folder.badge.gearshape", value: AppMode.dataManagement) {
                 iOSDataManagementView(
                     analysis: analysis,
@@ -353,8 +355,15 @@ struct ContentView: View {
                 SpectralCameraView()
             }
 
-            Tab("Reporting", systemImage: "doc.text.magnifyingglass", value: AppMode.reporting) {
-                exportPanel
+            // Tools section — grouped in sidebar on iPad
+            TabSection("Tools") {
+                Tab("Reporting", systemImage: "doc.text.magnifyingglass", value: AppMode.reporting) {
+                    iOSReportingPanel
+                }
+
+                Tab("Enterprise", systemImage: "building.2.fill", value: AppMode.enterprise) {
+                    EnterpriseSearchView(authManager: aiVM.m365AuthManager)
+                }
             }
 
             Tab("Settings", systemImage: "gearshape", value: AppMode.settings) {
@@ -372,8 +381,16 @@ struct ContentView: View {
             Tab("Reporting", systemImage: "doc.text.magnifyingglass", value: AppMode.reporting) {
                 exportPanel
             }
+
+            Tab("Enterprise", systemImage: "building.2.fill", value: AppMode.enterprise) {
+                EnterpriseSearchView(authManager: aiVM.m365AuthManager)
+            }
             #endif
         }
+        #if os(iOS)
+        .tabViewStyle(.sidebarAdaptable)
+        .tabBarMinimizeBehavior(.onScrollDown)
+        #endif
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 

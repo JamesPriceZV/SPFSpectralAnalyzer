@@ -21,5 +21,10 @@
 	</array>
 	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
 	<string>$(TeamIdentifierPrefix)$(CFBundleIdentifier)</string>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)$(CFBundleIdentifier)</string>
+		<string>$(AppIdentifierPrefix)com.microsoft.adalcache</string>
+	</array>
 </dict>
 </plist>

@@ -22,6 +22,9 @@ extension ContentView {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(16)
+        .onChange(of: datasets.selectedStoredDatasetIDs) { _, newValue in
+            DatasetViewModel.writeSelectedDatasetIDs(newValue)
+        }
     }
 
     private var importPanelLeftPane: some View {
@@ -67,73 +70,88 @@ extension ContentView {
                 // MARK: Action buttons — conditional on active tab
                 VStack(alignment: .leading, spacing: 6) {
                     if datasets.datasetTab == .archived {
-                        HStack(spacing: 8) {
-                            Button("Restore Selected") {
-                                datasets.restoreArchivedSelection(archivedDatasets: archivedDatasets)
-                            }
-                            .accessibilityIdentifier("restoreArchivedButton")
-                            .glassButtonStyle(isProminent: true)
-                            .disabled(datasets.archivedDatasetSelection.isEmpty)
-                            .help("Restore selected archived datasets back to the active list.")
+                        HStack(alignment: .top, spacing: 16) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("ARCHIVE")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                ControlGroup {
+                                    Button("Restore Selected") {
+                                        datasets.restoreArchivedSelection(archivedDatasets: archivedDatasets)
+                                    }
+                                    .accessibilityIdentifier("restoreArchivedButton")
+                                    .disabled(datasets.archivedDatasetSelection.isEmpty)
+                                    .help("Restore selected archived datasets back to the active list.")
 
-                            Button("Delete Permanently") {
-                                datasets.requestPermanentDeleteSelection()
+                                    Button("Delete Permanently") {
+                                        datasets.requestPermanentDeleteSelection()
+                                    }
+                                    .accessibilityIdentifier("deleteArchivedButton")
+                                    .disabled(datasets.archivedDatasetSelection.isEmpty)
+                                    .help("Permanently delete selected archived datasets.")
+                                }
                             }
-                            .accessibilityIdentifier("deleteArchivedButton")
-                            .glassButtonStyle()
-                            .disabled(datasets.archivedDatasetSelection.isEmpty)
-                            .help("Permanently delete selected archived datasets.")
-
                             Spacer()
                         }
                     } else {
-                        HStack(spacing: 8) {
-                            Button("Load Selected") {
-                                datasets.loadStoredDatasetSelection(append: false, storedDatasets: storedDatasets)
-                            }
-                            .accessibilityIdentifier("loadSelectedButton")
-                            .glassButtonStyle(isProminent: true)
-                            .help("Replace current spectra with the selected datasets.")
+                        HStack(alignment: .top, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("LOAD")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                ControlGroup {
+                                    Button("Load") {
+                                        datasets.loadStoredDatasetSelection(append: false, storedDatasets: storedDatasets)
+                                    }
+                                    .accessibilityIdentifier("loadSelectedButton")
+                                    .help("Replace current spectra with the selected datasets.")
 
-                            Button("Append Selected") {
-                                datasets.loadStoredDatasetSelection(append: true, storedDatasets: storedDatasets)
+                                    Button("Append") {
+                                        datasets.loadStoredDatasetSelection(append: true, storedDatasets: storedDatasets)
+                                    }
+                                    .accessibilityIdentifier("appendSelectedButton")
+                                    .help("Add selected datasets to the current spectra without clearing.")
+                                }
                             }
-                            .accessibilityIdentifier("appendSelectedButton")
-                            .glassButtonStyle()
-                            .help("Add selected datasets to the current spectra without clearing.")
 
-                            Spacer()
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("VALIDATE")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                ControlGroup {
+                                    Button("Headers") {
+                                        datasets.validateStoredDatasetSelection(storedDatasets: storedDatasets)
+                                    }
+                                    .accessibilityIdentifier("validateHeadersButton")
+                                    .help("Check SPC header consistency across selected stored datasets.")
 
-                            Button("Validate Headers") {
-                                datasets.validateStoredDatasetSelection(storedDatasets: storedDatasets)
+                                    Button("Loaded") {
+                                        datasets.validateLoadedSpectra(activeHeader: activeHeader)
+                                    }
+                                    .accessibilityIdentifier("validateLoadedButton")
+                                    .help("Run validation checks on currently loaded spectra (empty data, non-finite values).")
+                                }
                             }
-                            .accessibilityIdentifier("validateHeadersButton")
-                            .glassButtonStyle()
-                            .help("Check SPC header consistency across selected stored datasets.")
 
-                            Button("Validate Loaded") {
-                                datasets.validateLoadedSpectra(activeHeader: activeHeader)
-                            }
-                            .accessibilityIdentifier("validateLoadedButton")
-                            .glassButtonStyle()
-                            .help("Run validation checks on currently loaded spectra (empty data, non-finite values).")
-                        }
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("MANAGE")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                ControlGroup {
+                                    Button("Archive") {
+                                        datasets.deleteStoredDatasetSelection(storedDatasets: storedDatasets)
+                                    }
+                                    .accessibilityIdentifier("archiveSelectedButton")
+                                    .disabled(datasets.selectedStoredDatasetIDs.isEmpty)
+                                    .help("Move selected datasets to the archive. They can be restored later.")
 
-                        HStack(spacing: 8) {
-                            Button("Archive Selected") {
-                                datasets.deleteStoredDatasetSelection(storedDatasets: storedDatasets)
+                                    Button("Dedup") {
+                                        datasets.prepareDuplicateCleanup(storedDatasets: storedDatasets, archivedDatasets: archivedDatasets)
+                                    }
+                                    .accessibilityIdentifier("removeDuplicatesButton")
+                                    .help("Find and remove duplicate datasets based on content hashing.")
+                                }
                             }
-                            .accessibilityIdentifier("archiveSelectedButton")
-                            .glassButtonStyle()
-                            .disabled(datasets.selectedStoredDatasetIDs.isEmpty)
-                            .help("Move selected datasets to the archive. They can be restored later.")
-
-                            Button("Remove Duplicates") {
-                                datasets.prepareDuplicateCleanup(storedDatasets: storedDatasets, archivedDatasets: archivedDatasets)
-                            }
-                            .accessibilityIdentifier("removeDuplicatesButton")
-                            .glassButtonStyle()
-                            .help("Find and remove duplicate datasets based on content hashing.")
 
                             Spacer()
                         }
@@ -535,7 +553,7 @@ extension ContentView {
                                 .foregroundColor(.blue)
                                 .cornerRadius(3)
                             if let spf = spfValue {
-                                Text("SPF \(spf, specifier: "%.0f")")
+                                Text("SPF \(Int(spf))")
                                     .font(.caption2)
                                     .foregroundColor(.blue)
                             }
@@ -618,7 +636,6 @@ extension ContentView {
                 } else {
                     datasets.selectedStoredDatasetIDs.insert(datasetID)
                 }
-                DatasetViewModel.writeSelectedDatasetIDs(datasets.selectedStoredDatasetIDs)
             }
 
             // Formula card link — separate from the selection tap area.
@@ -793,7 +810,7 @@ extension ContentView {
                                     .foregroundColor(.blue)
                                     .cornerRadius(3)
                                 if let spf = spfValue {
-                                    Text("SPF \(spf, specifier: "%.0f")")
+                                    Text("SPF \(Int(spf))")
                                         .font(.caption2)
                                         .foregroundColor(.blue)
                                 }

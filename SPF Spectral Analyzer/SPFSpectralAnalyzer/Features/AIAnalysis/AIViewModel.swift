@@ -50,6 +50,22 @@ final class AIViewModel {
         providerManager.ensembleResult
     }
 
+    // MARK: - Microsoft 365 Enterprise
+
+    /// Shared MSAL auth manager for M365 sign-in.
+    let m365AuthManager = MSALAuthManager()
+
+    /// Enterprise grounding engine for M365 Retrieval API integration.
+    let groundingEngine = EnterpriseGroundingEngine()
+
+    /// Whether enterprise grounding was applied to the current analysis.
+    var isEnterpriseGrounded = false
+
+    /// Convenience: enterprise grounding citations from last retrieval.
+    var groundingCitations: [GroundingCitation] {
+        groundingEngine.citations
+    }
+
     // MARK: - Sidebar Structured Sections
 
     var sidebarInsightsText = ""

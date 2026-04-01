@@ -23,25 +23,39 @@ enum KeychainStore {
 
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else { return nil }
+        guard status == errSecSuccess, let data = result as? Data else {
+            if status != errSecItemNotFound {
+                print("[Keychain] Read failed for \(account): OSStatus \(status)")
+            }
+            return nil
+        }
         return String(data: data, encoding: .utf8)
     }
 
     static func savePassword(_ value: String, account: String) {
         let data = Data(value.utf8)
+        // Query to find existing item
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: KeychainKeys.service,
             kSecAttrAccount as String: account
         ]
 
-        let attributes: [String: Any] = [
-            kSecValueData as String: data
+        let updateAttributes: [String: Any] = [
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
         ]
 
-        if SecItemUpdate(query as CFDictionary, attributes as CFDictionary) != errSecSuccess {
-            let addQuery: [String: Any] = query.merging(attributes) { _, new in new }
-            SecItemAdd(addQuery as CFDictionary, nil)
+        let updateStatus = SecItemUpdate(query as CFDictionary, updateAttributes as CFDictionary)
+        if updateStatus == errSecSuccess { return }
+
+        // Item doesn't exist yet — add it
+        var addQuery = query
+        addQuery[kSecValueData as String] = data
+        addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+        if addStatus != errSecSuccess {
+            print("[Keychain] Save failed for \(account): OSStatus \(addStatus)")
         }
     }
 

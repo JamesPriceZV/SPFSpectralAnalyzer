@@ -137,13 +137,12 @@ enum FormulaCardTextExtractor {
         process.arguments = ["-o", "-q", zipURL.path, "-d", extractDir.path]
         try process.run()
         process.waitUntilExit()
+        return try parseXLSXContent(at: extractDir)
         #else
         // On iOS, use Archive from Foundation (available in Apple Archive)
         // Fall back to treating the raw data as text if unzip is unavailable
         return try extractXLSXUsingFoundation(data: data, extractDir: extractDir)
         #endif
-
-        return try parseXLSXContent(at: extractDir)
     }
 
     #if os(iOS) || os(visionOS)
@@ -269,9 +268,6 @@ enum FormulaCardTextExtractor {
         process.arguments = ["-o", "-q", zipURL.path, "-d", extractDir.path]
         try process.run()
         process.waitUntilExit()
-        #else
-        throw ExtractionError.extractionFailed("DOCX extraction on iOS requires the file to be exported as PDF or photo first.")
-        #endif
 
         let documentURL = extractDir.appendingPathComponent("word/document.xml")
         guard let docData = try? Data(contentsOf: documentURL),
@@ -285,6 +281,9 @@ enum FormulaCardTextExtractor {
             throw ExtractionError.noTextFound
         }
         return text
+        #else
+        throw ExtractionError.extractionFailed("DOCX extraction on iOS requires the file to be exported as PDF or photo first.")
+        #endif
     }
 
     /// Parse text content from Word document.xml, extracting <w:t> elements.
