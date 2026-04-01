@@ -42,7 +42,7 @@ protocol M365AuthProviding: Sendable {
 // MARK: - MSAL Auth Manager
 
 #if canImport(MSAL)
-import MSAL
+@preconcurrency import MSAL
 
 /// Manages Microsoft identity authentication using MSAL for iOS/macOS.
 /// Uses delegated sign-in with browser-based interactive flow (triggers Microsoft Authenticator).
@@ -145,11 +145,12 @@ final class MSALAuthManager: M365AuthProviding {
         isSignedIn = true
         lastError = nil
 
-        guard let accessToken = result.accessToken, !accessToken.isEmpty else {
+        let accessToken = result.accessToken
+        guard !accessToken.isEmpty else {
             throw M365AuthError.noAccessToken
         }
 
-        Instrumentation.shared.log(.aiAnalysis, .info, "M365 sign-in succeeded for \(result.account.username ?? "unknown")")
+        Instrumentation.log("M365 sign-in succeeded for \(result.account.username ?? "unknown")", area: .aiAnalysis, level: .info)
         return accessToken
     }
 
@@ -160,25 +161,13 @@ final class MSALAuthManager: M365AuthProviding {
         let account = try await getCurrentAccount() ?? cachedAccount
         guard let account else { return }
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            application.remove(account) { success, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: M365AuthError.unexpectedResult("MSAL account removal failed."))
-                }
-            }
-        }
+        try application.remove(account)
 
         cachedAccount = nil
         username = nil
         isSignedIn = false
         lastError = nil
-        Instrumentation.shared.log(.aiAnalysis, .info, "M365 sign-out completed")
+        Instrumentation.log("M365 sign-out completed", area: .aiAnalysis, level: .info)
     }
 
     func currentUsername() -> String? {
@@ -243,7 +232,8 @@ final class MSALAuthManager: M365AuthProviding {
                     continuation.resume(throwing: error)
                     return
                 }
-                continuation.resume(returning: currentAccount)
+                nonisolated(unsafe) let account = currentAccount
+                continuation.resume(returning: account)
             }
         }
     }

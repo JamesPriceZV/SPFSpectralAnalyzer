@@ -22,9 +22,6 @@ extension ContentView {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(16)
-        .onChange(of: datasets.selectedStoredDatasetIDs) { _, newValue in
-            DatasetViewModel.writeSelectedDatasetIDs(newValue)
-        }
     }
 
     private var importPanelLeftPane: some View {
