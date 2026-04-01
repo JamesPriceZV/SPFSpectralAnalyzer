@@ -392,9 +392,6 @@ struct ContentView: View {
         .tabBarMinimizeBehavior(.onScrollDown)
         #endif
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onChange(of: datasets.selectedStoredDatasetIDs) { _, newValue in
-            DatasetViewModel.writeSelectedDatasetIDs(newValue)
-        }
     }
 
     var settingsPanel: some View {

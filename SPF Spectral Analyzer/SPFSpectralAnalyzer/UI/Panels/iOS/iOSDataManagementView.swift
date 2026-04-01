@@ -43,9 +43,6 @@ struct iOSDataManagementView: View {
                 )
             }
         }
-        .onChange(of: datasets.selectedStoredDatasetIDs) { _, newValue in
-            DatasetViewModel.writeSelectedDatasetIDs(newValue)
-        }
     }
 
     // MARK: - iPad Layout

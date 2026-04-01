@@ -37,7 +37,16 @@ final class DatasetViewModel {
     // MARK: - Dataset Selection
 
     var datasetTab: DatasetTab = .samples
-    var selectedStoredDatasetIDs: Set<UUID> = []
+
+    /// Persists selections to disk on every mutation so they survive relaunch.
+    var selectedStoredDatasetIDs: Set<UUID> {
+        get { _selectedStoredDatasetIDs }
+        set {
+            _selectedStoredDatasetIDs = newValue
+            Self.writeSelectedDatasetIDs(newValue)
+        }
+    }
+    private var _selectedStoredDatasetIDs: Set<UUID> = []
     var storedDatasetPickerSelection: Set<UUID> = []
     var datasetDetailPopoverID: UUID?
     var datasetSearchText = ""
