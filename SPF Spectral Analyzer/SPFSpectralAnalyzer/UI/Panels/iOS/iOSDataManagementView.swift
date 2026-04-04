@@ -1,6 +1,7 @@
 #if os(iOS)
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 /// Standalone iOS view for the Data Management tab.
 /// iPhone: List-based layout. iPad: NavigationSplitView with dataset sidebar + detail.
@@ -31,6 +32,22 @@ struct iOSDataManagementView: View {
                 iPhoneLayout
             }
         }
+        // SPC file importer must live here (inside the tab content) so it
+        // presents correctly on iPadOS with sidebarAdaptable TabView +
+        // NavigationSplitView. Attaching it to the outer TabView fails to present.
+        // Uses custom DocumentPickerView instead of .fileImporter for resizable
+        // presentation on iPadOS.
+        .sheet(isPresented: $datasets.showImporter) {
+            PlatformFileSaver.DocumentPickerView(
+                contentTypes: [UTType(filenameExtension: "spc") ?? .data],
+                allowsMultipleSelection: true,
+                onCompletion: { result in
+                    datasets.showImporter = false
+                    datasets.handleImport(result: result)
+                }
+            )
+            .presentationSizing(.page)
+        }
         .sheet(isPresented: Binding(
             get: { presentedFormulaCardID != nil },
             set: { if !$0 { presentedFormulaCardID = nil } }
@@ -51,6 +68,7 @@ struct iOSDataManagementView: View {
         NavigationSplitView {
             datasetListContent
                 .navigationTitle("Datasets")
+                .navigationSplitViewColumnWidth(min: 280, ideal: 400, max: .infinity)
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         actionsMenu
@@ -205,7 +223,8 @@ struct iOSDataManagementView: View {
 
     private var datasetListContent: some View {
         List(selection: $selectedDetailID) {
-            // Import section
+            // Import section — selectionDisabled prevents the selection-based
+            // List from intercepting the button tap on iPad.
             Section {
                 Button {
                     datasets.appendOnImport = false
@@ -218,6 +237,7 @@ struct iOSDataManagementView: View {
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             }
+            .selectionDisabled()
 
             // Sync status
             if dataStoreController.cloudSyncEnabled {
@@ -348,6 +368,8 @@ struct iOSDataManagementView: View {
             } else {
                 datasets.selectedStoredDatasetIDs.insert(datasetID)
             }
+            // Also drive the iPad detail panel to show this dataset's info
+            selectedDetailID = datasetID
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")

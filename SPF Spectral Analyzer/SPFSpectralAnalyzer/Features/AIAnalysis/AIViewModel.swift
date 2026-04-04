@@ -53,7 +53,11 @@ final class AIViewModel {
     // MARK: - Microsoft 365 Enterprise
 
     /// Shared MSAL auth manager for M365 sign-in.
-    let m365AuthManager = MSALAuthManager()
+    let m365AuthManager: MSALAuthManager
+
+    init(authManager: MSALAuthManager) {
+        self.m365AuthManager = authManager
+    }
 
     /// Enterprise grounding engine for M365 Retrieval API integration.
     let groundingEngine = EnterpriseGroundingEngine()

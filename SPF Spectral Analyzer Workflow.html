@@ -62,7 +62,7 @@
 
 <header>
   <h1>SPF Spectral Analyzer &mdash; Application Workflow</h1>
-  <p>Architecture map generated from source code &middot; SPFSpectralAnalyzer &middot; March 2026</p>
+  <p>Architecture map generated from source code &middot; SPFSpectralAnalyzer &middot; April 2026 &middot; Updated 2026-04-04</p>
 </header>
 
 <div class="layer-label">1 &middot; App Launch</div>
@@ -75,6 +75,7 @@
       <li>Starts ConsoleCapture (diagnostic logging)</li>
       <li>Renders app icon at runtime (macOS)</li>
       <li>Registers macOS menu commands: Diagnostics, Help, Export HTML, Instrument Control</li>
+      <li>Registers BGProcessingTask for background ML training &amp; data processing</li>
     </ul>
   </div>
   <div class="node accent-infra">
@@ -84,6 +85,7 @@
       <li>Attempts CloudKit sync; falls back to local SQLite on failure</li>
       <li>Stores StoredDataset + StoredInstrument models</li>
       <li>Records store-reset history in UserDefaults</li>
+      <li>Schedules BGProcessingTask via BGTaskScheduler on suspend</li>
     </ul>
   </div>
   <div class="node accent-infra">
@@ -114,6 +116,7 @@
       <li>Archive / permanent-delete datasets</li>
       <li>Duplicate cleanup tool</li>
       <li>iCloud sync status bar</li>
+      <li>Selected dataset IDs persisted across sessions (UserDefaults via DatasetViewModel didSet)</li>
     </ul>
   </div>
   <div class="node accent-process">
@@ -126,6 +129,7 @@
       <li>Dashboard metrics card</li>
       <li>AI Analysis section</li>
       <li>Peak detection overlay</li>
+      <li><strong>iOS</strong>: searchable sidebar (filter spectra by name); "Browse Stored Datasets" toolbar toggle; sidebar split into Loaded Spectra / Stored Datasets sections; storedDatasets injected from ContentView</li>
     </ul>
   </div>
   <div class="node accent-report">
@@ -137,6 +141,15 @@
       <li>Schedule calendar event (CalendarService)</li>
     </ul>
   </div>
+  <div class="node accent-ai" style="max-width:200px;min-width:160px;">
+    <div class="node-title"><span class="node-icon">🏢</span>Enterprise Tab</div>
+    <ul class="node-body">
+      <li>Sub-tab picker: Search / Teams (segmented control)</li>
+      <li><strong>Search</strong> &mdash; EnterpriseSearchView (SharePoint / OneDrive grounding)</li>
+      <li><strong>Teams</strong> &mdash; TeamsView: browse joined teams, channels, chats; send messages</li>
+      <li>Shared MSALAuthManager across both sub-tabs</li>
+    </ul>
+  </div>
   <div class="node accent-infra" style="max-width:160px;min-width:140px;">
     <div class="node-title"><span class="node-icon">⚙️</span>Settings</div>
     <ul class="node-body">
@@ -144,6 +157,7 @@
       <li>AI provider &amp; API keys</li>
       <li>iCloud sync toggle</li>
       <li>UI preferences</li>
+      <li>m365AuthManager injected (shared state)</li>
     </ul>
   </div>
   <div class="node accent-entry" style="max-width:160px;min-width:140px;">
@@ -331,6 +345,8 @@
       <li>Auto mode: on-device first &rarr; OpenAI fallback</li>
       <li>FoundationModelsProvider &mdash; Apple Foundation Models (on-device)</li>
       <li>OpenAIProvider &mdash; GPT via configurable endpoint &amp; model</li>
+      <li>M365EnterpriseProvider &mdash; MSAL 2.x OAuth (SharePoint / OneDrive file access); <strong>MSAL is a required framework</strong> (embedded via CopyFiles build phase)</li>
+      <li>Holds shared MSALAuthManager injected into EnterpriseSearchView, TeamsView, and SettingsView</li>
       <li>API key stored in KeychainStore</li>
     </ul>
   </div>
@@ -454,6 +470,47 @@
       <li>PlatformColors (adaptive tints)</li>
       <li>PlatformURLOpener</li>
       <li>GlassModifiers &mdash; Liquid Glass effect helpers</li>
+      <li>iOS 26.0 minimum deployment target (Liquid Glass &amp; Foundation Models require iOS 26)</li>
+      <li>UIBackgroundModes: remote-notification + processing (BGProcessingTask)</li>
+      <li><strong>Platform-split file importers</strong>: macOS uses .spc + CSV OpenPanel; iOS uses Formula Card importer (PDF/PNG/JPEG/HEIC/xlsx/docx); both handle <code>onOpenURL</code> with MSAL redirect support</li>
+    </ul>
+  </div>
+</div>
+
+<hr class="section-divider" />
+
+<div class="layer-label">Recent Changes</div>
+<div class="row" style="flex-direction:column;align-items:stretch;max-width:860px;margin:0 auto 8px;">
+  <div class="node accent-ai" style="max-width:100%;">
+    <div class="node-title"><span class="node-icon">📅</span>2026-04-04 &mdash; Microsoft Teams Integration + iOS Analysis UX Polish (uncommitted)</div>
+    <ul class="node-body">
+      <li><strong>Microsoft Teams browser</strong> &mdash; New <code>GraphTeamsService</code> (stateless enum, mirrors GraphUploadService pattern) exposes: listJoinedTeams, listChannels, listChats, listMessages, listChannelMessages, sendChannelMessage, sendChatMessage via Microsoft Graph API</li>
+      <li><strong>TeamsView + TeamsViewModel</strong> &mdash; Full SwiftUI Teams UI: browse joined teams → channels → messages; browse recent chats → messages; compose &amp; send messages to channels or chats; iPad NavigationSplitView + compact phone layout; auth-gated with sign-in prompt</li>
+      <li><strong>TeamsModels</strong> &mdash; Codable value types: TeamsTeam, TeamsChannel, TeamsChat, TeamsChatMessage (Graph API response mapping)</li>
+      <li><strong>EnterpriseSearchView sub-tabs</strong> &mdash; Segmented picker (Search / Teams) added; Teams tab hosts TeamsView sharing the same MSALAuthManager; both sub-views now under one Enterprise tab entry</li>
+      <li><strong>Tab structure simplified</strong> &mdash; Reporting and Enterprise tabs removed from TabSection grouping on iOS; now appear individually in the tab bar for direct navigation</li>
+      <li><strong>SettingsView auth refactor</strong> &mdash; <code>m365AuthManager</code> changed from <code>@State private var</code> (locally-owned) to an injected <code>var</code> parameter; ContentView passes AIViewModel's shared instance ensuring one auth session across Enterprise, Teams, and Settings</li>
+      <li><strong>iOS Analysis searchable sidebar</strong> &mdash; iOSAnalysisView gains: <code>.searchable(text: $spectraSearchText)</code> on NavigationSplitView sidebar; "Browse Stored" toolbar toggle (<code>showStoredDatasets</code>); sidebar sectioned into "Loaded Spectra — N" and stored datasets; <code>filteredSpectra</code> computed property for real-time name filtering; <code>storedDatasets</code> injected from ContentView</li>
+      <li><strong>Platform-split file importers</strong> &mdash; ContentView+ChangeHandlers now uses <code>#if os(macOS)</code>/<code>#else</code> to attach platform-appropriate importers; iOS path handles Formula Card importer (PDF/PNG/JPEG/HEIC/xlsx/docx) and MSAL redirect URL via <code>onOpenURL</code></li>
+      <li><strong>KeychainStore hardening</strong> &mdash; Extended with additional query attributes and error handling (~144-line update)</li>
+    </ul>
+  </div>
+  <div class="node accent-infra" style="max-width:100%;margin-top:10px;">
+    <div class="node-title"><span class="node-icon">📅</span>2026-04-03 &mdash; Build &amp; Infrastructure Hardening (uncommitted)</div>
+    <ul class="node-body">
+      <li><strong>BGProcessingTask support</strong> &mdash; <code>processing</code> added to UIBackgroundModes; BGTaskScheduler scheduled on app suspend for background ML training / data processing</li>
+      <li><strong>MSAL marked Required</strong> &mdash; MSAL.framework promoted from optional link to required embedded framework via new CopyFiles build phase; ensures app fails fast at launch rather than at runtime if MSAL is missing</li>
+      <li><strong>Permission strings centralised</strong> &mdash; NSCameraUsageDescription, NSPhotoLibraryUsageDescription, NSCalendarsFullAccessUsageDescription moved from Info.plist into Xcode build settings (INFOPLIST_KEY_*) for both Debug and Release configurations</li>
+      <li><strong>iOS 26.0 deployment target confirmed</strong> &mdash; Required for Liquid Glass UI and Apple Foundation Models on-device AI</li>
+    </ul>
+  </div>
+  <div class="node accent-storage" style="max-width:100%;margin-top:10px;">
+    <div class="node-title"><span class="node-icon">📅</span>2026-04-01 &mdash; M365 Enterprise Integration + Selection Persistence</div>
+    <ul class="node-body">
+      <li><strong>M365 Enterprise</strong> &mdash; MSAL 2.x OAuth authentication added; M365EnterpriseProvider for SharePoint / OneDrive access; multi-provider AI routing extended</li>
+      <li><strong>iMessage Sharing</strong> &mdash; ShareService extended to send analysis results via iMessage (multi-provider AI routing system)</li>
+      <li><strong>Dataset selection persistence</strong> &mdash; selectedDatasetIDs and selectedArchivedDatasetIDs serialised to UserDefaults via DatasetViewModel property didSet; selection survives app restart and CloudKit sync events</li>
+      <li><strong>MSAL 2.x compilation fixes</strong> &mdash; API compatibility errors resolved; iOS &amp; macOS UI layout fixes</li>
     </ul>
   </div>
 </div>

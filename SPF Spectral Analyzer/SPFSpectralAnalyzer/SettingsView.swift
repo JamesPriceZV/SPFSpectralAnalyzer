@@ -199,7 +199,7 @@ struct SettingsView: View {
     @AppStorage(M365Config.StorageKeys.groundingConfigJSON) private var m365GroundingConfigJSON = ""
     @AppStorage(M365Config.StorageKeys.exportConfigJSON) private var m365ExportConfigJSON = ""
 
-    @State private var m365AuthManager = MSALAuthManager()
+    var m365AuthManager: MSALAuthManager
     @State private var draftM365ClientId = M365Config.defaultClientId
     @State private var draftM365TenantId = M365Config.defaultTenantId
     @State private var draftGroundingConfig = EnterpriseGroundingConfig.default
@@ -2123,6 +2123,69 @@ struct SettingsView: View {
                         .foregroundColor(.secondary)
                 }
             }
+
+            Section("Teams Sync") {
+                Toggle("Enable Teams Sync", isOn: Binding(
+                    get: { TeamsSyncMonitor.shared.isEnabled },
+                    set: { newValue in
+                        TeamsSyncMonitor.shared.isEnabled = newValue
+                        if newValue {
+                            TeamsSyncMonitor.shared.start(authManager: m365AuthManager)
+                        } else {
+                            TeamsSyncMonitor.shared.stop()
+                        }
+                    }
+                ))
+                .toggleStyle(.switch)
+
+                Text("When enabled, Teams data is cached locally for offline access and faster loading.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                if TeamsSyncMonitor.shared.isEnabled {
+                    HStack {
+                        Text("Polling Interval")
+                        Spacer()
+                        Picker("", selection: Binding(
+                            get: { TeamsSyncMonitor.shared.pollingIntervalMinutes },
+                            set: { TeamsSyncMonitor.shared.pollingIntervalMinutes = $0 }
+                        )) {
+                            Text("1 min").tag(1.0)
+                            Text("5 min").tag(5.0)
+                            Text("15 min").tag(15.0)
+                            Text("30 min").tag(30.0)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(maxWidth: 300)
+                    }
+
+                    Toggle("Notifications for New Messages", isOn: Binding(
+                        get: { TeamsSyncMonitor.shared.notificationsEnabled },
+                        set: { TeamsSyncMonitor.shared.notificationsEnabled = $0 }
+                    ))
+                    .toggleStyle(.switch)
+
+                    Text("Show a notification when new Teams messages are detected during sync.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    HStack {
+                        Text("Last Sync")
+                        Spacer()
+                        if let date = TeamsSyncMonitor.shared.lastSyncDate {
+                            Text(date, format: .relative(presentation: .named))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Never")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Button("Clear Teams Cache", role: .destructive) {
+                        try? TeamsSyncService.clearCache()
+                    }
+                }
+            }
             } // end Enterprise tab
     }
 
@@ -2549,9 +2612,18 @@ struct SettingsView: View {
     private func saveAPIKey() {
         let trimmed = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        KeychainStore.savePassword(trimmed, account: KeychainKeys.openAIAPIKey)
-        hasStoredAPIKey = true
-        apiKeyDraft = ""
+        let result = KeychainStore.savePassword(trimmed, account: KeychainKeys.openAIAPIKey)
+        hasStoredAPIKey = result.success
+        if result.success {
+            apiKeyDraft = ""
+            if let diag = result.diagnostic {
+                aiOpenAITestStatus = diag
+                aiOpenAITestTimestamp = Date().timeIntervalSince1970
+            }
+        } else {
+            aiOpenAITestStatus = result.diagnostic ?? "Keychain save failed"
+            aiOpenAITestTimestamp = Date().timeIntervalSince1970
+        }
     }
 
     private func clearAPIKey() {
@@ -2563,9 +2635,18 @@ struct SettingsView: View {
     private func saveClaudeAPIKey() {
         let trimmed = claudeAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        KeychainStore.savePassword(trimmed, account: KeychainKeys.anthropicAPIKey)
-        hasStoredClaudeAPIKey = true
-        claudeAPIKeyDraft = ""
+        let result = KeychainStore.savePassword(trimmed, account: KeychainKeys.anthropicAPIKey)
+        hasStoredClaudeAPIKey = result.success
+        if result.success {
+            claudeAPIKeyDraft = ""
+            if let diag = result.diagnostic {
+                aiClaudeTestStatus = diag
+                aiClaudeTestTimestamp = Date().timeIntervalSince1970
+            }
+        } else {
+            aiClaudeTestStatus = result.diagnostic ?? "Keychain save failed"
+            aiClaudeTestTimestamp = Date().timeIntervalSince1970
+        }
     }
 
     private func clearClaudeAPIKey() {
@@ -2577,9 +2658,18 @@ struct SettingsView: View {
     private func saveGrokAPIKey() {
         let trimmed = grokAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        KeychainStore.savePassword(trimmed, account: KeychainKeys.grokAPIKey)
-        hasStoredGrokAPIKey = true
-        grokAPIKeyDraft = ""
+        let result = KeychainStore.savePassword(trimmed, account: KeychainKeys.grokAPIKey)
+        hasStoredGrokAPIKey = result.success
+        if result.success {
+            grokAPIKeyDraft = ""
+            if let diag = result.diagnostic {
+                aiGrokTestStatus = diag
+                aiGrokTestTimestamp = Date().timeIntervalSince1970
+            }
+        } else {
+            aiGrokTestStatus = result.diagnostic ?? "Keychain save failed"
+            aiGrokTestTimestamp = Date().timeIntervalSince1970
+        }
     }
 
     private func clearGrokAPIKey() {
@@ -2591,9 +2681,18 @@ struct SettingsView: View {
     private func saveGeminiAPIKey() {
         let trimmed = geminiAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        KeychainStore.savePassword(trimmed, account: KeychainKeys.geminiAPIKey)
-        hasStoredGeminiAPIKey = true
-        geminiAPIKeyDraft = ""
+        let result = KeychainStore.savePassword(trimmed, account: KeychainKeys.geminiAPIKey)
+        hasStoredGeminiAPIKey = result.success
+        if result.success {
+            geminiAPIKeyDraft = ""
+            if let diag = result.diagnostic {
+                aiGeminiTestStatus = diag
+                aiGeminiTestTimestamp = Date().timeIntervalSince1970
+            }
+        } else {
+            aiGeminiTestStatus = result.diagnostic ?? "Keychain save failed"
+            aiGeminiTestTimestamp = Date().timeIntervalSince1970
+        }
     }
 
     private func clearGeminiAPIKey() {
@@ -3028,11 +3127,13 @@ private struct OpenAIKeyBrowserSheet: View {
                     Button("Save to Keychain") {
                         let trimmed = pastedKey.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmed.isEmpty else { return }
-                        KeychainStore.savePassword(trimmed, account: KeychainKeys.openAIAPIKey)
-                        hasStoredAPIKey = true
-                        apiKeyDraft = ""
-                        pastedKey = ""
-                        keySaved = true
+                        let result = KeychainStore.savePassword(trimmed, account: KeychainKeys.openAIAPIKey)
+                        hasStoredAPIKey = result.success
+                        if result.success {
+                            apiKeyDraft = ""
+                            pastedKey = ""
+                            keySaved = true
+                        }
                     }
                     .disabled(pastedKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 

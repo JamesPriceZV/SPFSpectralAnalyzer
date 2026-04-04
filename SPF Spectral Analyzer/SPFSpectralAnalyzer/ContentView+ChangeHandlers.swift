@@ -1,9 +1,15 @@
 import SwiftUI
 import UniformTypeIdentifiers
+#if canImport(MSAL)
+@preconcurrency import MSAL
+#endif
 
 extension ContentView {
 
     func applyImporters<V: View>(_ view: V) -> some View {
+        // On iOS the SPC file importer is attached inside iOSDataManagementView
+        // so it presents correctly within the NavigationSplitView / TabView.
+        #if os(macOS)
         view
             .fileImporter(
                 isPresented: $datasets.showImporter,
@@ -28,6 +34,32 @@ extension ContentView {
                 guard url.pathExtension.lowercased() == "spc" else { return }
                 Task { await datasets.loadSpectra(from: [url], append: false) }
             }
+        #else
+        view
+            .fileImporter(
+                isPresented: $datasets.showFormulaCardImporter,
+                allowedContentTypes: [
+                    .pdf,
+                    .png,
+                    .jpeg,
+                    .heic,
+                    UTType(filenameExtension: "xlsx") ?? .data,
+                    UTType(filenameExtension: "docx") ?? .data
+                ],
+                allowsMultipleSelection: false,
+                onCompletion: datasets.handleFormulaCardImport(result:)
+            )
+            .onOpenURL { url in
+                #if canImport(MSAL)
+                if url.scheme?.hasPrefix("msauth.") == true {
+                    MSALPublicClientApplication.handleMSALResponse(url, sourceApplication: nil)
+                    return
+                }
+                #endif
+                guard url.pathExtension.lowercased() == "spc" else { return }
+                Task { await datasets.loadSpectra(from: [url], append: false) }
+            }
+        #endif
     }
 
     func applyAlertsAndSheets<V: View>(_ view: V) -> some View {

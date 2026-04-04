@@ -101,16 +101,17 @@ struct ContentView: View {
     @AppStorage("icloudLastSyncTrigger") var icloudLastSyncTrigger = ""
     @AppStorage("toolbarShowLabels") var toolbarShowLabels = false
 
-    @State var aiVM = AIViewModel()
+    @State var aiVM: AIViewModel
     @State var pendingShareContent: ShareableContent?
 
     @EnvironmentObject var instrumentManager: InstrumentManager
 
-    init(previewSpectra: [ShimadzuSpectrum] = [], previewMode: AppMode = .analyze) {
+    init(authManager: MSALAuthManager, previewSpectra: [ShimadzuSpectrum] = [], previewMode: AppMode = .analyze) {
         let analysisVM = AnalysisViewModel(spectra: previewSpectra)
         _analysis = State(initialValue: analysisVM)
         _datasets = State(initialValue: DatasetViewModel(analysis: analysisVM))
         _appMode = State(initialValue: previewMode)
+        _aiVM = State(initialValue: AIViewModel(authManager: authManager))
     }
 
     var currentSPFConfig: SPFConfiguration {
@@ -347,6 +348,7 @@ struct ContentView: View {
                     analysis: analysis,
                     datasets: datasets,
                     aiVM: aiVM,
+                    storedDatasets: storedDatasets,
                     runAI: { self.runAIAnalysis() }
                 )
             }
@@ -355,15 +357,12 @@ struct ContentView: View {
                 SpectralCameraView()
             }
 
-            // Tools section — grouped in sidebar on iPad
-            TabSection("Tools") {
-                Tab("Reporting", systemImage: "doc.text.magnifyingglass", value: AppMode.reporting) {
-                    iOSReportingPanel
-                }
+            Tab("Reporting", systemImage: "doc.text.magnifyingglass", value: AppMode.reporting) {
+                iOSReportingPanel
+            }
 
-                Tab("Enterprise", systemImage: "building.2.fill", value: AppMode.enterprise) {
-                    EnterpriseSearchView(authManager: aiVM.m365AuthManager)
-                }
+            Tab("Enterprise", systemImage: "building.2.fill", value: AppMode.enterprise) {
+                EnterpriseSearchView(authManager: aiVM.m365AuthManager)
             }
 
             Tab("Settings", systemImage: "gearshape", value: AppMode.settings) {
@@ -397,12 +396,12 @@ struct ContentView: View {
     var settingsPanel: some View {
         #if os(iOS)
         NavigationStack {
-            SettingsView()
+            SettingsView(m365AuthManager: aiVM.m365AuthManager)
                 .navigationTitle("Settings")
                 .navigationBarTitleDisplayMode(.inline)
         }
         #else
-        SettingsView()
+        SettingsView(m365AuthManager: aiVM.m365AuthManager)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         #endif
     }

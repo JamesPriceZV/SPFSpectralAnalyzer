@@ -41,6 +41,30 @@ enum M365Config {
         "ExternalItem.Read.All"
     ]
 
+    /// Scopes for Microsoft Teams integration (chat, channels, activity).
+    static let teamsScopes = [
+        "Chat.ReadWrite",
+        "Channel.ReadBasic.All",
+        "ChannelMessage.Send",
+        "Team.ReadBasic.All",
+        "ChatMessage.Send"
+    ]
+
+    /// Extended scopes for Teams sync (includes message history + file access).
+    static let teamsSyncScopes = [
+        "Chat.ReadWrite",
+        "Channel.ReadBasic.All",
+        "ChannelMessage.Send",
+        "ChannelMessage.Read.All",
+        "Team.ReadBasic.All",
+        "ChatMessage.Send",
+        "ChatMessage.Read",
+        "Files.Read.All"
+    ]
+
+    /// Combined scopes for full M365 integration (files + Teams).
+    static let fullScopes = Array(Set(exportScopes + teamsScopes))
+
     // MARK: - Redirect URI
 
     /// MSAL redirect URI derived from the app's bundle identifier.
@@ -58,5 +82,13 @@ enum M365Config {
         static let groundingConfigJSON = "m365GroundingConfigJSON"
         static let exportConfigJSON = "m365ExportConfigJSON"
         static let sharePointSiteFiltersJSON = "m365SharePointSiteFiltersJSON"
+    }
+
+    /// Storage keys for Teams sync configuration.
+    enum TeamsSyncKeys {
+        static let syncEnabled = "teamsSyncEnabled"
+        static let pollingIntervalMinutes = "teamsSyncPollingIntervalMinutes"
+        static let lastSyncTimestamp = "teamsLastSyncTimestamp"
+        static let notificationsEnabled = "teamsSyncNotificationsEnabled"
     }
 }

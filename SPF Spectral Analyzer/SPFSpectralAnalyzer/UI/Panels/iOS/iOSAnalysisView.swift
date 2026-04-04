@@ -1,5 +1,6 @@
 #if os(iOS)
 import SwiftUI
+import SwiftData
 import Charts
 
 /// Standalone iOS view for the Analysis tab.
@@ -9,6 +10,7 @@ struct iOSAnalysisView: View {
     @Bindable var analysis: AnalysisViewModel
     var datasets: DatasetViewModel
     var aiVM: AIViewModel
+    var storedDatasets: [StoredDataset]
     var runAI: () -> Void
 
     @AppStorage("aiEnabled") private var aiEnabled = false
@@ -18,6 +20,8 @@ struct iOSAnalysisView: View {
 
     // Sheet state — only one sheet at a time
     @State private var activeSheet: AnalysisSheet?
+    @State private var spectraSearchText: String = ""
+    @State private var showStoredDatasets: Bool = false
     @Namespace private var glassNamespace
 
     private enum AnalysisSheet: Identifiable {
@@ -45,6 +49,20 @@ struct iOSAnalysisView: View {
         NavigationSplitView {
             datasetSidebar
                 .navigationTitle("Datasets")
+                .navigationSplitViewColumnWidth(min: 280, ideal: 400, max: .infinity)
+                .searchable(text: $spectraSearchText, prompt: "Filter spectra")
+                .toolbar {
+                    ToolbarItem(placement: .secondaryAction) {
+                        Button {
+                            withAnimation { showStoredDatasets.toggle() }
+                        } label: {
+                            Label(
+                                showStoredDatasets ? "Hide Stored" : "Browse Stored",
+                                systemImage: showStoredDatasets ? "folder.fill" : "folder"
+                            )
+                        }
+                    }
+                }
         } detail: {
             ScrollView {
                 VStack(spacing: 16) {
@@ -202,41 +220,144 @@ struct iOSAnalysisView: View {
 
     // MARK: - Dataset Sidebar (iPad)
 
+    private var filteredSpectra: [(offset: Int, element: ShimadzuSpectrum)] {
+        let spectraSnapshot = Array(analysis.spectra)
+        let enumerated = Array(spectraSnapshot.enumerated())
+        guard !spectraSearchText.isEmpty else { return enumerated }
+        return enumerated.filter { $0.element.name.localizedCaseInsensitiveContains(spectraSearchText) }
+    }
+
     private var datasetSidebar: some View {
         List {
-            if analysis.spectra.isEmpty {
-                ContentUnavailableView(
-                    "No Spectra",
-                    systemImage: "waveform.path.ecg",
-                    description: Text("Load datasets from the Data tab.")
-                )
-            } else {
-                let spectraSnapshot = Array(analysis.spectra)
-                ForEach(Array(spectraSnapshot.enumerated()), id: \.offset) { index, spectrum in
-                    let isSelected = analysis.selectedSpectrumIndices.contains(index)
-                    Button {
-                        if analysis.selectedSpectrumIndices.contains(index) {
-                            analysis.selectedSpectrumIndices.remove(index)
-                        } else {
-                            analysis.selectedSpectrumIndices.insert(index)
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(isSelected ? .accentColor : .secondary)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(spectrum.name)
-                                    .font(.subheadline)
-                                    .lineLimit(2)
-                                    .foregroundColor(.primary)
-                                Text("\(spectrum.x.count) pts")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
+            // MARK: Loaded Spectra
+            Section("Loaded Spectra — \(analysis.spectra.count)") {
+                if analysis.spectra.isEmpty {
+                    ContentUnavailableView(
+                        "No Spectra",
+                        systemImage: "waveform.path.ecg",
+                        description: Text("Load datasets from the Data tab or browse stored datasets below.")
+                    )
+                } else {
+                    ForEach(filteredSpectra, id: \.offset) { index, spectrum in
+                        let isSelected = analysis.selectedSpectrumIndices.contains(index)
+                        Button {
+                            if analysis.selectedSpectrumIndices.contains(index) {
+                                analysis.selectedSpectrumIndices.remove(index)
+                            } else {
+                                analysis.selectedSpectrumIndices.insert(index)
                             }
-                            Spacer()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(isSelected ? .accentColor : .secondary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(spectrum.name)
+                                        .font(.subheadline)
+                                        .lineLimit(2)
+                                        .foregroundColor(.primary)
+                                    Text("\(spectrum.x.count) pts")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            // MARK: Stored Datasets (Load & Append)
+            if showStoredDatasets {
+                Section("Stored Datasets — \(storedDatasets.count)") {
+                    if storedDatasets.isEmpty {
+                        Text("No stored datasets available.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(storedDatasets) { dataset in
+                            let record = datasets.searchableRecordCache[dataset.id]
+                            let isChecked = datasets.selectedStoredDatasetIDs.contains(dataset.id)
+                            Button {
+                                if isChecked {
+                                    datasets.selectedStoredDatasetIDs.remove(dataset.id)
+                                } else {
+                                    datasets.selectedStoredDatasetIDs.insert(dataset.id)
+                                }
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(isChecked ? .blue : .secondary)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        HStack(spacing: 4) {
+                                            Text(record?.fileName ?? dataset.id.uuidString)
+                                                .font(.subheadline)
+                                                .lineLimit(2)
+                                                .foregroundColor(.primary)
+                                            if record?.isReference == true {
+                                                Text("REF")
+                                                    .font(.caption2.bold())
+                                                    .padding(.horizontal, 4)
+                                                    .padding(.vertical, 1)
+                                                    .background(Color.blue.opacity(0.2))
+                                                    .foregroundColor(.blue)
+                                                    .cornerRadius(3)
+                                            } else if record?.isPrototype == true {
+                                                Text("PROTO")
+                                                    .font(.caption2.bold())
+                                                    .padding(.horizontal, 4)
+                                                    .padding(.vertical, 1)
+                                                    .background(Color.green.opacity(0.2))
+                                                    .foregroundColor(.green)
+                                                    .cornerRadius(3)
+                                            }
+                                        }
+                                        Text("\(record?.spectrumCount ?? 0) spectra")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button {
+                                    datasets.selectedStoredDatasetIDs = [dataset.id]
+                                    datasets.loadStoredDatasetSelection(append: false, storedDatasets: storedDatasets)
+                                } label: {
+                                    Label("Load (Replace)", systemImage: "arrow.down.doc")
+                                }
+                                Button {
+                                    datasets.selectedStoredDatasetIDs = [dataset.id]
+                                    datasets.loadStoredDatasetSelection(append: true, storedDatasets: storedDatasets)
+                                } label: {
+                                    Label("Append to Loaded", systemImage: "doc.badge.plus")
+                                }
+                            }
+                        }
+
+                        // Bulk Load/Append buttons for checked datasets
+                        if !datasets.selectedStoredDatasetIDs.isEmpty {
+                            HStack(spacing: 12) {
+                                Button {
+                                    datasets.loadStoredDatasetSelection(append: false, storedDatasets: storedDatasets)
+                                } label: {
+                                    Label("Load", systemImage: "arrow.down.doc")
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.bordered)
+
+                                Button {
+                                    datasets.loadStoredDatasetSelection(append: true, storedDatasets: storedDatasets)
+                                } label: {
+                                    Label("Append", systemImage: "doc.badge.plus")
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                            .padding(.vertical, 4)
                         }
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

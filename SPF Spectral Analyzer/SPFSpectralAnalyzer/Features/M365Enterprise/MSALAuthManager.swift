@@ -85,6 +85,10 @@ final class MSALAuthManager: M365AuthProviding {
                 redirectUri: nil,
                 authority: authority
             )
+            // Use app's own keychain group so MSAL doesn't require
+            // the Keychain Sharing capability / com.microsoft.adalcache group
+            config.cacheConfig.keychainSharingGroup =
+                Bundle.main.bundleIdentifier ?? "com.zincoverde.SPFSpectralAnalyzer"
             application = try MSALPublicClientApplication(configuration: config)
             lastError = nil
 
@@ -100,8 +104,19 @@ final class MSALAuthManager: M365AuthProviding {
 
     // MARK: - Public API
 
+    /// Auto-configure from persisted credentials if not already configured.
+    func ensureConfigured() {
+        guard application == nil else { return }
+        let clientId = UserDefaults.standard.string(forKey: M365Config.StorageKeys.clientId) ?? ""
+        let tenantId = UserDefaults.standard.string(forKey: M365Config.StorageKeys.tenantId) ?? ""
+        guard !clientId.isEmpty, clientId != M365Config.defaultClientId,
+              !tenantId.isEmpty, tenantId != M365Config.defaultTenantId else { return }
+        configure(clientId: clientId, tenantId: tenantId)
+    }
+
     /// Acquire a token, trying silent acquisition first, falling back to interactive sign-in.
     func acquireToken(scopes: [String]) async throws -> String {
+        ensureConfigured()
         guard application != nil else { throw M365AuthError.msalNotAvailable }
 
         if let token = try await acquireTokenSilently(scopes: scopes) {
@@ -112,6 +127,7 @@ final class MSALAuthManager: M365AuthProviding {
 
     /// Interactive sign-in via browser-delegated flow (triggers Authenticator app).
     func signIn(scopes: [String]) async throws -> String {
+        ensureConfigured()
         guard let application else { throw M365AuthError.msalNotAvailable }
 
         guard let viewController = PresentationAnchorProvider.currentViewController() else {
@@ -255,6 +271,8 @@ final class MSALAuthManager: M365AuthProviding {
     func configure(clientId: String, tenantId: String) {
         lastError = "MSAL library not installed. Add the MSAL Swift Package to enable M365 sign-in."
     }
+
+    func ensureConfigured() {}
 
     func acquireToken(scopes: [String]) async throws -> String {
         throw M365AuthError.msalNotAvailable

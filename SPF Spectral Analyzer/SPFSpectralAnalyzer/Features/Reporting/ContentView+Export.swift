@@ -688,6 +688,164 @@ th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
         }
     }
 
+    // MARK: - Quick Open (Auto-Save + Open)
+
+    /// Auto-save CSV to last-used directory and open it.
+    func openCSV(options: ExportOptions) {
+        let spectraToExport = alignedForExport()
+        guard let first = spectraToExport.first else { return }
+
+        var lines: [String] = []
+        if options.includeMetadata {
+            lines.append("# Title: \(options.title)")
+            lines.append("# Operator: \(options.operatorName)")
+            lines.append("# Notes: \(options.notes)")
+        }
+        var header = ["Wavelength (\(analysis.yAxisMode.rawValue))"]
+        header.append(contentsOf: spectraToExport.map { sanitizeCSVField($0.name) })
+        lines.append(header.joined(separator: ","))
+        for i in 0..<first.x.count {
+            var row = [String(format: "%.6f", first.x[i])]
+            for spectrum in spectraToExport {
+                let yVal = i < spectrum.y.count ? spectrum.y[i] : 0.0
+                row.append(String(format: "%.6f", yVal))
+            }
+            lines.append(row.joined(separator: ","))
+        }
+
+        let dir = autoSaveDirectoryURL(for: .analysisExports)
+        let url = dir.appendingPathComponent(timestampedFileName("Spectra.csv"))
+        do {
+            try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+            storeLastSaveDirectory(from: url, key: .analysisExports)
+            PlatformURLOpener.open(url)
+        } catch {
+            analysis.errorMessage = "Failed to open CSV: \(error.localizedDescription)"
+        }
+    }
+
+    /// Auto-save JCAMP to last-used directory and open it.
+    func openJCAMP(options: ExportOptions) {
+        let spectraToExport = alignedForExport()
+
+        var output = "##JCAMP-DX=5.00\n##DATA TYPE=UV/VIS SPECTRUM\n"
+        if options.includeMetadata {
+            if !options.title.isEmpty { output += "##TITLE=\(options.title)\n" }
+            if !options.operatorName.isEmpty { output += "##OWNER=\(options.operatorName)\n" }
+        }
+        for spectrum in spectraToExport {
+            output += "##TITLE=\(spectrum.name)\n"
+            output += "##NPOINTS=\(spectrum.x.count)\n"
+            output += "##XYDATA= (X++(Y..Y))\n"
+            for i in 0..<spectrum.x.count {
+                let yVal = i < spectrum.y.count ? spectrum.y[i] : 0.0
+                output += String(format: "%.6f, %.6f\n", spectrum.x[i], yVal)
+            }
+            output += "##END=\n"
+        }
+
+        let dir = autoSaveDirectoryURL(for: .analysisExports)
+        let url = dir.appendingPathComponent(timestampedFileName("Spectra.jdx"))
+        do {
+            try output.write(to: url, atomically: true, encoding: .utf8)
+            storeLastSaveDirectory(from: url, key: .analysisExports)
+            PlatformURLOpener.open(url)
+        } catch {
+            analysis.errorMessage = "Failed to open JCAMP: \(error.localizedDescription)"
+        }
+    }
+
+    /// Auto-save Excel to last-used directory and open it.
+    func openExcelXLSX(options: ExportOptions) {
+        let spectraToExport = alignedForExport()
+        guard let first = spectraToExport.first else { return }
+
+        var header = ["Wavelength (\(analysis.yAxisMode.rawValue))"]
+        header.append(contentsOf: spectraToExport.map { $0.name })
+        var rows: [[String]] = []
+        for i in 0..<first.x.count {
+            var row = [String(format: "%.6f", first.x[i])]
+            for spectrum in spectraToExport {
+                let yVal = i < spectrum.y.count ? spectrum.y[i] : 0.0
+                row.append(String(format: "%.6f", yVal))
+            }
+            rows.append(row)
+        }
+
+        let dir = autoSaveDirectoryURL(for: .analysisExports)
+        let url = dir.appendingPathComponent(timestampedFileName("Spectra.xlsx"))
+        do {
+            try OOXMLWriter.writeXlsx(header: header, rows: rows, to: url)
+            storeLastSaveDirectory(from: url, key: .analysisExports)
+            PlatformURLOpener.open(url)
+        } catch {
+            analysis.errorMessage = "Failed to open XLSX: \(error.localizedDescription)"
+        }
+    }
+
+    /// Auto-save Word report to last-used directory and open it.
+    func openWordDOCX(options: ExportOptions) {
+        let report = buildAnalysisReport(options: options)
+        let dir = autoSaveDirectoryURL(for: .analysisExports)
+        let url = dir.appendingPathComponent(timestampedFileName("Analysis Report.docx"))
+        do {
+            try OOXMLWriter.writeDocx(report: report, to: url)
+            storeLastSaveDirectory(from: url, key: .analysisExports)
+            PlatformURLOpener.open(url)
+        } catch {
+            analysis.errorMessage = "Failed to open DOCX: \(error.localizedDescription)"
+        }
+    }
+
+    /// Auto-save PDF report to last-used directory and open it.
+    func openPDFReport(options: ExportOptions) {
+        let reportData = buildPDFReportData(options: options)
+        let data = PDFReportRenderer.render(data: reportData)
+        let dir = autoSaveDirectoryURL(for: .analysisExports)
+        let url = dir.appendingPathComponent(timestampedFileName("Analysis Report.pdf"))
+        do {
+            try data.write(to: url)
+            storeLastSaveDirectory(from: url, key: .analysisExports)
+            PlatformURLOpener.open(url)
+        } catch {
+            analysis.errorMessage = "Failed to open PDF: \(error.localizedDescription)"
+        }
+    }
+
+    /// Auto-save HTML report to last-used directory and open it.
+    func openHTMLReport(options: ExportOptions) {
+        let html = buildHTMLReport(options: options)
+        let dir = autoSaveDirectoryURL(for: .analysisExports)
+        let url = dir.appendingPathComponent(timestampedFileName("Analysis Report.html"))
+        do {
+            try html.write(to: url, atomically: true, encoding: .utf8)
+            storeLastSaveDirectory(from: url, key: .analysisExports)
+            PlatformURLOpener.open(url)
+        } catch {
+            analysis.errorMessage = "Failed to open HTML: \(error.localizedDescription)"
+        }
+    }
+
+    /// Auto-save peaks CSV to last-used directory and open it.
+    func openPeaksCSV() {
+        guard !analysis.peaks.isEmpty else { return }
+
+        var lines: [String] = ["Wavelength,Intensity"]
+        for peak in analysis.peaks {
+            lines.append(String(format: "%.6f,%.6f", peak.x, peak.y))
+        }
+
+        let dir = autoSaveDirectoryURL(for: .analysisExports)
+        let url = dir.appendingPathComponent(timestampedFileName("Peaks.csv"))
+        do {
+            try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+            storeLastSaveDirectory(from: url, key: .analysisExports)
+            PlatformURLOpener.open(url)
+        } catch {
+            analysis.errorMessage = "Failed to open peaks CSV: \(error.localizedDescription)"
+        }
+    }
+
     func alignedForExport() -> [ShimadzuSpectrum] {
         let base = analysis.displayedSpectra
         guard let reference = base.first else { return base }

@@ -129,6 +129,42 @@ enum PlatformFileSaver {
     // MARK: - iOS Implementation
 
     #if canImport(UIKit)
+
+    /// Wraps `UIDocumentPickerViewController` for SwiftUI presentation with
+    /// full control over sheet sizing (unlike `.fileImporter`).
+    struct DocumentPickerView: UIViewControllerRepresentable {
+        let contentTypes: [UTType]
+        let allowsMultipleSelection: Bool
+        let onCompletion: (Result<[URL], any Error>) -> Void
+
+        func makeCoordinator() -> Coordinator { Coordinator(onCompletion: onCompletion) }
+
+        func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+            let picker = UIDocumentPickerViewController(forOpeningContentTypes: contentTypes)
+            picker.allowsMultipleSelection = allowsMultipleSelection
+            picker.delegate = context.coordinator
+            return picker
+        }
+
+        func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+
+        final class Coordinator: NSObject, UIDocumentPickerDelegate {
+            let onCompletion: (Result<[URL], any Error>) -> Void
+
+            init(onCompletion: @escaping (Result<[URL], any Error>) -> Void) {
+                self.onCompletion = onCompletion
+            }
+
+            func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+                onCompletion(.success(urls))
+            }
+
+            func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+                onCompletion(.failure(CancellationError()))
+            }
+        }
+    }
+
     private static func saveWithShareSheet(
         defaultName: String,
         data: Data

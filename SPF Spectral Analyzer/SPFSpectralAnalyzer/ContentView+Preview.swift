@@ -35,6 +35,6 @@ private enum PreviewData {
 }
 
 #Preview {
-    ContentView(previewSpectra: PreviewData.loadSpectra(), previewMode: .analyze)
+    ContentView(authManager: MSALAuthManager(), previewSpectra: PreviewData.loadSpectra(), previewMode: .analyze)
 }
 

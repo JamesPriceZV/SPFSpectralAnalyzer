@@ -172,6 +172,13 @@ extension ContentView {
         case validationLogs = "lastSaveDirectory.validationLogs"
     }
 
+    /// Resolve the auto-save directory: last-used → Downloads → temp.
+    func autoSaveDirectoryURL(for key: SaveDirectoryKey) -> URL {
+        lastSaveDirectoryURL(for: key)
+            ?? FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+    }
+
     func lastSaveDirectoryURL(for key: SaveDirectoryKey) -> URL? {
         guard let path = UserDefaults.standard.string(forKey: key.rawValue) else { return nil }
         return URL(fileURLWithPath: path)

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		551F99052F80A66C00CB3E32 /* MSAL in Frameworks */ = {isa = PBXBuildFile; productRef = 551F99042F80A66C00CB3E32 /* MSAL */; };
 		5540A80E2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7FC2F5CD077009D2826 /* File_260226_154159. 50 commercial formula after incubation spc.spc */; };
 		5540A80F2F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7B02F5CD077009D2826 /* File_260207_131235. CVS 50 16.1 mg tio2 zno2 combo spc.spc */; };
 		5540A8102F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A80C2F5CD077009D2826 /* File_260226_163838. project 26 after incubation spc.spc */; };
@@ -289,7 +290,6 @@
 		5540A9252F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7D72F5CD077009D2826 /* File_260217_143644.Neutragena 50 Zno2 + Tio2 15.5 mg after incubationspc.spc */; };
 		5540A9262F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7DE2F5CD077009D2826 /* File_260217_144758. 020426 15.5 mg after incubationspc.spc */; };
 		5540A9272F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc in Resources */ = {isa = PBXBuildFile; fileRef = 5540A7F02F5CD077009D2826 /* File_260226_145141. 20 in house formula spc.spc */; };
-		5554A8EC2F7DB09700271D2C /* MSAL in Frameworks */ = {isa = PBXBuildFile; productRef = 5554A8EB2F7DB09700271D2C /* MSAL */; };
 		55CABC722F64A542001BA1CF /* Diagnostics1600.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = 55CABC702F64A542001BA1CF /* Diagnostics1600.xlsx */; };
 		55CABC732F64A542001BA1CF /* Diagnostics1514.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = 55CABC6F2F64A542001BA1CF /* Diagnostics1514.xlsx */; };
 		55CABC752F64A995001BA1CF /* CloudKit Debug1621.txt in Resources */ = {isa = PBXBuildFile; fileRef = 55CABC742F64A995001BA1CF /* CloudKit Debug1621.txt */; };
@@ -458,7 +458,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5554A8EC2F7DB09700271D2C /* MSAL in Frameworks */,
+				551F99052F80A66C00CB3E32 /* MSAL in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -593,6 +593,7 @@
 				554A4F2E2F5CAC80007FC99A /* SPFSpectralAnalyzerUITests */,
 				554A4F122F5CAC7E007FC99A /* Products */,
 				55CABC712F64A542001BA1CF /* DiagLogs */,
+				5554A8ED2F7DD0CD00271D2C /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -604,6 +605,13 @@
 				554A4F2B2F5CAC80007FC99A /* SPFSpectralAnalyzerUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		5554A8ED2F7DD0CD00271D2C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		55C0F1B22F60000000000002 /* Config */ = {
@@ -651,7 +659,7 @@
 			);
 			name = "SPF Spectral Analyzer";
 			packageProductDependencies = (
-				5554A8EB2F7DB09700271D2C /* MSAL */,
+				551F99042F80A66C00CB3E32 /* MSAL */,
 			);
 			productName = "SPF Spectral Analyzer";
 			productReference = 554A4F112F5CAC7E007FC99A /* SPF Spectral Analyzer.app */;
@@ -736,7 +744,7 @@
 			mainGroup = 554A4F082F5CAC7E007FC99A;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				5554A8EA2F7DB09700271D2C /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */,
+				551F99032F80A66C00CB3E32 /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 554A4F122F5CAC7E007FC99A /* Products */;
@@ -1140,12 +1148,16 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "SPF Spectral Analyser";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppDataUsageDescription = "Allows users to access Contacts, Calendar, and iMessages to quickly share data and collaborate on analyses with others.";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "SPF Spectral Analyzer creates calendar events for calibration reminders and incubation re-test deadlines.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "SPF Spectral Analyzer uses the camera to photograph PMMA plates and sunscreen samples for visual color analysis.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "SPF Spectral Analyzer accesses your photo library to analyze existing photographs of PMMA plates and sunscreen samples.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
+					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 2.0;
@@ -1208,12 +1220,16 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "SPF Spectral Analyser";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppDataUsageDescription = "Allows users to access Contacts, Calendar, and iMessages to quickly share data and collaborate on analyses with others.";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "SPF Spectral Analyzer creates calendar events for calibration reminders and incubation re-test deadlines.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "SPF Spectral Analyzer uses the camera to photograph PMMA plates and sunscreen samples for visual color analysis.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "SPF Spectral Analyzer accesses your photo library to analyze existing photographs of PMMA plates and sunscreen samples.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
+					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 2.0;
@@ -1302,6 +1318,7 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -1360,6 +1377,7 @@
 				SDKROOT = macosx;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -1489,20 +1507,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		5554A8EA2F7DB09700271D2C /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */ = {
+		551F99032F80A66C00CB3E32 /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/AzureAD/microsoft-authentication-library-for-objc";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.9.0;
+				minimumVersion = 2.10.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		5554A8EB2F7DB09700271D2C /* MSAL */ = {
+		551F99042F80A66C00CB3E32 /* MSAL */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 5554A8EA2F7DB09700271D2C /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */;
+			package = 551F99032F80A66C00CB3E32 /* XCRemoteSwiftPackageReference "microsoft-authentication-library-for-objc" */;
 			productName = MSAL;
 		};
 /* End XCSwiftPackageProductDependency section */

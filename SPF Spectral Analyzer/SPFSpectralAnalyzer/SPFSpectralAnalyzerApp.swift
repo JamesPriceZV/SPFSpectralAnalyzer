@@ -22,6 +22,7 @@ struct SPFSpectralAnalyzerApp: App {
     #endif
     @StateObject private var dataStoreController = DataStoreController()
     @StateObject private var instrumentManager = InstrumentManager(driver: MockInstrumentDriver())
+    @State private var sharedAuthManager = MSALAuthManager()
 
     init() {
         #if os(macOS)
@@ -162,6 +163,7 @@ struct SPFSpectralAnalyzerApp: App {
     var body: some Scene {
         WindowGroup {
             RootContentView()
+                .environment(sharedAuthManager)
                 .environmentObject(dataStoreController)
                 .environmentObject(instrumentManager)
         }
@@ -197,6 +199,7 @@ struct SPFSpectralAnalyzerApp: App {
 
         Settings {
             RootSettingsView()
+                .environment(sharedAuthManager)
                 .environmentObject(dataStoreController)
         }
         #endif
@@ -342,10 +345,11 @@ struct SPFSpectralAnalyzerApp: App {
 private struct RootContentView: View {
     @EnvironmentObject private var dataStoreController: DataStoreController
     @Environment(\.modelContext) private var modelContext
+    @Environment(MSALAuthManager.self) private var authManager
     @State private var isExportingHTML = false
 
     var body: some View {
-        ContentView()
+        ContentView(authManager: authManager)
             .modelContainer(dataStoreController.container)
             .id(dataStoreController.containerID)
             .onReceive(NotificationCenter.default.publisher(for: .exportHTMLReportRequested)) { _ in
@@ -427,9 +431,10 @@ private struct RootContentView: View {
 
 private struct RootSettingsView: View {
     @EnvironmentObject private var dataStoreController: DataStoreController
+    @Environment(MSALAuthManager.self) private var authManager
 
     var body: some View {
-        SettingsView()
+        SettingsView(m365AuthManager: authManager)
             .modelContainer(dataStoreController.container)
             .id(dataStoreController.containerID)
     }

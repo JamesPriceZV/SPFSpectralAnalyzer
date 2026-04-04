@@ -9,16 +9,55 @@ struct EnterpriseSearchView: View {
     @State private var viewModel: EnterpriseSearchViewModel
     @State private var showExportSheet = false
     @State private var selectedCitationID: GroundingCitation.ID?
+    @State private var browseMode = false
+
+    /// Which Enterprise sub-feature is active.
+    enum EnterpriseTab: String, CaseIterable, Identifiable {
+        case search = "Search"
+        case teams = "Teams"
+        var id: String { rawValue }
+    }
+
+    @State private var activeTab: EnterpriseTab = .search
+    private let authManager: MSALAuthManager
 
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
     #endif
 
     init(authManager: MSALAuthManager) {
+        self.authManager = authManager
         _viewModel = State(initialValue: EnterpriseSearchViewModel(authManager: authManager))
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            // Enterprise sub-tab picker
+            Picker("Enterprise", selection: $activeTab) {
+                ForEach(EnterpriseTab.allCases) { tab in
+                    Label(tab.rawValue, systemImage: tab == .search ? "magnifyingglass" : "bubble.left.and.text.bubble.right")
+                        .tag(tab)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+
+            switch activeTab {
+            case .search:
+                if browseMode {
+                    EnterpriseFileBrowserView(authManager: authManager)
+                } else {
+                    searchBody
+                }
+            case .teams:
+                TeamsView(authManager: authManager)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var searchBody: some View {
         #if os(iOS)
         if sizeClass == .regular {
             iPadLayout
@@ -147,6 +186,16 @@ struct EnterpriseSearchView: View {
             Spacer()
 
             if viewModel.authManager.isSignedIn {
+                // Search / Browse toggle
+                if activeTab == .search {
+                    Picker("Mode", selection: $browseMode) {
+                        Label("Search", systemImage: "magnifyingglass").tag(false)
+                        Label("Browse", systemImage: "folder").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 200)
+                }
+
                 Button {
                     showExportSheet = true
                 } label: {

@@ -231,6 +231,111 @@ enum GraphUploadService {
         return listResponse.value
     }
 
+    // MARK: - OneDrive Folder Listing
+
+    /// List items in the signed-in user's OneDrive root or a specific folder.
+    /// - Parameters:
+    ///   - folderItemId: The DriveItem id of the folder to list, or nil for root.
+    ///   - token: Valid Microsoft Graph access token with Files.Read.All scope.
+    ///   - session: URLSession to use for requests.
+    /// - Returns: Array of items (files and folders) in the specified folder.
+    static func listOneDriveFolder(
+        folderItemId: String? = nil,
+        token: String,
+        session: URLSession = .shared
+    ) async throws -> [GraphDriveItem] {
+        let urlString: String
+        if let folderItemId {
+            urlString = "\(M365Config.graphBaseURL)/me/drive/items/\(folderItemId)/children?$top=200&$orderby=name"
+        } else {
+            urlString = "\(M365Config.graphBaseURL)/me/drive/root/children?$top=200&$orderby=name"
+        }
+
+        guard let url = URL(string: urlString) else {
+            throw GraphUploadError.invalidURL(urlString)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+
+        let listResponse = try JSONDecoder().decode(GraphDriveItemList.self, from: data)
+        return listResponse.value
+    }
+
+    // MARK: - SharePoint Folder Listing (by Item ID)
+
+    /// List items in a SharePoint folder by item ID.
+    static func listSharePointFolder(
+        sitePath: String,
+        folderItemId: String? = nil,
+        token: String,
+        session: URLSession = .shared
+    ) async throws -> [GraphDriveItem] {
+        let urlString: String
+        if let folderItemId {
+            urlString = "\(M365Config.graphBaseURL)/sites/\(sitePath)/drive/items/\(folderItemId)/children?$top=200&$orderby=name"
+        } else {
+            urlString = "\(M365Config.graphBaseURL)/sites/\(sitePath)/drive/root/children?$top=200&$orderby=name"
+        }
+
+        guard let url = URL(string: urlString) else {
+            throw GraphUploadError.invalidURL(urlString)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+
+        let listResponse = try JSONDecoder().decode(GraphDriveItemList.self, from: data)
+        return listResponse.value
+    }
+
+    // MARK: - Drive Search
+
+    /// Search files in OneDrive or a SharePoint site's document library.
+    /// - Parameters:
+    ///   - query: The search query string.
+    ///   - sitePath: Optional SharePoint site path. When nil, searches user's OneDrive.
+    ///   - token: Valid Microsoft Graph access token.
+    ///   - session: URLSession to use for requests.
+    /// - Returns: Array of matching drive items.
+    static func searchDriveItems(
+        query: String,
+        sitePath: String? = nil,
+        token: String,
+        session: URLSession = .shared
+    ) async throws -> [GraphDriveItem] {
+        let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+
+        let urlString: String
+        if let sitePath {
+            urlString = "\(M365Config.graphBaseURL)/sites/\(sitePath)/drive/root/search(q='\(encodedQuery)')?$top=50"
+        } else {
+            urlString = "\(M365Config.graphBaseURL)/me/drive/root/search(q='\(encodedQuery)')?$top=50"
+        }
+
+        guard let url = URL(string: urlString) else {
+            throw GraphUploadError.invalidURL(urlString)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+
+        let listResponse = try JSONDecoder().decode(GraphDriveItemList.self, from: data)
+        return listResponse.value
+    }
+
     // MARK: - Helpers
 
     private static func validateResponse(_ response: URLResponse, data: Data) throws {
