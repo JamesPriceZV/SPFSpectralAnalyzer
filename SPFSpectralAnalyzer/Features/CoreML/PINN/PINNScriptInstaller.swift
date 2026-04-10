@@ -36,11 +36,20 @@ enum PINNScriptInstaller {
         let utilsContent = sharedUtilitiesScript()
         let utilsURL = scriptsDir.appendingPathComponent("pinn_utils.py")
         try? utilsContent.write(to: utilsURL, atomically: true, encoding: .utf8)
+        #if os(macOS)
+        try? fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: utilsURL.path)
+        utilsURL.path.withCString { cPath in _ = removexattr(cPath, "com.apple.quarantine", 0) }
+        PythonEnvironmentDetector.codesignFile(at: utilsURL.path)
+        #endif
 
         // Also install requirements.txt
         let reqContent = requirementsFile()
         let reqURL = scriptsDir.appendingPathComponent("requirements.txt")
         try? reqContent.write(to: reqURL, atomically: true, encoding: .utf8)
+        #if os(macOS)
+        reqURL.path.withCString { cPath in _ = removexattr(cPath, "com.apple.quarantine", 0) }
+        PythonEnvironmentDetector.codesignFile(at: reqURL.path)
+        #endif
 
         var installed: [String] = []
         let skipped: [String] = []
@@ -55,6 +64,10 @@ enum PINNScriptInstaller {
                 try content.write(to: scriptURL, atomically: true, encoding: .utf8)
                 // Make executable
                 try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+                #if os(macOS)
+                scriptURL.path.withCString { cPath in _ = removexattr(cPath, "com.apple.quarantine", 0) }
+                PythonEnvironmentDetector.codesignFile(at: scriptURL.path)
+                #endif
                 installed.append(scriptName)
             } catch {
                 errors.append("\(scriptName): \(error.localizedDescription)")
@@ -151,36 +164,43 @@ enum PINNScriptInstaller {
             import coremltools as ct
 
             model.eval()
-            example_input = torch.randn(1, input_shape)
 
-            traced = torch.jit.trace(model, example_input)
+            # Always save PyTorch state dict as fallback
+            pt_path = output_path + ".pt"
+            torch.save(model.state_dict(), pt_path)
+            print(f"PyTorch model saved to {pt_path}", flush=True)
 
-            mlmodel = ct.convert(
-                traced,
-                inputs=[ct.TensorType(name="input", shape=(1, input_shape))],
-                outputs=[ct.TensorType(name="output")],
-                minimum_deployment_target=ct.target.macOS13,
-            )
+            # Step 1: Trace and convert to CoreML
+            try:
+                example_input = torch.randn(1, input_shape)
+                traced = torch.jit.trace(model, example_input)
+                mlmodel = ct.convert(
+                    traced,
+                    inputs=[ct.TensorType(name="input", shape=(1, input_shape))],
+                    outputs=[ct.TensorType(name="output")],
+                    minimum_deployment_target=ct.target.macOS13,
+                )
+            except Exception as e:
+                print(f"WARNING: CoreML conversion failed: {e}", flush=True)
+                print(f"PyTorch model saved at {pt_path}. Manual conversion may be needed.", flush=True)
+                return
 
-            # Save as .mlpackage then compile
+            # Step 2: Save as .mlpackage
             package_path = output_path + ".mlpackage"
             mlmodel.save(package_path)
+            print(f"Model saved as .mlpackage at {package_path}", flush=True)
 
-            # Compile to .mlmodelc
+            # Step 3: Compile to .mlmodelc via xcrun (use full path for PATH safety)
             compiled_path = output_path + ".mlmodelc"
-            os.system(f'xcrun coremlcompiler compile "{package_path}" "{os.path.dirname(output_path)}"')
+            compile_cmd = f'/usr/bin/xcrun coremlcompiler compile "{package_path}" "{os.path.dirname(output_path)}"'
+            exit_code = os.system(compile_cmd)
 
             if os.path.exists(compiled_path):
-                print(f"Model saved to {compiled_path}", flush=True)
+                print(f"Model compiled to {compiled_path}", flush=True)
             else:
-                # Try alternative compile approach
-                from coremltools.models import CompiledMLModel
-                try:
-                    compiled = ct.models.CompiledMLModel(package_path)
-                    print(f"Model compiled at {compiled_path}", flush=True)
-                except Exception:
-                    print(f"Warning: Model saved as .mlpackage at {package_path}", flush=True)
-                    print(f"Compile manually: xcrun coremlcompiler compile \\"{package_path}\\" \\"{os.path.dirname(output_path)}\\"", flush=True)
+                print(f"WARNING: coremlcompiler exited with code {exit_code >> 8}", flush=True)
+                print(f"The .mlpackage was saved at {package_path}", flush=True)
+                print(f"Compile manually: xcrun coremlcompiler compile \\"{package_path}\\" \\"{os.path.dirname(output_path)}\\"", flush=True)
 
         class ReLoBRaLo:
             \"\"\"Random Loss Balancing with Look-ahead (ReLoBRaLo).

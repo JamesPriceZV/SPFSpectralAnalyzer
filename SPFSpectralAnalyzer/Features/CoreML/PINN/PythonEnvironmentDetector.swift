@@ -590,19 +590,46 @@ enum PythonEnvironmentDetector {
     }
 
     /// Launches a bash script in Terminal.app via `/usr/bin/osascript` (AppleScript).
-    /// No .command file is created — the script is passed directly to Terminal via Apple Events.
+    /// Writes the script to a temp file first — avoids fragile AppleScript string escaping
+    /// for multi-line bash scripts that contain quotes, $variables, emoji, and backslashes.
     /// `/usr/bin/osascript` is a system binary that Process() can always execute, even on Tahoe.
     private static func runViaOsascript(_ script: String, label: String) -> Bool {
-        // Escape the bash script for embedding inside an AppleScript string literal.
-        // AppleScript strings use \" for quotes and \\ for backslashes.
-        let escaped = script
+        let fm = FileManager.default
+        let safeName = label
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "/", with: "_")
+        let scriptURL = fm.temporaryDirectory
+            .appendingPathComponent("spf_\(safeName)_\(ProcessInfo.processInfo.processIdentifier).sh")
+
+        // Step 1: Write script to temp file (avoids AppleScript string escaping issues)
+        do {
+            try script.write(to: scriptURL, atomically: true, encoding: .utf8)
+            try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+        } catch {
+            Instrumentation.log(
+                "Failed to write temp script for osascript",
+                area: .mlTraining, level: .warning,
+                details: "label=\(label) error=\(error.localizedDescription)"
+            )
+            return false
+        }
+
+        // Step 2: Remove quarantine and code-sign the temp script
+        scriptURL.path.withCString { cPath in
+            _ = removexattr(cPath, "com.apple.quarantine", 0)
+        }
+        codesignFile(at: scriptURL.path)
+
+        // Step 3: Tell Terminal to run the script file via AppleScript.
+        // Using AppleScript's "quoted form of" for safe shell path escaping.
+        let posixPath = scriptURL.path
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
-
         let appleScriptSource = """
+        set spfScript to "\(posixPath)"
         tell application "Terminal"
             activate
-            do script "\(escaped)"
+            do script "/bin/bash " & quoted form of spfScript
         end tell
         """
 
@@ -618,9 +645,9 @@ enum PythonEnvironmentDetector {
             let exitCode = process.terminationStatus
             if exitCode == 0 {
                 Instrumentation.log(
-                    "Script launched in Terminal via osascript",
+                    "Script launched in Terminal via osascript (file-based)",
                     area: .mlTraining, level: .info,
-                    details: "label=\(label)"
+                    details: "label=\(label) scriptFile=\(scriptURL.path)"
                 )
                 return true
             } else {
@@ -725,7 +752,7 @@ enum PythonEnvironmentDetector {
     /// Code-signs a file at the given path using the developer's certificate.
     /// Falls back to ad-hoc signing (`-`) if no identity is found.
     @discardableResult
-    private static func codesignFile(at path: String) -> Bool {
+    static func codesignFile(at path: String) -> Bool {
         let identity = findSigningIdentity() ?? "-"
 
         do {

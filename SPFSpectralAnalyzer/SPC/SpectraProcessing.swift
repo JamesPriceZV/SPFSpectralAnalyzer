@@ -210,11 +210,11 @@ nonisolated struct SpectraProcessing {
             }
         }
 
-        // Column-major flat matrix for LAPACK
+        // Row-major matrix for Gaussian elimination
         var a = Array(repeating: 0.0, count: n * n)
         for row in 0..<n {
             for col in 0..<n {
-                a[col * n + row] = xPowers[row + col]  // column-major
+                a[row * n + col] = xPowers[row + col]
             }
         }
 
@@ -227,16 +227,7 @@ nonisolated struct SpectraProcessing {
             }
         }
 
-        // Solve via Accelerate linear algebra
-        var N = Int32(n)
-        var nrhs: Int32 = 1
-        var lda = N
-        var ldb = N
-        var ipiv = Array(repeating: Int32(0), count: n)
-        var info: Int32 = 0
-        dgesv_(&N, &nrhs, &a, &lda, &ipiv, &b, &ldb, &info)
-        guard info == 0 else { return [] }
-        return b
+        return solveGaussian(a: a, b: b, n: n)
     }
 
     private static func savitzkyGolayCoefficients(window: Int, order: Int) -> [Double] {
@@ -245,58 +236,106 @@ nonisolated struct SpectraProcessing {
         let cols = order + 1
         let rows = window
 
-        // Build Vandermonde matrix A (column-major for LAPACK)
-        var a = Array(repeating: 0.0, count: rows * cols)
+        // Build Vandermonde matrix V (row-major: rows x cols)
+        var v = Array(repeating: 0.0, count: rows * cols)
         for i in 0..<rows {
             let k = Double(i - half)
             var value = 1.0
             for j in 0..<cols {
-                a[j * rows + i] = value  // column-major
+                v[i * cols + j] = value
                 value *= k
             }
         }
 
-        // Solve least-squares for each unit vector e_0 = [1,0,...,0]
-        // to get the smoothing coefficients (first row of pseudoinverse)
-        // We solve A * x = e_i for i=0 only (smoothing = 0th derivative)
-        var rhs = Array(repeating: 0.0, count: rows)
-        rhs[half] = 1.0  // identity column for center point
-
-        var m = Int32(rows)
-        var n = Int32(cols)
-        var nrhs: Int32 = 1
-        var lda = m
-        var ldb = m
-        var info: Int32 = 0
-
-        // Query workspace size
-        var trans = Int8(UInt8(ascii: "N"))
-        var workQuery = 0.0
-        var lwork: Int32 = -1
-        dgels_(&trans, &m, &n, &nrhs, &a, &lda, &rhs, &ldb, &workQuery, &lwork, &info)
-        lwork = Int32(workQuery)
-        var work = Array(repeating: 0.0, count: Int(lwork))
-        dgels_(&trans, &m, &n, &nrhs, &a, &lda, &rhs, &ldb, &work, &lwork, &info)
-        guard info == 0 else { return [] }
-
-        // rhs[0..<cols] now holds the least-squares coefficients.
-        // Reconstruct smoothing weights: multiply Vandermonde by coefficients.
-        // Rebuild Vandermonde (dgels_ overwrites a)
-        var vandermonde = Array(repeating: 0.0, count: rows * cols)
-        for i in 0..<rows {
-            let k = Double(i - half)
-            var value = 1.0
-            for j in 0..<cols {
-                vandermonde[j * rows + i] = value
-                value *= k
+        // Solve via normal equations: (V^T V) c = V^T e_half
+        // where e_half is the unit vector with 1 at index `half`
+        // Build V^T V (cols x cols, row-major)
+        var ata = Array(repeating: 0.0, count: cols * cols)
+        for r in 0..<cols {
+            for c in 0..<cols {
+                var sum = 0.0
+                for i in 0..<rows {
+                    sum += v[i * cols + r] * v[i * cols + c]
+                }
+                ata[r * cols + c] = sum
             }
         }
-        let coeffs = Array(rhs[0..<cols])
+
+        // Build V^T e_half
+        var atb = Array(repeating: 0.0, count: cols)
+        for j in 0..<cols {
+            atb[j] = v[half * cols + j]
+        }
+
+        // Solve (V^T V) coeffs = V^T e_half
+        let coeffs = solveGaussian(a: ata, b: atb, n: cols)
+        if coeffs.isEmpty { return [] }
+
+        // Reconstruct smoothing weights: weights = V * coeffs
         var weights = Array(repeating: 0.0, count: rows)
-        // weights = Vandermonde * coeffs
-        cblas_dgemv(CblasColMajor, CblasNoTrans, Int32(rows), Int32(cols),
-                    1.0, vandermonde, Int32(rows), coeffs, 1, 0.0, &weights, 1)
+        for i in 0..<rows {
+            var sum = 0.0
+            for j in 0..<cols {
+                sum += v[i * cols + j] * coeffs[j]
+            }
+            weights[i] = sum
+        }
         return weights
+    }
+
+    /// Gaussian elimination with partial pivoting for small systems (row-major).
+    private static func solveGaussian(a: [Double], b: [Double], n: Int) -> [Double] {
+        guard n > 0, a.count == n * n, b.count == n else { return [] }
+
+        // Augmented matrix [A|b] stored row-major, n rows x (n+1) cols
+        var aug = Array(repeating: 0.0, count: n * (n + 1))
+        for r in 0..<n {
+            for c in 0..<n {
+                aug[r * (n + 1) + c] = a[r * n + c]
+            }
+            aug[r * (n + 1) + n] = b[r]
+        }
+
+        // Forward elimination with partial pivoting
+        for col in 0..<n {
+            // Find pivot
+            var maxVal = abs(aug[col * (n + 1) + col])
+            var maxRow = col
+            for row in (col + 1)..<n {
+                let val = abs(aug[row * (n + 1) + col])
+                if val > maxVal { maxVal = val; maxRow = row }
+            }
+            if maxVal < 1.0e-14 { return [] }
+
+            // Swap rows
+            if maxRow != col {
+                for c in 0...(n) {
+                    let tmp = aug[col * (n + 1) + c]
+                    aug[col * (n + 1) + c] = aug[maxRow * (n + 1) + c]
+                    aug[maxRow * (n + 1) + c] = tmp
+                }
+            }
+
+            // Eliminate below
+            let pivot = aug[col * (n + 1) + col]
+            for row in (col + 1)..<n {
+                let factor = aug[row * (n + 1) + col] / pivot
+                for c in col...(n) {
+                    aug[row * (n + 1) + c] -= factor * aug[col * (n + 1) + c]
+                }
+            }
+        }
+
+        // Back substitution
+        var result = Array(repeating: 0.0, count: n)
+        for row in stride(from: n - 1, through: 0, by: -1) {
+            var sum = aug[row * (n + 1) + n]
+            for c in (row + 1)..<n {
+                sum -= aug[row * (n + 1) + c] * result[c]
+            }
+            result[row] = sum / aug[row * (n + 1) + row]
+        }
+        return result
     }
 
 

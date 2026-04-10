@@ -566,38 +566,38 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
                 ),
                 TrainingDataSource(
                     name: "GNPS2 Reference Libraries (JSON)",
-                    description: "2.9M MS/MS spectra, JSON bulk download",
-                    url: URL(string: "https://external.gnps2.org/gnpslibrary"),
+                    description: "2.9M MS/MS spectra — browse gnps2.org to select libraries",
+                    url: nil,
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Ethanol MS",
                     description: "JCAMP-DX mass spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C64175&Type=Mass"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C64175&Index=0&Type=Mass"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Acetone MS",
                     description: "JCAMP-DX mass spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67641&Type=Mass"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67641&Index=0&Type=Mass"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Benzene MS",
                     description: "JCAMP-DX mass spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C71432&Type=Mass"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C71432&Index=0&Type=Mass"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Caffeine MS",
                     description: "JCAMP-DX mass spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C58082&Type=Mass"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C58082&Index=0&Type=Mass"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Aspirin MS",
                     description: "JCAMP-DX mass spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C50782&Type=Mass"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C50782&Index=0&Type=Mass"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
@@ -719,14 +719,14 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
                 ),
                 TrainingDataSource(
                     name: "COD — Bulk MySQL Archive",
-                    description: "450,000+ crystal structures, CIF format",
-                    url: URL(string: "https://www.crystallography.net/cod/sql/cod.sql.gz"),
+                    description: "450,000+ crystal structures — multi-GB SQL dump, manual download",
+                    url: nil,
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "COD — CIF Tarball (Inorganic)",
-                    description: "inorganic crystal structures, bulk CIF download",
-                    url: URL(string: "https://www.crystallography.net/cod/cif/cif-inorg.tar.gz"),
+                    description: "inorganic crystal structures — multi-GB tar.gz, manual download",
+                    url: nil,
                     isLicensed: false
                 ),
                 TrainingDataSource(
@@ -753,31 +753,31 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
                 TrainingDataSource(
                     name: "NIST WebBook — Ethanol GC-MS",
                     description: "JCAMP-DX mass spectrum for GC reference compound",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C64175&Type=Mass"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C64175&Index=0&Type=Mass"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Hexane GC-MS",
                     description: "JCAMP-DX mass spectrum for GC reference compound",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C110543&Type=Mass"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C110543&Index=0&Type=Mass"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Methanol GC-MS",
                     description: "JCAMP-DX mass spectrum for GC reference compound",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67561&Type=Mass"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67561&Index=0&Type=Mass"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Dichloromethane GC-MS",
                     description: "JCAMP-DX mass spectrum for GC reference compound",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C75092&Type=Mass"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C75092&Index=0&Type=Mass"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Chloroform GC-MS",
                     description: "JCAMP-DX mass spectrum for GC reference compound",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67663&Type=Mass"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67663&Index=0&Type=Mass"),
                     isLicensed: false
                 ),
                 TrainingDataSource(

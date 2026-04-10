@@ -135,6 +135,9 @@ final class TrainingDataDownloader {
         let apiURL = URL(string: "https://api.figshare.com/v2/articles/\(articleID)/files")!
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
+        config.httpAdditionalHeaders = [
+            "User-Agent": "SPFSpectralAnalyzer/1.0 (macOS; spectral-data-download)"
+        ]
         let session = URLSession(configuration: config)
         let (data, response) = try await session.data(from: apiURL)
 
@@ -180,7 +183,8 @@ final class TrainingDataDownloader {
         let sourceName = source.name
 
         do {
-            let (data, response) = try await downloadWithProgress(url: url, sourceName: sourceName)
+            let (fileURL, response) = try await downloadWithProgress(url: url, sourceName: sourceName)
+            defer { try? FileManager.default.removeItem(at: fileURL) }
 
             guard let httpResponse = response as? HTTPURLResponse,
                   (200...299).contains(httpResponse.statusCode) else {
@@ -189,11 +193,20 @@ final class TrainingDataDownloader {
                 return
             }
 
-            // Smart content sniffing
-            let rawPrefix = String(data: data.prefix(512), encoding: .utf8)?
+            // Read first 512 bytes for format sniffing (avoids loading entire file into memory)
+            let prefixData: Data
+            do {
+                let handle = try FileHandle(forReadingFrom: fileURL)
+                prefixData = handle.readData(ofLength: 512)
+                handle.closeFile()
+            } catch {
+                prefixData = Data()
+            }
+            let fileSize = Int64((try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+
+            let rawPrefix = String(data: prefixData, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let detectedFormat = Self.detectDataFormat(prefix: rawPrefix, data: data)
-            let fileSize = Int64(data.count)
+            let detectedFormat = Self.detectDataFormat(prefix: rawPrefix, data: prefixData)
 
             if let format = detectedFormat {
                 let safeName = sourceName
@@ -201,12 +214,13 @@ final class TrainingDataDownloader {
                     .replacingOccurrences(of: "/", with: "_")
                     .replacingOccurrences(of: "—", with: "-")
                 let dataURL = destDir.appendingPathComponent("\(safeName).\(format.fileExtension)")
-                try data.write(to: dataURL)
+                try? FileManager.default.removeItem(at: dataURL)
+                try FileManager.default.moveItem(at: fileURL, to: dataURL)
 
                 Instrumentation.log(
                     "Downloaded \(format.name) data for \(domain.displayName)",
                     area: .mlTraining, level: .info,
-                    details: "source=\(sourceName) format=\(format.name) size=\(data.count)"
+                    details: "source=\(sourceName) format=\(format.name) size=\(fileSize)"
                 )
                 sourceStatuses[sourceName] = .completed(fileSize: fileSize)
                 return
@@ -223,7 +237,8 @@ final class TrainingDataDownloader {
                 let safeName = sourceName.replacingOccurrences(of: " ", with: "_")
                     .replacingOccurrences(of: "/", with: "_")
                 let htmlURL = destDir.appendingPathComponent("\(safeName)_LANDING_PAGE.html")
-                try data.write(to: htmlURL)
+                try? FileManager.default.removeItem(at: htmlURL)
+                try? FileManager.default.moveItem(at: fileURL, to: htmlURL)
                 sourceStatuses[sourceName] = .failed("HTML page")
                 return
             }
@@ -240,13 +255,15 @@ final class TrainingDataDownloader {
             } else {
                 baseName = rawLastComponent.replacingOccurrences(of: " ", with: "_")
             }
-            try data.write(to: destDir.appendingPathComponent(baseName))
+            let destFileURL = destDir.appendingPathComponent(baseName)
+            try? FileManager.default.removeItem(at: destFileURL)
+            try FileManager.default.moveItem(at: fileURL, to: destFileURL)
             sourceStatuses[sourceName] = .completed(fileSize: fileSize)
 
             Instrumentation.log(
                 "Training data downloaded for \(domain.displayName)",
                 area: .mlTraining, level: .info,
-                details: "source=\(sourceName) size=\(data.count)"
+                details: "source=\(sourceName) size=\(fileSize)"
             )
         } catch {
             sourceStatuses[sourceName] = .failed(error.localizedDescription)
@@ -259,10 +276,16 @@ final class TrainingDataDownloader {
     }
 
     /// Downloads data from a URL with byte-level progress reporting back to `sourceStatuses`.
-    private func downloadWithProgress(url: URL, sourceName: String) async throws -> (Data, URLResponse) {
+    /// Downloads data from a URL with byte-level progress reporting.
+    /// Returns a stable temp file URL (caller must clean up) and the HTTP response.
+    /// Files are NOT loaded into memory — supports multi-GB downloads.
+    private func downloadWithProgress(url: URL, sourceName: String) async throws -> (URL, URLResponse) {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 60
-        config.timeoutIntervalForResource = 300
+        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForResource = 1800
+        config.httpAdditionalHeaders = [
+            "User-Agent": "SPFSpectralAnalyzer/1.0 (macOS; spectral-data-download)"
+        ]
         let delegate = DownloadProgressDelegate()
         let session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
 
@@ -278,9 +301,11 @@ final class TrainingDataDownloader {
         }
 
         let (localURL, response) = try await session.download(from: url)
-        let data = try Data(contentsOf: localURL)
-        try? FileManager.default.removeItem(at: localURL)
-        return (data, response)
+        // Move to stable temp path — URLSession temp files may be reclaimed immediately
+        let stableURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.moveItem(at: localURL, to: stableURL)
+        return (stableURL, response)
     }
 
     /// Downloads all files from a Figshare article using the API v2.
@@ -304,11 +329,14 @@ final class TrainingDataDownloader {
 
             var totalSize: Int64 = 0
             for file in files {
-                let (data, response) = try await downloadWithProgress(url: file.url, sourceName: sourceName)
+                let (fileURL, response) = try await downloadWithProgress(url: file.url, sourceName: sourceName)
+                defer { try? FileManager.default.removeItem(at: fileURL) }
                 guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { continue }
                 let destURL = destDir.appendingPathComponent(file.name)
-                try data.write(to: destURL)
-                totalSize += Int64(data.count)
+                try? FileManager.default.removeItem(at: destURL)
+                try FileManager.default.moveItem(at: fileURL, to: destURL)
+                let size = Int64((try? destURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+                totalSize += size
             }
 
             sourceStatuses[sourceName] = .completed(fileSize: totalSize)
@@ -440,7 +468,7 @@ final class TrainingDataDownloader {
     // MARK: - Download Progress Delegate
 
     /// URLSession delegate that reports download progress via a closure.
-    private final class DownloadProgressDelegate: NSObject, URLSessionDownloadDelegate {
+    private final class DownloadProgressDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
         /// Called with (bytesWritten, totalBytesExpectedToWrite). totalBytes is -1 if unknown.
         var onProgress: ((_ bytesWritten: Int64, _ totalBytes: Int64) -> Void)?
 
