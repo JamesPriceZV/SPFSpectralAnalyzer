@@ -197,7 +197,9 @@ struct MLTrainingView: View {
                     confidenceHigh: 0,
                     decomposition: nil,
                     physicsConsistencyScore: 1.0,
-                    domain: domain
+                    domain: domain,
+                    ensembleStd: 0,
+                    headValues: []
                 )
             }
         }

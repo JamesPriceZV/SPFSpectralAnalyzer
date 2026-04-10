@@ -140,23 +140,23 @@ struct SettingsView: View {
     @AppStorage("aiCostTrackingEnabled") private var aiCostTrackingEnabled = false
 
     @State private var showAPIKey = false
-    @State private var hasStoredAPIKey = false
+    @State private var hasStoredAPIKey = KeychainStore.readPassword(account: KeychainKeys.openAIAPIKey) != nil
     @State private var apiKeyDraft = ""
     @State private var showOpenAIKeyBrowser = false
 
     // Anthropic Claude state
     @State private var showClaudeAPIKey = false
-    @State private var hasStoredClaudeAPIKey = false
+    @State private var hasStoredClaudeAPIKey = KeychainStore.readPassword(account: KeychainKeys.anthropicAPIKey) != nil
     @State private var claudeAPIKeyDraft = ""
     @State private var draftClaudeModel = "claude-sonnet-4-5-20250514"
 
     @State private var showGrokAPIKey = false
-    @State private var hasStoredGrokAPIKey = false
+    @State private var hasStoredGrokAPIKey = KeychainStore.readPassword(account: KeychainKeys.grokAPIKey) != nil
     @State private var grokAPIKeyDraft = ""
     @State private var draftGrokModel = "grok-3"
 
     @State private var showGeminiAPIKey = false
-    @State private var hasStoredGeminiAPIKey = false
+    @State private var hasStoredGeminiAPIKey = KeychainStore.readPassword(account: KeychainKeys.geminiAPIKey) != nil
     @State private var geminiAPIKeyDraft = ""
     @State private var draftGeminiModel = "gemini-2.5-flash"
 

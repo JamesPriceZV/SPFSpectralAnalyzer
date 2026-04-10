@@ -18,6 +18,7 @@ enum AppMode: String, CaseIterable, Identifiable {
     case enterpriseSearch = "Search"
     case instruments = "Instruments"
     case mlTraining = "ML Training"
+    case jobsDownloads = "Jobs & Downloads"
 
     var id: String { rawValue }
 

@@ -133,7 +133,9 @@ final class FTIRPINNModel: @unchecked Sendable, PINNDomainModel {
                 confidenceHigh: primaryValue + q90,
                 decomposition: identifyFunctionalGroups(wavenumbers: wavelengths, absorbances: intensities),
                 physicsConsistencyScore: physicsScore,
-                domain: .ftir
+                domain: .ftir,
+                ensembleStd: 0,
+                headValues: []
             )
         } catch {
             return nil

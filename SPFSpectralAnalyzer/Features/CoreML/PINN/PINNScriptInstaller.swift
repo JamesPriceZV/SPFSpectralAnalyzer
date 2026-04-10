@@ -127,6 +127,8 @@ enum PINNScriptInstaller {
         import os
         import argparse
         import numpy as np
+        import torch
+        import torch.nn as nn
 
         def parse_args():
             \"\"\"Parse command-line arguments expected by SPF Spectral Analyzer.\"\"\"
@@ -158,49 +160,217 @@ enum PINNScriptInstaller {
             total_loss = data_loss + physics_loss
             print(f"EPOCH:{epoch}/{total_epochs} LOSS:{total_loss:.6f} PHYSICS_LOSS:{physics_loss:.6f}", flush=True)
 
-        def convert_to_coreml(model, input_shape, output_path, domain_name):
-            \"\"\"Convert a PyTorch model to CoreML format.\"\"\"
+        def convert_to_coreml(model, input_shape, output_path, domain_name, num_heads=1):
+            \"\"\"Convert a PyTorch model to CoreML format.
+            When num_heads > 1, the model outputs (1, num_heads) and metadata is saved
+            so the Swift side knows how to interpret the multi-head ensemble output.\"\"\"
             import torch
-            import coremltools as ct
 
             model.eval()
 
             # Always save PyTorch state dict as fallback
             pt_path = output_path + ".pt"
-            torch.save(model.state_dict(), pt_path)
-            print(f"PyTorch model saved to {pt_path}", flush=True)
+            try:
+                torch.save(model.state_dict(), pt_path)
+                print(f"PyTorch model saved to {pt_path}", flush=True)
+            except Exception as e:
+                print(f"ERROR: Failed to save PyTorch model: {e}", flush=True)
+                return
 
-            # Step 1: Trace and convert to CoreML
+            # Save ensemble metadata if multi-head
+            if num_heads > 1:
+                meta_path = output_path + "_ensemble.json"
+                try:
+                    with open(meta_path, 'w') as f:
+                        json.dump({"num_heads": num_heads}, f)
+                    print(f"Ensemble metadata saved to {meta_path}", flush=True)
+                except Exception as e:
+                    print(f"WARNING: Failed to save ensemble metadata: {e}", flush=True)
+
+            # Step 1: Import coremltools (may fail on unsupported Python versions)
+            try:
+                import coremltools as ct
+            except ImportError as e:
+                print(f"WARNING: coremltools not importable: {e}", flush=True)
+                print(f"This may indicate a Python version incompatibility.", flush=True)
+                print(f"PyTorch model saved at {pt_path}. Convert manually with: python -c \\"import coremltools\\"", flush=True)
+                print(f"CONVERSION_SKIPPED", flush=True)
+                return
+            except Exception as e:
+                print(f"WARNING: coremltools import error: {e}", flush=True)
+                print(f"CONVERSION_SKIPPED", flush=True)
+                return
+
+            # Step 2: Trace and convert to CoreML
             try:
                 example_input = torch.randn(1, input_shape)
                 traced = torch.jit.trace(model, example_input)
+                output_shape = (1, num_heads) if num_heads > 1 else (1, 1)
                 mlmodel = ct.convert(
                     traced,
                     inputs=[ct.TensorType(name="input", shape=(1, input_shape))],
-                    outputs=[ct.TensorType(name="output")],
+                    outputs=[ct.TensorType(name="output", shape=output_shape)],
                     minimum_deployment_target=ct.target.macOS13,
                 )
             except Exception as e:
                 print(f"WARNING: CoreML conversion failed: {e}", flush=True)
                 print(f"PyTorch model saved at {pt_path}. Manual conversion may be needed.", flush=True)
+                print(f"CONVERSION_SKIPPED", flush=True)
                 return
 
-            # Step 2: Save as .mlpackage
+            # Step 3: Save as .mlpackage
             package_path = output_path + ".mlpackage"
-            mlmodel.save(package_path)
-            print(f"Model saved as .mlpackage at {package_path}", flush=True)
+            try:
+                mlmodel.save(package_path)
+                print(f"Model saved as .mlpackage at {package_path}", flush=True)
+            except Exception as e:
+                print(f"WARNING: Failed to save .mlpackage: {e}", flush=True)
+                print(f"CONVERSION_SKIPPED", flush=True)
+                return
 
-            # Step 3: Compile to .mlmodelc via xcrun (use full path for PATH safety)
+            # Step 4: Compile to .mlmodelc via xcrun (use full path for PATH safety)
             compiled_path = output_path + ".mlmodelc"
-            compile_cmd = f'/usr/bin/xcrun coremlcompiler compile "{package_path}" "{os.path.dirname(output_path)}"'
-            exit_code = os.system(compile_cmd)
+            try:
+                compile_cmd = f'/usr/bin/xcrun coremlcompiler compile "{package_path}" "{os.path.dirname(output_path)}"'
+                exit_code = os.system(compile_cmd)
+            except Exception as e:
+                print(f"WARNING: xcrun coremlcompiler failed: {e}", flush=True)
+                exit_code = -1
 
             if os.path.exists(compiled_path):
                 print(f"Model compiled to {compiled_path}", flush=True)
             else:
-                print(f"WARNING: coremlcompiler exited with code {exit_code >> 8}", flush=True)
+                print(f"WARNING: coremlcompiler exited with code {exit_code >> 8 if exit_code > 0 else exit_code}", flush=True)
                 print(f"The .mlpackage was saved at {package_path}", flush=True)
                 print(f"Compile manually: xcrun coremlcompiler compile \\"{package_path}\\" \\"{os.path.dirname(output_path)}\\"", flush=True)
+
+        class AdaptiveTanh(nn.Module):
+            \"\"\"Tanh with a learnable scaling parameter.
+            Computes tanh(a * x) where 'a' is trained per-layer.
+            Accelerates PINN convergence 2-5x by letting each layer find its optimal
+            nonlinearity steepness while preserving smoothness for physics gradients.
+            Reference: Jagtap, Kawaguchi & Karniadakis (2020), J. Comp. Phys.\"\"\"
+            def __init__(self):
+                super().__init__()
+                self.a = nn.Parameter(torch.ones(1))
+            def forward(self, x):
+                return torch.tanh(self.a * x)
+
+        class AdaptiveGELU(nn.Module):
+            \"\"\"GELU with a learnable scaling parameter.
+            Computes GELU(a * x) where 'a' is trained per-layer.
+            Offers smoother gradients than AdaptiveTanh for deeper networks.\"\"\"
+            def __init__(self):
+                super().__init__()
+                self.a = nn.Parameter(torch.ones(1))
+            def forward(self, x):
+                return nn.functional.gelu(self.a * x)
+
+        def make_activation(name='adaptive_tanh'):
+            \"\"\"Factory for activation functions used in PINN architectures.\"\"\"
+            if name == 'adaptive_tanh':
+                return AdaptiveTanh()
+            elif name == 'adaptive_gelu':
+                return AdaptiveGELU()
+            elif name == 'tanh':
+                return nn.Tanh()
+            elif name == 'gelu':
+                return nn.GELU()
+            else:
+                return nn.Tanh()
+
+        class FourierFeatureEncoding(nn.Module):
+            \"\"\"Random Fourier feature encoding for spectral inputs.
+            Maps raw inputs through sin/cos at multiple random frequencies to eliminate
+            spectral bias — the tendency of MLPs to learn low-frequency functions first.
+            This dramatically improves resolution of sharp absorption peaks and fine
+            spectral structure.
+            Reference: Tancik et al. (2020), NeurIPS.\"\"\"
+            def __init__(self, input_dim, num_frequencies=64, sigma=10.0):
+                super().__init__()
+                # Random frequency matrix B ~ N(0, sigma^2), frozen (not trained)
+                B = torch.randn(input_dim, num_frequencies) * sigma
+                self.register_buffer('B', B)
+                self.output_dim = 2 * num_frequencies
+
+            def forward(self, x):
+                # x: (batch, input_dim)
+                # Project inputs onto random frequencies then apply sin/cos
+                proj = x @ self.B  # (batch, num_frequencies)
+                return torch.cat([torch.sin(proj), torch.cos(proj)], dim=-1)  # (batch, 2*num_frequencies)
+
+        class ModifiedMLP(nn.Module):
+            \"\"\"Modified MLP with residual/skip connections and adaptive activations for PINNs.
+            Implements techniques from Wang et al. (2021) and Jagtap et al. (2020):
+            1. Input concatenation: encoded input gated into every hidden layer.
+            2. Residual addition: skip connections where dimensions match.
+            3. Adaptive activations: learnable scaling parameter per layer (2-5x convergence).\"\"\"
+            def __init__(self, input_dim, hidden_dims, fourier=None, activation='adaptive_tanh'):
+                super().__init__()
+                self.fourier = fourier
+                enc_dim = fourier.output_dim if fourier is not None else input_dim
+                # Encoder projects input to first hidden dim (also used for concatenation)
+                self.encoder_U = nn.Linear(enc_dim, hidden_dims[0])
+                self.encoder_V = nn.Linear(enc_dim, hidden_dims[0])
+                # Hidden layers with per-layer adaptive activations
+                self.layers = nn.ModuleList()
+                self.activations = nn.ModuleList()
+                for i in range(len(hidden_dims) - 1):
+                    self.layers.append(nn.Linear(hidden_dims[i], hidden_dims[i + 1]))
+                    self.activations.append(make_activation(activation))
+                # Output head
+                self.output_layer = nn.Linear(hidden_dims[-1], 1)
+                self.first_activation = make_activation(activation)
+
+            def forward(self, x):
+                if self.fourier is not None:
+                    x = self.fourier(x)
+                # Two encoding branches (Wang et al. modified MLP)
+                U = self.first_activation(self.encoder_U(x))
+                V = self.first_activation(self.encoder_V(x))
+                h = U
+                for layer, act in zip(self.layers, self.activations):
+                    h_new = act(layer(h))
+                    # Element-wise gating with the two encoding branches
+                    h_new = h_new * U + (1 - h_new) * V
+                    # Residual addition when dimensions match
+                    if h_new.shape[-1] == h.shape[-1]:
+                        h_new = h_new + h
+                    h = h_new
+                return self.output_layer(h)
+
+        def gradient_loss(model, X, y, grad_weight=0.1):
+            \"\"\"Gradient-enhanced training loss.
+            Supervises the model's input-output Jacobian against finite-difference
+            derivatives computed from the training data itself. This provides "free"
+            additional training signal from the known physics — the network must not
+            only predict correct values but also correct slopes.
+            Works with any differentiable model (Sequential or ModifiedMLP).
+            Returns 0 if batch is too small or if autograd fails.\"\"\"
+            if X.shape[0] < 2:
+                return torch.tensor(0.0)
+            try:
+                X_grad = X.detach().requires_grad_(True)
+                pred = model(X_grad)
+                # Compute dy/dX via autograd (sum over batch for scalar grad output)
+                grad_pred = torch.autograd.grad(
+                    pred.sum(), X_grad, create_graph=True, retain_graph=True
+                )[0]  # (batch, input_dim)
+                # Finite-difference "ground truth" derivatives from training targets
+                # Use consecutive sample pairs sorted by first feature (proxy for spectral position)
+                sorted_idx = torch.argsort(X[:, 0])
+                y_sorted = y[sorted_idx]
+                x_sorted = X[sorted_idx]
+                dy = y_sorted[1:] - y_sorted[:-1]  # (N-1, 1)
+                dx = x_sorted[1:, 0:1] - x_sorted[:-1, 0:1] + 1e-8  # (N-1, 1)
+                fd_deriv = dy / dx  # finite difference slope
+                # Compare model gradient (first feature channel) at midpoints
+                mid_idx = sorted_idx[:-1]
+                model_deriv = grad_pred[mid_idx, 0:1]  # (N-1, 1)
+                loss = nn.MSELoss()(model_deriv, fd_deriv.detach())
+                return grad_weight * loss
+            except Exception:
+                return torch.tensor(0.0)
 
         class ReLoBRaLo:
             \"\"\"Random Loss Balancing with Look-ahead (ReLoBRaLo).
@@ -224,27 +394,70 @@ enum PINNScriptInstaller {
                 self.weights = self.alpha * self.weights + (1 - self.alpha) * new_weights
                 self.prev_losses = losses.copy()
                 return self.weights.copy()
+
+        class MultiHeadPINN(nn.Module):
+            \"\"\"Ensemble via multi-head output on a shared backbone.
+            Replaces the backbone's single output layer with N independent linear heads.
+            At inference, the mean reduces variance while head disagreement (std)
+            serves as an out-of-distribution (OOD) detector.
+            Reference: Lakshminarayanan et al. (2017), 'Simple and Scalable Predictive
+            Uncertainty Estimation using Deep Ensembles', NeurIPS.\"\"\"
+            def __init__(self, backbone, trunk_dim, num_heads=5):
+                super().__init__()
+                self.backbone = backbone
+                self.num_heads = num_heads
+                # Neutralize the backbone's single output layer so it returns trunk features
+                if hasattr(backbone, 'output_layer'):
+                    backbone.output_layer = nn.Identity()
+                elif hasattr(backbone, 'net') and isinstance(backbone.net, nn.Sequential):
+                    # For Sequential models, remove the final Linear layer
+                    modules = list(backbone.net.children())[:-1]
+                    backbone.net = nn.Sequential(*modules)
+                self.heads = nn.ModuleList([nn.Linear(trunk_dim, 1) for _ in range(num_heads)])
+
+            def forward(self, x):
+                features = self.backbone(x)  # (batch, trunk_dim)
+                return torch.cat([h(features) for h in self.heads], dim=-1)  # (batch, num_heads)
         """
     }
 
     // MARK: - Domain-Specific Script Content
 
+    /// Collects all domain config and dispatches to the appropriate script generator.
     private static func scriptContent(for domain: PINNDomain) -> String {
         let header = scriptHeader(for: domain)
+        let cfg = DomainScriptConfig(
+            fourier: domain.fourierEncodingConfig,
+            useModifiedMLP: domain.useModifiedMLP,
+            activation: domain.activation,
+            gradientTraining: domain.gradientTrainingConfig,
+            ensemble: domain.ensembleConfig,
+            hiddenLayers: domain.hiddenLayers
+        )
         let body: String
         switch domain {
-        case .uvVis:          body = uvVisScript()
-        case .ftir:           body = ftirScript()
-        case .raman:          body = ramanScript()
-        case .massSpec:       body = massSpecScript()
-        case .nmr:            body = nmrScript()
-        case .fluorescence:   body = fluorescenceScript()
-        case .xrd:            body = xrdScript()
-        case .chromatography: body = chromatographyScript()
-        case .nir:            body = nirScript()
-        case .atomicEmission: body = atomicEmissionScript()
+        case .uvVis:          body = uvVisScript(cfg: cfg)
+        case .ftir:           body = ftirScript(cfg: cfg)
+        case .raman:          body = ramanScript(cfg: cfg)
+        case .massSpec:       body = massSpecScript(cfg: cfg)
+        case .nmr:            body = nmrScript(cfg: cfg)
+        case .fluorescence:   body = fluorescenceScript(cfg: cfg)
+        case .xrd:            body = xrdScript(cfg: cfg)
+        case .chromatography: body = chromatographyScript(cfg: cfg)
+        case .nir:            body = nirScript(cfg: cfg)
+        case .atomicEmission: body = atomicEmissionScript(cfg: cfg)
         }
         return header + body
+    }
+
+    /// Bundles all per-domain PINN config values passed to script generators.
+    private struct DomainScriptConfig {
+        let fourier: FourierEncodingConfig
+        let useModifiedMLP: Bool
+        let activation: PINNActivation
+        let gradientTraining: GradientTrainingConfig
+        let ensemble: PINNEnsembleConfig
+        let hiddenLayers: [Int]
     }
 
     private static func scriptHeader(for domain: PINNDomain) -> String {
@@ -265,29 +478,127 @@ enum PINNScriptInstaller {
         import torch
         import torch.nn as nn
         import numpy as np
-        from pinn_utils import parse_args, load_training_data, report_progress, convert_to_coreml, ReLoBRaLo
+        from pinn_utils import (parse_args, load_training_data, report_progress, convert_to_coreml,
+            ReLoBRaLo, FourierFeatureEncoding, ModifiedMLP, MultiHeadPINN, AdaptiveTanh, AdaptiveGELU,
+            make_activation, gradient_loss)
 
         """
     }
 
     // MARK: - UV-Vis Script
 
-    private static func uvVisScript() -> String {
-        """
-        class UVVisPINN(nn.Module):
-            \"\"\"Physics-Informed Neural Network for UV-Vis SPF prediction.
-            Embeds Beer-Lambert law and Diffey SPF integral as physics constraints.\"\"\"
-            def __init__(self, input_dim=122):
-                super().__init__()
-                self.net = nn.Sequential(
-                    nn.Linear(input_dim, 256), nn.Tanh(),
-                    nn.Linear(256, 128), nn.Tanh(),
-                    nn.Linear(128, 128), nn.Tanh(),
-                    nn.Linear(128, 64), nn.Tanh(),
-                    nn.Linear(64, 1)
-                )
-            def forward(self, x):
-                return self.net(x)
+    private static func uvVisScript(cfg: DomainScriptConfig) -> String {
+        let fourier = cfg.fourier
+        let fourierDesc = fourier.isEnabled
+            ? "enabled (\(fourier.numFrequencies) freq, σ=\(String(format: "%.1f", fourier.sigma)))"
+            : "disabled"
+        let archDesc = cfg.useModifiedMLP ? "Modified MLP with skip connections" : "Sequential MLP"
+        let actName = cfg.activation.rawValue
+        let layers = cfg.hiddenLayers
+        let layerListStr = "[\(layers.map(String.init).joined(separator: ", "))]"
+        let lastHidden = layers.last ?? 64
+
+        let fourierConstruction: String
+        if fourier.isEnabled {
+            fourierConstruction = "FourierFeatureEncoding(input_dim, num_frequencies=\(fourier.numFrequencies), sigma=\(String(format: "%.1f", fourier.sigma)))"
+        } else {
+            fourierConstruction = "None"
+        }
+
+        let ensemble = cfg.ensemble
+        let ensembleDesc = ensemble.isEnabled ? ", Ensemble: \(ensemble.numHeads) heads" : ""
+
+        let modelClass: String
+        if cfg.useModifiedMLP {
+            if ensemble.isEnabled {
+                modelClass = """
+                class UVVisPINN(nn.Module):
+                    \"\"\"Physics-Informed Neural Network for UV-Vis SPF prediction.
+                    Embeds Beer-Lambert law and Diffey SPF integral as physics constraints.
+                    Architecture: \(archDesc), Fourier: \(fourierDesc), Activation: \(actName)\(ensembleDesc)\"\"\"
+                    def __init__(self, input_dim=122):
+                        super().__init__()
+                        fourier = \(fourierConstruction)
+                        backbone = ModifiedMLP(input_dim, \(layerListStr), fourier=fourier, activation='\(actName)')
+                        self.ensemble = MultiHeadPINN(backbone, trunk_dim=\(lastHidden), num_heads=\(ensemble.numHeads))
+                    def forward(self, x):
+                        return self.ensemble(x)
+                """
+            } else {
+                modelClass = """
+                class UVVisPINN(nn.Module):
+                    \"\"\"Physics-Informed Neural Network for UV-Vis SPF prediction.
+                    Embeds Beer-Lambert law and Diffey SPF integral as physics constraints.
+                    Architecture: \(archDesc), Fourier: \(fourierDesc), Activation: \(actName)\"\"\"
+                    def __init__(self, input_dim=122):
+                        super().__init__()
+                        fourier = \(fourierConstruction)
+                        self.mlp = ModifiedMLP(input_dim, \(layerListStr), fourier=fourier, activation='\(actName)')
+                    def forward(self, x):
+                        return self.mlp(x)
+                """
+            }
+        } else {
+            let firstLayerInput = fourier.isEnabled ? "encoded_dim" : "input_dim"
+            let fourierInit: String
+            let fourierForward: String
+            if fourier.isEnabled {
+                fourierInit = """
+                            self.fourier = FourierFeatureEncoding(input_dim, num_frequencies=\(fourier.numFrequencies), sigma=\(String(format: "%.1f", fourier.sigma)))
+                            encoded_dim = self.fourier.output_dim
+                """
+                fourierForward = """
+                        x = self.fourier(x)
+                """
+            } else {
+                fourierInit = "        encoded_dim = input_dim"
+                fourierForward = ""
+            }
+            if ensemble.isEnabled {
+                // Build trunk (no final Linear) + heads manually for Sequential
+                let trunkDefs = layers.enumerated().map { i, size in
+                    let prevSize = i == 0 ? firstLayerInput : "\(layers[i-1])"
+                    return "                    nn.Linear(\(prevSize), \(size)), make_activation('\(actName)'),"
+                }.joined(separator: "\n")
+                modelClass = """
+                class UVVisPINN(nn.Module):
+                    \"\"\"Physics-Informed Neural Network for UV-Vis SPF prediction.
+                    Architecture: \(archDesc), Fourier: \(fourierDesc), Activation: \(actName)\(ensembleDesc)\"\"\"
+                    def __init__(self, input_dim=122):
+                        super().__init__()
+                \(fourierInit)
+                        self.trunk = nn.Sequential(
+                \(trunkDefs)
+                        )
+                        self.heads = nn.ModuleList([nn.Linear(\(lastHidden), 1) for _ in range(\(ensemble.numHeads))])
+                    def forward(self, x):
+                \(fourierForward)        features = self.trunk(x)
+                        return torch.cat([h(features) for h in self.heads], dim=-1)
+                """
+            } else {
+                let layerDefs = layers.enumerated().map { i, size in
+                    let prevSize = i == 0 ? firstLayerInput : "\(layers[i-1])"
+                    return "                    nn.Linear(\(prevSize), \(size)), make_activation('\(actName)'),"
+                }.joined(separator: "\n")
+                modelClass = """
+                class UVVisPINN(nn.Module):
+                    \"\"\"Physics-Informed Neural Network for UV-Vis SPF prediction.
+                    Embeds Beer-Lambert law and Diffey SPF integral as physics constraints.
+                    Architecture: \(archDesc), Fourier: \(fourierDesc), Activation: \(actName)\"\"\"
+                    def __init__(self, input_dim=122):
+                        super().__init__()
+                \(fourierInit)
+                        self.net = nn.Sequential(
+                \(layerDefs)
+                            nn.Linear(\(lastHidden), 1)
+                        )
+                    def forward(self, x):
+                \(fourierForward)        return self.net(x)
+                """
+            }
+        }
+        return """
+        \(modelClass)
 
         def physics_loss(model, wavelengths_batch, absorbance_batch, predictions):
             \"\"\"Beer-Lambert + SPF integral physics constraints.\"\"\"
@@ -360,21 +671,20 @@ enum PINNScriptInstaller {
             model = UVVisPINN(input_dim=input_dim)
             optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
-            balancer = ReLoBRaLo(num_losses=2)
+        \(gradientTrainingSetup(cfg.gradientTraining))
+        \(ensembleTargetSetup(cfg.ensemble))
             for epoch in range(1, args.epochs + 1):
                 model.train()
                 optimizer.zero_grad()
                 pred = model(X)
-                data_loss = nn.MSELoss()(pred, y)
-                phys_loss = physics_loss(model, None, X[:, :111], pred)
-                weights = balancer.update([data_loss.item(), phys_loss.item()])
-                total = weights[0] * data_loss + weights[1] * phys_loss
+        \(ensembleTrainingLoss(cfg.ensemble, physicsCall: "physics_loss(model, None, X[:, :111], pred_mean)"))
+        \(gradientTrainingLoop(cfg.gradientTraining))
                 total.backward()
                 optimizer.step()
                 scheduler.step()
                 if epoch % max(1, args.epochs // 100) == 0 or epoch == args.epochs:
                     report_progress(epoch, args.epochs, data_loss.item(), phys_loss.item())
-            convert_to_coreml(model, input_dim, args.output, args.domain)
+            convert_to_coreml(model, input_dim, args.output, args.domain\(ensembleConvertArg(cfg.ensemble)))
 
         if __name__ == '__main__':
             main()
@@ -383,10 +693,9 @@ enum PINNScriptInstaller {
 
     // MARK: - FTIR Script
 
-    private static func ftirScript() -> String {
+    private static func ftirScript(cfg: DomainScriptConfig) -> String {
         genericPINNScript(
             className: "FTIRPINN",
-            layers: [512, 256, 128, 64],
             physicsDoc: "Beer-Lambert (wavenumber domain) + functional group frequency constraints",
             physicsBody: """
                 # Beer-Lambert: absorbance should be non-negative
@@ -397,16 +706,16 @@ enum PINNScriptInstaller {
                     d2 = absorbance_batch[:, 2:] - 2 * absorbance_batch[:, 1:-1] + absorbance_batch[:, :-2]
                     smooth = (d2 ** 2).mean() * 0.01
                 return neg_penalty + smooth
-            """
+            """,
+            cfg: cfg
         )
     }
 
     // MARK: - Raman Script
 
-    private static func ramanScript() -> String {
+    private static func ramanScript(cfg: DomainScriptConfig) -> String {
         genericPINNScript(
             className: "RamanPINN",
-            layers: [512, 256, 128, 64],
             physicsDoc: "Background smoothness + Raman shift selection rules",
             physicsBody: """
                 # Background smoothness constraint
@@ -417,16 +726,16 @@ enum PINNScriptInstaller {
                 # Non-negativity of decomposed components
                 neg_penalty = torch.relu(-predictions).mean() * 0.1
                 return smooth + neg_penalty
-            """
+            """,
+            cfg: cfg
         )
     }
 
     // MARK: - Mass Spec Script
 
-    private static func massSpecScript() -> String {
+    private static func massSpecScript(cfg: DomainScriptConfig) -> String {
         genericPINNScript(
             className: "MassSpecPINN",
-            layers: [256, 128, 128, 64],
             physicsDoc: "Isotope distribution (natural abundance) + mass conservation + fragmentation rules",
             physicsBody: """
                 # Mass conservation: total ion intensity should be consistent
@@ -435,16 +744,16 @@ enum PINNScriptInstaller {
                     intensity_var = total_intensity.var()
                     return intensity_var * 0.01
                 return torch.tensor(0.0)
-            """
+            """,
+            cfg: cfg
         )
     }
 
     // MARK: - NMR Script
 
-    private static func nmrScript() -> String {
+    private static func nmrScript(cfg: DomainScriptConfig) -> String {
         genericPINNScript(
             className: "NMRPINN",
-            layers: [512, 256, 128, 64],
             physicsDoc: "Bloch equation residuals + J-coupling patterns + Kramers-Kronig relation",
             physicsBody: """
                 # Bloch equation inspired: signal should decay smoothly (T2 relaxation)
@@ -455,16 +764,16 @@ enum PINNScriptInstaller {
                 # Non-negativity for absolute-mode spectra
                 neg_penalty = torch.relu(-predictions).mean() * 0.05
                 return smooth + neg_penalty
-            """
+            """,
+            cfg: cfg
         )
     }
 
     // MARK: - Fluorescence Script
 
-    private static func fluorescenceScript() -> String {
+    private static func fluorescenceScript(cfg: DomainScriptConfig) -> String {
         genericPINNScript(
             className: "FluorescencePINN",
-            layers: [256, 128, 128, 64],
             physicsDoc: "Stokes shift constraint + mirror-image rule + quantum yield consistency",
             physicsBody: """
                 # Stokes shift: emission peak should be at longer wavelength than excitation
@@ -476,16 +785,16 @@ enum PINNScriptInstaller {
                 # Non-negativity of fluorescence intensity
                 neg_penalty = torch.relu(-predictions).mean() * 0.1
                 return smooth + neg_penalty
-            """
+            """,
+            cfg: cfg
         )
     }
 
     // MARK: - XRD Script
 
-    private static func xrdScript() -> String {
+    private static func xrdScript(cfg: DomainScriptConfig) -> String {
         genericPINNScript(
             className: "XRDPINN",
-            layers: [256, 128, 128, 64],
             physicsDoc: "Bragg's law (nλ=2d sinθ) + systematic absences + structure factor",
             physicsBody: """
                 # Bragg's law: peaks should appear at physically valid angles
@@ -497,16 +806,16 @@ enum PINNScriptInstaller {
                 # Non-negativity of diffraction intensity
                 neg_penalty = torch.relu(-predictions).mean() * 0.1
                 return smooth + neg_penalty
-            """
+            """,
+            cfg: cfg
         )
     }
 
     // MARK: - Chromatography Script
 
-    private static func chromatographyScript() -> String {
+    private static func chromatographyScript(cfg: DomainScriptConfig) -> String {
         genericPINNScript(
             className: "ChromatographyPINN",
-            layers: [256, 128, 128, 64],
             physicsDoc: "ED/LKM transport PDE + Langmuir isotherm",
             physicsBody: """
                 # Transport PDE residual: peaks should follow Gaussian/exponentially-modified Gaussian
@@ -519,16 +828,16 @@ enum PINNScriptInstaller {
                 # Non-negativity of concentration
                 neg_penalty = torch.relu(-predictions).mean() * 0.1
                 return smooth + neg_penalty
-            """
+            """,
+            cfg: cfg
         )
     }
 
     // MARK: - NIR Script
 
-    private static func nirScript() -> String {
+    private static func nirScript(cfg: DomainScriptConfig) -> String {
         genericPINNScript(
             className: "NIRPINN",
-            layers: [512, 256, 128, 64],
             physicsDoc: "Modified Beer-Lambert for diffuse reflectance + Kubelka-Munk corrections",
             physicsBody: """
                 # Modified Beer-Lambert: similar to FTIR but with Kubelka-Munk scattering
@@ -538,16 +847,16 @@ enum PINNScriptInstaller {
                     d2 = absorbance_batch[:, 2:] - 2 * absorbance_batch[:, 1:-1] + absorbance_batch[:, :-2]
                     smooth = (d2 ** 2).mean() * 0.01
                 return neg_penalty + smooth
-            """
+            """,
+            cfg: cfg
         )
     }
 
     // MARK: - Atomic Emission Script
 
-    private static func atomicEmissionScript() -> String {
+    private static func atomicEmissionScript(cfg: DomainScriptConfig) -> String {
         genericPINNScript(
             className: "AtomicEmissionPINN",
-            layers: [256, 128, 128, 64],
             physicsDoc: "Boltzmann distribution for excited states + transition selection rules",
             physicsBody: """
                 # Boltzmann: emission line intensities follow temperature-dependent distribution
@@ -559,7 +868,8 @@ enum PINNScriptInstaller {
                     d2 = absorbance_batch[:, 2:] - 2 * absorbance_batch[:, 1:-1] + absorbance_batch[:, :-2]
                     smooth = (d2 ** 2).mean() * 0.001
                 return neg_penalty + smooth
-            """
+            """,
+            cfg: cfg
         )
     }
 
@@ -567,26 +877,120 @@ enum PINNScriptInstaller {
 
     private static func genericPINNScript(
         className: String,
-        layers: [Int],
         physicsDoc: String,
-        physicsBody: String
+        physicsBody: String,
+        cfg: DomainScriptConfig
     ) -> String {
-        let layerDefs = layers.enumerated().map { i, size in
-            let prevSize = i == 0 ? "input_dim" : "\(layers[i-1])"
-            return "            nn.Linear(\(prevSize), \(size)), nn.Tanh(),"
-        }.joined(separator: "\n")
+        let fourier = cfg.fourier
+        let fourierDesc = fourier.isEnabled
+            ? "enabled (\(fourier.numFrequencies) freq, σ=\(String(format: "%.1f", fourier.sigma)))"
+            : "disabled"
+        let archDesc = cfg.useModifiedMLP ? "Modified MLP with skip connections" : "Sequential MLP"
+        let actName = cfg.activation.rawValue
+        let layers = cfg.hiddenLayers
+        let layerListStr = "[\(layers.map(String.init).joined(separator: ", "))]"
+
+        let fourierConstruction: String
+        if fourier.isEnabled {
+            fourierConstruction = "FourierFeatureEncoding(input_dim, num_frequencies=\(fourier.numFrequencies), sigma=\(String(format: "%.1f", fourier.sigma)))"
+        } else {
+            fourierConstruction = "None"
+        }
+
+        let ensemble = cfg.ensemble
+        let ensembleDesc = ensemble.isEnabled ? ", Ensemble: \(ensemble.numHeads) heads" : ""
+        let lastHidden = layers.last ?? 64
+
+        let modelClass: String
+        if cfg.useModifiedMLP {
+            if ensemble.isEnabled {
+                modelClass = """
+                class \(className)(nn.Module):
+                    \"\"\"\(physicsDoc)
+                    Architecture: \(archDesc), Fourier: \(fourierDesc), Activation: \(actName)\(ensembleDesc)\"\"\"
+                    def __init__(self, input_dim=122):
+                        super().__init__()
+                        fourier = \(fourierConstruction)
+                        backbone = ModifiedMLP(input_dim, \(layerListStr), fourier=fourier, activation='\(actName)')
+                        self.ensemble = MultiHeadPINN(backbone, trunk_dim=\(lastHidden), num_heads=\(ensemble.numHeads))
+                    def forward(self, x):
+                        return self.ensemble(x)
+                """
+            } else {
+                modelClass = """
+                class \(className)(nn.Module):
+                    \"\"\"\(physicsDoc)
+                    Architecture: \(archDesc), Fourier: \(fourierDesc), Activation: \(actName)\"\"\"
+                    def __init__(self, input_dim=122):
+                        super().__init__()
+                        fourier = \(fourierConstruction)
+                        self.mlp = ModifiedMLP(input_dim, \(layerListStr), fourier=fourier, activation='\(actName)')
+                    def forward(self, x):
+                        return self.mlp(x)
+                """
+            }
+        } else {
+            // Fallback: plain Sequential (for XRD, Chromatography with bespoke architectures)
+            let firstLayerInput = fourier.isEnabled ? "encoded_dim" : "input_dim"
+            let fourierInit: String
+            let fourierForward: String
+            if fourier.isEnabled {
+                fourierInit = """
+                            self.fourier = FourierFeatureEncoding(input_dim, num_frequencies=\(fourier.numFrequencies), sigma=\(String(format: "%.1f", fourier.sigma)))
+                            encoded_dim = self.fourier.output_dim
+                """
+                fourierForward = """
+                        x = self.fourier(x)
+                """
+            } else {
+                fourierInit = "        encoded_dim = input_dim"
+                fourierForward = ""
+            }
+            if ensemble.isEnabled {
+                // Build trunk (no final Linear) + heads manually
+                let trunkDefs = layers.enumerated().map { i, size in
+                    let prevSize = i == 0 ? firstLayerInput : "\(layers[i-1])"
+                    return "                nn.Linear(\(prevSize), \(size)), make_activation('\(actName)'),"
+                }.joined(separator: "\n")
+                modelClass = """
+                class \(className)(nn.Module):
+                    \"\"\"\(physicsDoc)
+                    Architecture: \(archDesc), Fourier: \(fourierDesc), Activation: \(actName)\(ensembleDesc)\"\"\"
+                    def __init__(self, input_dim=122):
+                        super().__init__()
+                \(fourierInit)
+                        self.trunk = nn.Sequential(
+                \(trunkDefs)
+                        )
+                        self.heads = nn.ModuleList([nn.Linear(\(lastHidden), 1) for _ in range(\(ensemble.numHeads))])
+                    def forward(self, x):
+                \(fourierForward)        features = self.trunk(x)
+                        return torch.cat([h(features) for h in self.heads], dim=-1)
+                """
+            } else {
+                let layerDefs = layers.enumerated().map { i, size in
+                    let prevSize = i == 0 ? firstLayerInput : "\(layers[i-1])"
+                    return "            nn.Linear(\(prevSize), \(size)), make_activation('\(actName)'),"
+                }.joined(separator: "\n")
+                modelClass = """
+                class \(className)(nn.Module):
+                    \"\"\"\(physicsDoc)
+                    Architecture: \(archDesc), Fourier: \(fourierDesc), Activation: \(actName)\"\"\"
+                    def __init__(self, input_dim=122):
+                        super().__init__()
+                \(fourierInit)
+                        self.net = nn.Sequential(
+                \(layerDefs)
+                            nn.Linear(\(lastHidden), 1)
+                        )
+                    def forward(self, x):
+                \(fourierForward)        return self.net(x)
+                """
+            }
+        }
 
         return """
-        class \(className)(nn.Module):
-            \"\"\"\(physicsDoc)\"\"\"
-            def __init__(self, input_dim=122):
-                super().__init__()
-                self.net = nn.Sequential(
-        \(layerDefs)
-                    nn.Linear(\(layers.last ?? 64), 1)
-                )
-            def forward(self, x):
-                return self.net(x)
+        \(modelClass)
 
         def physics_loss(model, wavelengths_batch, absorbance_batch, predictions):
             \"\"\"\(physicsDoc)\"\"\"
@@ -623,24 +1027,79 @@ enum PINNScriptInstaller {
             model = \(className)(input_dim=input_dim)
             optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs)
-            balancer = ReLoBRaLo(num_losses=2)
+        \(gradientTrainingSetup(cfg.gradientTraining))
+        \(ensembleTargetSetup(cfg.ensemble))
             for epoch in range(1, args.epochs + 1):
                 model.train()
                 optimizer.zero_grad()
                 pred = model(X)
-                data_loss = nn.MSELoss()(pred, y)
-                phys_loss = physics_loss(model, None, X, pred)
-                weights = balancer.update([data_loss.item(), phys_loss.item()])
-                total = weights[0] * data_loss + weights[1] * phys_loss
+        \(ensembleTrainingLoss(cfg.ensemble, physicsCall: "physics_loss(model, None, X, pred_mean)"))
+        \(gradientTrainingLoop(cfg.gradientTraining))
                 total.backward()
                 optimizer.step()
                 scheduler.step()
                 if epoch % max(1, args.epochs // 100) == 0 or epoch == args.epochs:
                     report_progress(epoch, args.epochs, data_loss.item(), phys_loss.item())
-            convert_to_coreml(model, input_dim, args.output, args.domain)
+            convert_to_coreml(model, input_dim, args.output, args.domain\(ensembleConvertArg(cfg.ensemble)))
 
         if __name__ == '__main__':
             main()
+        """
+    }
+
+    // MARK: - Ensemble Helpers
+
+    /// Generates target expansion for multi-head training (y → y_multi).
+    private static func ensembleTargetSetup(_ config: PINNEnsembleConfig) -> String {
+        guard config.isEnabled, config.numHeads > 1 else { return "" }
+        return "        y_multi = y.expand(-1, \(config.numHeads))"
+    }
+
+    /// Generates data_loss + phys_loss computation for single or multi-head output.
+    /// `physicsCall` is the domain-specific physics_loss() call using `pred_mean`.
+    private static func ensembleTrainingLoss(_ config: PINNEnsembleConfig, physicsCall: String) -> String {
+        if config.isEnabled, config.numHeads > 1 {
+            return """
+                        data_loss = nn.MSELoss()(pred, y_multi)
+                        pred_mean = pred.mean(dim=-1, keepdim=True)
+                        phys_loss = \(physicsCall)
+            """
+        }
+        return """
+                    data_loss = nn.MSELoss()(pred, y)
+                    pred_mean = pred
+                    phys_loss = \(physicsCall)
+        """
+    }
+
+    /// Generates the num_heads kwarg for convert_to_coreml when ensemble is enabled.
+    private static func ensembleConvertArg(_ config: PINNEnsembleConfig) -> String {
+        guard config.isEnabled, config.numHeads > 1 else { return "" }
+        return ", num_heads=\(config.numHeads)"
+    }
+
+    // MARK: - Gradient Training Helpers
+
+    /// Generates the balancer setup line (2 or 3 losses).
+    private static func gradientTrainingSetup(_ config: GradientTrainingConfig) -> String {
+        if config.isEnabled {
+            return "        balancer = ReLoBRaLo(num_losses=3)"
+        }
+        return "        balancer = ReLoBRaLo(num_losses=2)"
+    }
+
+    /// Generates the gradient loss computation and total loss assembly.
+    private static func gradientTrainingLoop(_ config: GradientTrainingConfig) -> String {
+        if config.isEnabled {
+            return """
+                        grad_loss = gradient_loss(model, X, y, grad_weight=\(String(format: "%.2f", config.weight)))
+                        weights = balancer.update([data_loss.item(), phys_loss.item(), grad_loss.item()])
+                        total = weights[0] * data_loss + weights[1] * phys_loss + weights[2] * grad_loss
+            """
+        }
+        return """
+                    weights = balancer.update([data_loss.item(), phys_loss.item()])
+                    total = weights[0] * data_loss + weights[1] * phys_loss
         """
     }
 }

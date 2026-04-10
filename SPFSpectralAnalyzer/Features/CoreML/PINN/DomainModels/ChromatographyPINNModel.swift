@@ -115,7 +115,9 @@ final class ChromatographyPINNModel: @unchecked Sendable, PINNDomainModel {
                 confidenceHigh: retentionTime + q90,
                 decomposition: analyzePeaks(retentionTimes: wavelengths, response: intensities),
                 physicsConsistencyScore: physicsScore,
-                domain: .chromatography
+                domain: .chromatography,
+                ensembleStd: 0,
+                headValues: []
             )
         } catch {
             return nil

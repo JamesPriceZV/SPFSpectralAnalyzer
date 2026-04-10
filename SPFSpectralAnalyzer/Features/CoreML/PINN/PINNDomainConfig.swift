@@ -894,28 +894,31 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
 
     /// Recommended PINN architecture for this domain.
     var architectureDescription: String {
+        let fourier = fourierEncodingConfig
+        let fourierSuffix = fourier.isEnabled
+            ? ", Fourier features (\(fourier.numFrequencies) freq, σ=\(String(format: "%.1f", fourier.sigma)))"
+            : ""
+        let mlpType = useModifiedMLP ? "Modified MLP" : "MLP"
+        let layerStr = hiddenLayers.map(String.init).joined(separator: "-")
+        let ensemble = ensembleConfig
+        let ensembleSuffix = ensemble.isEnabled ? ", \(ensemble.numHeads)-head ensemble" : ""
+        let act = activation.displayName
+
+        let physicsNote: String
         switch self {
-        case .uvVis:
-            return "4-layer MLP (256-128-128-64), Tanh activation, ReLoBRaLo loss balancing"
-        case .ftir:
-            return "4-layer MLP (512-256-128-64), Tanh, Beer-Lambert + peak position constraints"
-        case .raman:
-            return "Dual-network: Background CNN + Concentration MLP (Puleio et al. 2025 design)"
-        case .massSpec:
-            return "4-layer MLP (256-128-128-64), Tanh, inverse PINN with trainable fragmentation parameters"
-        case .nmr:
-            return "4-layer MLP (512-256-128-64), Tanh, Bloch equation PDE residuals"
-        case .fluorescence:
-            return "Dual-network: Emission network + Component concentration network"
-        case .xrd:
-            return "f-PICNN (Yuan et al. 2024): 8 NCU layers, 64 channels, Tanh, residual connections"
-        case .chromatography:
-            return "LKM-PINN (Tang et al. 2023): 4 networks, 12 layers, 606 neurons, ED transport PDE"
-        case .nir:
-            return "Same as FTIR (shared Beer-Lambert physics) with NIR-specific wavenumber range"
-        case .atomicEmission:
-            return "4-layer MLP, Boltzmann distribution loss for excited state populations"
+        case .uvVis:          physicsNote = "ReLoBRaLo loss balancing"
+        case .ftir:           physicsNote = "Beer-Lambert + peak position constraints"
+        case .raman:          physicsNote = "background + concentration decomposition"
+        case .massSpec:       physicsNote = "inverse PINN with trainable fragmentation"
+        case .nmr:            physicsNote = "Bloch equation PDE residuals"
+        case .fluorescence:   physicsNote = "emission + component concentration"
+        case .xrd:            physicsNote = "Bragg's law + structure factor constraints"
+        case .chromatography: physicsNote = "ED transport PDE + Langmuir isotherm"
+        case .nir:            physicsNote = "modified Beer-Lambert + Kubelka-Munk"
+        case .atomicEmission: physicsNote = "Boltzmann distribution loss"
         }
+
+        return "\(hiddenLayers.count)-layer \(mlpType) (\(layerStr)), \(act), \(physicsNote)\(fourierSuffix)\(ensembleSuffix)"
     }
 
     /// Optional physics constraints that users can toggle on/off for training.
@@ -995,6 +998,202 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
     }
 }
 
+// MARK: - Fourier Feature Encoding Configuration
+
+/// Configuration for Fourier feature encoding of spectral inputs.
+/// Mapping raw inputs through sin/cos at multiple frequencies eliminates spectral
+/// bias and lets the MLP resolve sharp absorption peaks and fine spectral structure.
+/// Reference: Tancik et al. (2020), "Fourier Features Let Networks Learn High Frequency
+/// Functions in Low Dimensional Domains", NeurIPS.
+struct FourierEncodingConfig: Sendable, Equatable {
+    /// Number of random Fourier frequencies. Output dimension = 2 × numFrequencies per spatial input.
+    let numFrequencies: Int
+    /// Standard deviation of the random frequency matrix B ~ N(0, sigma²).
+    /// Higher values capture finer spectral detail; lower values suit broad features.
+    let sigma: Double
+    /// Whether Fourier encoding is enabled for this domain.
+    let isEnabled: Bool
+
+    static let disabled = FourierEncodingConfig(numFrequencies: 0, sigma: 0, isEnabled: false)
+}
+
+extension PINNDomain {
+    /// Recommended Fourier feature encoding configuration per domain.
+    /// Domains with sharp spectral features (FTIR, NMR, Atomic Emission) use more
+    /// frequencies and higher sigma; domains with broad smooth spectra (UV-Vis,
+    /// Fluorescence) use fewer frequencies and lower sigma.
+    var fourierEncodingConfig: FourierEncodingConfig {
+        switch self {
+        case .uvVis:
+            return FourierEncodingConfig(numFrequencies: 32, sigma: 4.0, isEnabled: true)
+        case .ftir:
+            return FourierEncodingConfig(numFrequencies: 128, sigma: 10.0, isEnabled: true)
+        case .raman:
+            return FourierEncodingConfig(numFrequencies: 64, sigma: 8.0, isEnabled: true)
+        case .massSpec:
+            return FourierEncodingConfig(numFrequencies: 64, sigma: 6.0, isEnabled: true)
+        case .nmr:
+            return FourierEncodingConfig(numFrequencies: 128, sigma: 10.0, isEnabled: true)
+        case .fluorescence:
+            return FourierEncodingConfig(numFrequencies: 32, sigma: 4.0, isEnabled: true)
+        case .xrd:
+            return FourierEncodingConfig(numFrequencies: 64, sigma: 8.0, isEnabled: true)
+        case .chromatography:
+            return FourierEncodingConfig(numFrequencies: 48, sigma: 6.0, isEnabled: true)
+        case .nir:
+            return FourierEncodingConfig(numFrequencies: 128, sigma: 10.0, isEnabled: true)
+        case .atomicEmission:
+            return FourierEncodingConfig(numFrequencies: 96, sigma: 10.0, isEnabled: true)
+        }
+    }
+}
+
+// MARK: - Modified MLP / Residual Connection Configuration
+
+/// Whether the generated PINN uses a Modified MLP with skip connections.
+/// The Modified MLP (Wang et al. 2021) concatenates encoded inputs into every
+/// hidden layer and adds residual connections where dimensions match, dramatically
+/// improving gradient flow during PINN training.
+extension PINNDomain {
+    /// Whether this domain should use the Modified MLP architecture.
+    /// Disabled for domains that already have bespoke architectures (XRD f-PICNN,
+    /// Chromatography LKM-PINN) which have their own residual strategies.
+    var useModifiedMLP: Bool {
+        switch self {
+        case .xrd:            return false  // f-PICNN has its own NCU residual layers
+        case .chromatography: return false  // LKM-PINN has its own multi-network design
+        default:              return true
+        }
+    }
+}
+
+// MARK: - Adaptive Activation Function Configuration
+
+/// Activation function choices for PINN hidden layers.
+/// Adaptive variants have a learnable scaling parameter `a` per layer, allowing
+/// each layer to find its optimal nonlinearity steepness (Jagtap et al. 2020).
+enum PINNActivation: String, CaseIterable, Sendable {
+    case adaptiveTanh = "adaptive_tanh"
+    case adaptiveGELU = "adaptive_gelu"
+    case tanh         = "tanh"
+    case gelu         = "gelu"
+
+    var displayName: String {
+        switch self {
+        case .adaptiveTanh: return "Adaptive Tanh"
+        case .adaptiveGELU: return "Adaptive GELU"
+        case .tanh:         return "Tanh"
+        case .gelu:         return "GELU"
+        }
+    }
+}
+
+extension PINNDomain {
+    /// Recommended activation function per domain.
+    /// Adaptive Tanh is the default — it preserves the smoothness needed for physics
+    /// gradients while allowing 2-5x faster convergence. Deeper networks (Chromatography)
+    /// may benefit from Adaptive GELU's smoother gradient landscape.
+    var activation: PINNActivation {
+        switch self {
+        case .chromatography: return .adaptiveGELU  // 12-layer LKM-PINN benefits from GELU smoothness
+        default:              return .adaptiveTanh
+        }
+    }
+}
+
+// MARK: - Hidden Layer Width Configuration
+
+extension PINNDomain {
+    /// Optimized hidden layer widths per domain.
+    /// Wider networks suit domains with complex, overlapping spectral features
+    /// (FTIR functional groups, NMR multiplets). Narrower networks suffice for
+    /// domains with broad smooth spectra (UV-Vis, Fluorescence) or discrete
+    /// outputs (Atomic Emission), reducing overfitting risk on smaller datasets.
+    var hiddenLayers: [Int] {
+        switch self {
+        case .uvVis:          return [256, 192, 128, 64]   // Broad smooth spectra, Beer-Lambert
+        case .ftir:           return [512, 384, 256, 128]  // Thousands of wavenumber points, overlapping functional groups
+        case .raman:          return [512, 256, 192, 96]   // Fluorescence background + sharp Raman modes
+        case .massSpec:       return [256, 192, 128, 64]   // Discrete m/z peaks, regular isotope patterns
+        case .nmr:            return [512, 384, 256, 128]  // Complex multiplet patterns, J-coupling
+        case .fluorescence:   return [256, 128, 128, 64]   // Broad emission bands, simple Stokes shift
+        case .xrd:            return [384, 256, 128, 64]   // Sharp Bragg peaks, systematic d-spacings
+        case .chromatography: return [384, 256, 192, 96]   // Transport PDE residuals, Langmuir isotherm
+        case .nir:            return [512, 256, 192, 96]   // Overtone bands — broader than FTIR fundamentals
+        case .atomicEmission: return [256, 128, 96, 48]    // Discrete lines, straightforward Boltzmann distribution
+        }
+    }
+}
+
+// MARK: - Gradient-Enhanced Training Configuration
+
+/// Configuration for gradient-enhanced training.
+/// Supervises the model's input-output Jacobian against known derivative information
+/// from physics (e.g., Beer-Lambert slope, peak profile shapes), providing "free"
+/// additional training signal beyond the standard data + physics losses.
+struct GradientTrainingConfig: Sendable, Equatable {
+    /// Whether gradient-enhanced training is enabled.
+    let isEnabled: Bool
+    /// Weight of the gradient loss relative to data/physics losses.
+    /// Typical range: 0.05–0.2. Fed into ReLoBRaLo as a third loss term.
+    let weight: Double
+
+    static let disabled = GradientTrainingConfig(isEnabled: false, weight: 0)
+}
+
+extension PINNDomain {
+    /// Recommended gradient-enhanced training configuration per domain.
+    /// Enabled for domains where derivative information is physically meaningful:
+    /// - UV-Vis: Beer-Lambert slope dA/dc = εl
+    /// - FTIR/NIR: Lorentzian/Gaussian peak profile derivatives
+    /// - NMR: Bloch equation ∂M/∂t from relaxation
+    /// - Chromatography: van Deemter dH/du
+    /// Disabled for domains where gradient signal is noisy or less informative.
+    var gradientTrainingConfig: GradientTrainingConfig {
+        switch self {
+        case .uvVis:          return GradientTrainingConfig(isEnabled: true, weight: 0.1)
+        case .ftir:           return GradientTrainingConfig(isEnabled: true, weight: 0.1)
+        case .raman:          return GradientTrainingConfig(isEnabled: true, weight: 0.05)
+        case .massSpec:       return GradientTrainingConfig(isEnabled: false, weight: 0)  // Discrete m/z — derivatives less meaningful
+        case .nmr:            return GradientTrainingConfig(isEnabled: true, weight: 0.1)
+        case .fluorescence:   return GradientTrainingConfig(isEnabled: true, weight: 0.05)
+        case .xrd:            return GradientTrainingConfig(isEnabled: true, weight: 0.05)
+        case .chromatography: return GradientTrainingConfig(isEnabled: true, weight: 0.1)
+        case .nir:            return GradientTrainingConfig(isEnabled: true, weight: 0.1)
+        case .atomicEmission: return GradientTrainingConfig(isEnabled: false, weight: 0)  // Discrete lines — derivatives less meaningful
+        }
+    }
+}
+
+// MARK: - Ensemble / Multi-Head Output Configuration
+
+/// Configuration for multi-head ensemble output.
+/// The shared backbone feeds N independent linear heads; at inference the mean
+/// reduces variance while inter-head standard deviation serves as an OOD detector.
+/// Reference: Lakshminarayanan et al. (2017), NeurIPS.
+struct PINNEnsembleConfig: Sendable, Equatable {
+    /// Whether multi-head ensemble output is enabled.
+    let isEnabled: Bool
+    /// Number of independent output heads sharing the backbone trunk.
+    let numHeads: Int
+
+    static let disabled = PINNEnsembleConfig(isEnabled: false, numHeads: 1)
+}
+
+extension PINNDomain {
+    /// Recommended ensemble configuration per domain.
+    /// Most domains use 5 heads for robust uncertainty estimation.
+    /// Discrete-output domains (Mass Spec, Atomic Emission) use 3 heads
+    /// since their outputs are inherently less smooth.
+    var ensembleConfig: PINNEnsembleConfig {
+        switch self {
+        case .massSpec:       return PINNEnsembleConfig(isEnabled: true, numHeads: 3)
+        case .atomicEmission: return PINNEnsembleConfig(isEnabled: true, numHeads: 3)
+        default:              return PINNEnsembleConfig(isEnabled: true, numHeads: 5)
+        }
+    }
+}
+
 /// A peer-reviewed reference with an optional DOI or URL link.
 struct PINNReference: Identifiable, Sendable {
     let id = UUID()
@@ -1070,6 +1269,7 @@ struct PINNInputMetadata: Sendable {
 /// Result of a PINN model prediction.
 struct PINNPredictionResult: Sendable, Equatable {
     /// The primary predicted value (e.g., SPF, concentration, retention time).
+    /// When ensemble is active, this is the mean across heads.
     let primaryValue: Double
     /// Label for the primary value (e.g., "SPF", "Concentration (mg/L)").
     let primaryLabel: String
@@ -1083,6 +1283,19 @@ struct PINNPredictionResult: Sendable, Equatable {
     let physicsConsistencyScore: Double
     /// The domain this prediction applies to.
     let domain: PINNDomain
+    /// Standard deviation across ensemble heads (0 if single-head).
+    /// High values indicate the input may be out-of-distribution.
+    let ensembleStd: Double
+    /// Raw per-head predictions (empty if single-head).
+    let headValues: [Double]
+
+    /// Whether the ensemble disagrees enough to flag OOD concern.
+    /// Uses a relative threshold: std / |mean| > 0.15 (15% coefficient of variation).
+    var isOutOfDistribution: Bool {
+        guard ensembleStd > 0, headValues.count > 1 else { return false }
+        let cv = ensembleStd / max(abs(primaryValue), 1e-8)
+        return cv > 0.15
+    }
 
     /// Formatted display string.
     var formatted: String {

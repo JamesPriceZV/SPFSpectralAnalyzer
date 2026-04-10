@@ -115,7 +115,9 @@ final class RamanPINNModel: @unchecked Sendable, PINNDomainModel {
                 confidenceHigh: primaryValue + q90,
                 decomposition: estimateBaselineDecomposition(ramanShifts: wavelengths, intensities: intensities),
                 physicsConsistencyScore: physicsScore,
-                domain: .raman
+                domain: .raman,
+                ensembleStd: 0,
+                headValues: []
             )
         } catch {
             return nil

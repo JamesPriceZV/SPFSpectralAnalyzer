@@ -58,6 +58,12 @@ final class PINNTrainingManager {
     /// Last training metrics (loss values per epoch).
     var trainingHistory: [TrainingEpochMetrics] = []
 
+    /// Full stdout/stderr log from the last Python training run.
+    var lastTrainingLog: String = ""
+
+    /// Whether CoreML conversion was skipped (model saved as .pt only).
+    var conversionSkipped = false
+
     /// The domain currently being trained.
     private(set) var activeDomain: PINNDomain?
 
@@ -107,6 +113,8 @@ final class PINNTrainingManager {
 
         activeDomain = domain
         trainingHistory = []
+        lastTrainingLog = ""
+        conversionSkipped = false
         status = .exportingData
 
         let fm = FileManager.default
@@ -189,6 +197,9 @@ final class PINNTrainingManager {
             // 5. Import the converted CoreML model
             status = .importing
             let mlmodelURL = outputModelURL.appendingPathExtension("mlmodelc")
+            let mlpackageURL = outputModelURL.appendingPathExtension("mlpackage")
+            let ptURL = outputModelURL.appendingPathExtension("pt")
+
             if fm.fileExists(atPath: mlmodelURL.path) {
                 status = .completed(domain: domain)
                 Instrumentation.log(
@@ -196,8 +207,24 @@ final class PINNTrainingManager {
                     area: .mlTraining, level: .info,
                     details: "epochs=\(epochs) path=\(mlmodelURL.path)"
                 )
+            } else if fm.fileExists(atPath: mlpackageURL.path) {
+                // .mlpackage saved but compilation to .mlmodelc failed — still usable
+                status = .completed(domain: domain)
+                Instrumentation.log(
+                    "PINN \(domain.displayName) model trained — .mlpackage saved (compilation to .mlmodelc skipped)",
+                    area: .mlTraining, level: .warning,
+                    details: "epochs=\(epochs) path=\(mlpackageURL.path)"
+                )
+            } else if fm.fileExists(atPath: ptURL.path) {
+                // CoreML conversion skipped entirely — PyTorch model saved
+                status = .completed(domain: domain)
+                Instrumentation.log(
+                    "PINN \(domain.displayName) model trained — PyTorch .pt saved (CoreML conversion skipped, likely coremltools incompatibility)",
+                    area: .mlTraining, level: .warning,
+                    details: "epochs=\(epochs) path=\(ptURL.path)"
+                )
             } else {
-                status = .failed("CoreML model file not found after conversion")
+                status = .failed("No model file found after training. Check Python output in Diagnostics Console.")
             }
         }
 
@@ -259,40 +286,85 @@ final class PINNTrainingManager {
             process.arguments = ["-l", "-c", "\(configuredPython) \(scriptArgs)"]
             process.currentDirectoryURL = scriptURL.deletingLastPathComponent()
 
-            let pipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = pipe
+            let stdoutPipe = Pipe()
+            let stderrPipe = Pipe()
+            process.standardOutput = stdoutPipe
+            process.standardError = stderrPipe
 
-            pipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            // Thread-safe stderr accumulator
+            let stderrBuffer = StderrBuffer()
+
+            stdoutPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
                 let data = handle.availableData
                 guard !data.isEmpty, let line = String(data: data, encoding: .utf8) else { return }
 
-                // Parse progress from Python stdout
-                // Expected format: "EPOCH:50/500 LOSS:0.0123 PHYSICS_LOSS:0.0045"
                 Task { @MainActor [weak self] in
+                    self?.lastTrainingLog += line
+                    // Detect CoreML conversion skipped
+                    if line.contains("CONVERSION_SKIPPED") {
+                        self?.conversionSkipped = true
+                    }
                     self?.parseTrainingOutput(line, totalEpochs: epochs)
                 }
             }
 
-            process.terminationHandler = { process in
+            stderrPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+                let data = handle.availableData
+                guard !data.isEmpty, let text = String(data: data, encoding: .utf8) else { return }
+                stderrBuffer.append(text)
                 Task { @MainActor [weak self] in
-                    if process.terminationStatus == 0 {
+                    self?.lastTrainingLog += text
+                }
+            }
+
+            process.terminationHandler = { [weak self] process in
+                let stderrText = stderrBuffer.value
+                Task { @MainActor [weak self] in
+                    let code = process.terminationStatus
+                    let convSkipped = self?.conversionSkipped ?? false
+
+                    // Log the full stderr for diagnostics
+                    if !stderrText.isEmpty {
+                        Instrumentation.log(
+                            "Python stderr output",
+                            area: .mlTraining, level: code == 0 ? .info : .error,
+                            details: String(stderrText.suffix(2000))
+                        )
+                    }
+
+                    if code == 0 || convSkipped {
+                        // Training succeeded — conversion may have been skipped
+                        if convSkipped {
+                            Instrumentation.log(
+                                "CoreML conversion was skipped — PyTorch .pt model saved",
+                                area: .mlTraining, level: .warning,
+                                details: "The model was trained successfully but coremltools conversion failed. The .pt file can be converted manually."
+                            )
+                        }
                         self?.status = .converting
                         continuation.resume(returning: true)
                     } else {
-                        let code = process.terminationStatus
+                        // Extract the last meaningful error from stderr
+                        let lastLines = stderrText
+                            .components(separatedBy: .newlines)
+                            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+                            .suffix(5)
+                            .joined(separator: "\n")
+
                         let detail: String
                         switch code {
                         case 127:
                             detail = "Python not found (exit code 127). Install Python 3.10+ and ensure it is on your PATH. On macOS, run: brew install python@3.12"
                         case 126:
                             detail = "Python script is not executable (exit code 126). Check file permissions on the training script."
-                        case 1:
-                            detail = "Python script encountered an error (exit code 1). Check the Diagnostics Console → ML Training tab for details."
                         case 2:
                             detail = "Python script received invalid arguments (exit code 2). This may indicate an incompatible script version."
                         default:
-                            detail = "Python process exited with code \(code)."
+                            if !lastLines.isEmpty {
+                                detail = "Python error (exit code \(code)):\n\(lastLines)"
+                            } else {
+                                detail = "Python script encountered an error (exit code \(code)). Check the Diagnostics Console → ML Training tab for details."
+                            }
                         }
                         Instrumentation.log(detail, area: .mlTraining, level: .error, details: "exitCode=\(code)")
                         self?.status = .failed(detail)
@@ -360,4 +432,22 @@ struct TrainingEpochMetrics: Identifiable, Sendable {
     let dataLoss: Double
     let physicsLoss: Double
     let totalLoss: Double
+}
+
+/// Thread-safe string accumulator for stderr capture from Process pipes.
+nonisolated private final class StderrBuffer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var buffer = ""
+
+    func append(_ text: String) {
+        lock.lock()
+        buffer += text
+        lock.unlock()
+    }
+
+    var value: String {
+        lock.lock()
+        defer { lock.unlock() }
+        return buffer
+    }
 }

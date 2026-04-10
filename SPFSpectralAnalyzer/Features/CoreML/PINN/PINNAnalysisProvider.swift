@@ -154,11 +154,24 @@ final class PINNAnalysisProvider: AIAnalysisProvider, @unchecked Sendable {
             insights.append(String(format: "Conformal prediction interval width: %.1f (%.0f%% relative)", width, relative))
         }
 
+        // Ensemble uncertainty from multi-head output
+        if prediction.headValues.count > 1 {
+            let cv = prediction.ensembleStd / max(abs(prediction.primaryValue), 1e-8) * 100
+            insights.append(String(format: "Ensemble uncertainty (σ): %.2f (CV: %.1f%%, %d heads)",
+                                   prediction.ensembleStd, cv, prediction.headValues.count))
+        }
+
         return insights
     }
 
     private func buildRisks(prediction: PINNPredictionResult) -> [String] {
         var risks: [String] = []
+
+        if prediction.isOutOfDistribution {
+            risks.append("⚠ High ensemble disagreement detected — this input may be out-of-distribution (OOD). " +
+                         "The multi-head ensemble heads show >15% coefficient of variation, suggesting the model " +
+                         "has not seen similar spectra during training. Treat this prediction with caution.")
+        }
 
         if prediction.physicsConsistencyScore < 0.7 {
             risks.append("Low physics consistency score may indicate measurement artifacts or unusual sample composition")

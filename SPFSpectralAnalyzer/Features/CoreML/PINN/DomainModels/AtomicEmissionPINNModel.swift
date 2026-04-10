@@ -142,7 +142,9 @@ final class AtomicEmissionPINNModel: @unchecked Sendable, PINNDomainModel {
                 confidenceHigh: concentration + q90,
                 decomposition: identifyElements(wavelengths: wavelengths, emissionIntensities: intensities),
                 physicsConsistencyScore: physicsScore,
-                domain: .atomicEmission
+                domain: .atomicEmission,
+                ensembleStd: 0,
+                headValues: []
             )
         } catch {
             return nil

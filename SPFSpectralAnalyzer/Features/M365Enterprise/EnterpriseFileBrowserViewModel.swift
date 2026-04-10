@@ -72,8 +72,13 @@ final class EnterpriseFileBrowserViewModel {
         self.authManager = authManager
     }
 
+    /// When true, suppresses the onChange handler that clears resolvedSite.
+    /// Set during programmatic updates to sharePointSitePath.
+    var suppressSiteClear = false
+
     /// Invalidate the cached site resolution when the URL changes.
     func clearResolvedSite() {
+        guard !suppressSiteClear else { return }
         resolvedSite = nil
     }
 
@@ -85,7 +90,10 @@ final class EnterpriseFileBrowserViewModel {
             displayName: displayName,
             webUrl: webUrl
         )
+        // Suppress the onChange handler from clearing the site we just set
+        self.suppressSiteClear = true
         self.sharePointSitePath = webUrl
+        self.suppressSiteClear = false
     }
 
     // MARK: - Site Enumeration

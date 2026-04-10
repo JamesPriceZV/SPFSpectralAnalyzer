@@ -131,7 +131,9 @@ final class NMRPINNModel: @unchecked Sendable, PINNDomainModel {
                     intensities: intensities
                 ),
                 physicsConsistencyScore: physicsScore,
-                domain: .nmr
+                domain: .nmr,
+                ensembleStd: 0,
+                headValues: []
             )
         } catch {
             return nil

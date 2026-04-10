@@ -384,6 +384,10 @@ struct ContentView: View {
                 Tab("ML Training", systemImage: "cpu", value: AppMode.mlTraining) {
                     MLTrainingView(authManager: aiVM.m365AuthManager)
                 }
+
+                Tab("Jobs & Downloads", systemImage: "square.and.arrow.down.on.square", value: AppMode.jobsDownloads) {
+                    JobsDownloadsView()
+                }
             }
 
             TabSection("Enterprise") {

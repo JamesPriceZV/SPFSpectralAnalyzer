@@ -112,7 +112,9 @@ final class XRDPINNModel: @unchecked Sendable, PINNDomainModel {
                 confidenceHigh: latticeParam + q90,
                 decomposition: extractDSpacings(twoTheta: wavelengths, counts: intensities),
                 physicsConsistencyScore: physicsScore,
-                domain: .xrd
+                domain: .xrd,
+                ensembleStd: 0,
+                headValues: []
             )
         } catch {
             return nil

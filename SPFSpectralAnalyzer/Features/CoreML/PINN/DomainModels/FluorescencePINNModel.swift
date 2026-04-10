@@ -110,7 +110,9 @@ final class FluorescencePINNModel: @unchecked Sendable, PINNDomainModel {
                 confidenceHigh: concentration + q90,
                 decomposition: analyzeEmissionCharacteristics(wavelengths: wavelengths, intensities: intensities),
                 physicsConsistencyScore: physicsScore,
-                domain: .fluorescence
+                domain: .fluorescence,
+                ensembleStd: 0,
+                headValues: []
             )
         } catch {
             return nil

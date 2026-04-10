@@ -134,7 +134,9 @@ final class NIRPINNModel: @unchecked Sendable, PINNDomainModel {
                 confidenceHigh: primaryValue + q90,
                 decomposition: identifyNIRBands(wavelengths: wavelengths, values: intensities),
                 physicsConsistencyScore: physicsScore,
-                domain: .nir
+                domain: .nir,
+                ensembleStd: 0,
+                headValues: []
             )
         } catch {
             return nil

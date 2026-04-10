@@ -113,7 +113,9 @@ final class MassSpecPINNModel: @unchecked Sendable, PINNDomainModel {
                 confidenceHigh: molecularWeight + q90,
                 decomposition: identifyFragmentationPattern(mzValues: wavelengths, ionCounts: intensities),
                 physicsConsistencyScore: physicsScore,
-                domain: .massSpec
+                domain: .massSpec,
+                ensembleStd: 0,
+                headValues: []
             )
         } catch {
             return nil

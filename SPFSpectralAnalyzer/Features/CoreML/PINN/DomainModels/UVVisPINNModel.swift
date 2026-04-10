@@ -151,7 +151,9 @@ final class UVVisPINNModel: @unchecked Sendable, PINNDomainModel {
                 confidenceHigh: spf + q90,
                 decomposition: nil,
                 physicsConsistencyScore: physicsScore,
-                domain: .uvVis
+                domain: .uvVis,
+                ensembleStd: 0,
+                headValues: []
             )
         } catch {
             return nil
