@@ -498,18 +498,24 @@ extension ContentView {
     // MARK: - PINN Domain Status
 
     private var aiTabPINNSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let pinnService = PINNPredictionService.shared
+        // Read loadVersion to trigger re-render when models finish loading.
+        // Domain models are reference types (not @Observable), so their
+        // status mutations are invisible to SwiftUI without this.
+        let _ = pinnService.registry.loadVersion
+
+        return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("PINN Physics Models")
                     .font(.headline)
                 Spacer()
-                Text("\(PINNPredictionService.shared.readyModelCount)/\(PINNDomain.allCases.count) ready")
+                Text("\(pinnService.readyModelCount)/\(PINNDomain.allCases.count) ready")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
             ForEach(PINNDomain.allCases) { domain in
-                let model = PINNPredictionService.shared.registry.models[domain]
+                let model = pinnService.registry.models[domain]
                 let status = model?.status ?? .notTrained
                 HStack(spacing: 8) {
                     Image(systemName: domain.iconName)

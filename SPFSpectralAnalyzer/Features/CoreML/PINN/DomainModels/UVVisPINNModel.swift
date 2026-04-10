@@ -39,6 +39,9 @@ final class UVVisPINNModel: @unchecked Sendable, PINNDomainModel {
     /// Conformal prediction residuals from calibration split.
     nonisolated(unsafe) private var conformalResiduals: [Double] = []
 
+    /// Z-score normalization parameters (nil for pre-normalization models).
+    nonisolated(unsafe) private var normParams: PINNNormalizationParams?
+
     /// Model file name for this domain.
     static let modelName = "PINN_UVVis"
 
@@ -82,6 +85,7 @@ final class UVVisPINNModel: @unchecked Sendable, PINNDomainModel {
         config.computeUnits = .all
         model = try MLModel(contentsOf: url, configuration: config)
         loadConformalResiduals()
+        normParams = PINNNormalizationParams.load(modelName: Self.modelName)
         status = .ready
     }
 
@@ -110,35 +114,40 @@ final class UVVisPINNModel: @unchecked Sendable, PINNDomainModel {
         let resampled = resampleToUVRange(wavelengths: wavelengths, intensities: intensities)
         guard resampled.count == 111 else { return nil }
 
-        // Build feature dictionary
-        var featureDict: [String: MLFeatureValue] = [:]
+        // Build feature vector matching training script: 111 spectral + 7 derived + 4 auxiliary = 122
+        let metrics = computeSpectralMetrics(resampled: resampled)
+        let plateValue: Double = (metadata.plateType == .pmma) ? 0 : (metadata.plateType == .quartz ? 1 : 2)
+        var featureVector = resampled // 111 spectral features
+        featureVector.append(contentsOf: [
+            metrics.criticalWavelength, metrics.uvaUvbRatio, metrics.uvbArea,
+            metrics.uvaArea, metrics.meanUVBTransmittance, metrics.meanUVATransmittance,
+            metrics.peakWavelength, // 7 derived
+            plateValue, metadata.applicationQuantityMg ?? 15.0,
+            Double(metadata.formulationType?.featureValue ?? 3),
+            metadata.isPostIrradiation ? 1.0 : 0.0, // 4 auxiliary
+        ])
 
-        // Spectral features
-        for i in 0..<111 {
-            featureDict["abs_\(290 + i)"] = MLFeatureValue(double: resampled[i])
+        // Apply z-score normalization if params are available (model trained with normalization)
+        if let norm = normParams {
+            featureVector = norm.normalizeInput(featureVector)
         }
 
-        // Derived metrics
-        let metrics = computeSpectralMetrics(resampled: resampled)
-        featureDict["critical_wavelength"] = MLFeatureValue(double: metrics.criticalWavelength)
-        featureDict["uva_uvb_ratio"] = MLFeatureValue(double: metrics.uvaUvbRatio)
-        featureDict["uvb_area"] = MLFeatureValue(double: metrics.uvbArea)
-        featureDict["uva_area"] = MLFeatureValue(double: metrics.uvaArea)
-        featureDict["mean_uvb_transmittance"] = MLFeatureValue(double: metrics.meanUVBTransmittance)
-        featureDict["mean_uva_transmittance"] = MLFeatureValue(double: metrics.meanUVATransmittance)
-        featureDict["peak_absorbance_wavelength"] = MLFeatureValue(double: metrics.peakWavelength)
-
-        // Auxiliary features
-        let plateValue: Double = (metadata.plateType == .pmma) ? 0 : (metadata.plateType == .quartz ? 1 : 2)
-        featureDict["plate_type"] = MLFeatureValue(double: plateValue)
-        featureDict["application_quantity_mg"] = MLFeatureValue(double: metadata.applicationQuantityMg ?? 15.0)
-        featureDict["formulation_type"] = MLFeatureValue(double: Double(metadata.formulationType?.featureValue ?? 3))
-        featureDict["is_post_irradiation"] = MLFeatureValue(double: metadata.isPostIrradiation ? 1.0 : 0.0)
-
         do {
-            let provider = try MLDictionaryFeatureProvider(dictionary: featureDict)
+            // Build MLMultiArray input tensor matching CoreML model's "input" spec
+            let inputArray = try MLMultiArray(shape: [1, NSNumber(value: featureVector.count)], dataType: .float32)
+            for (i, val) in featureVector.enumerated() {
+                inputArray[[0, NSNumber(value: i)]] = NSNumber(value: Float(val))
+            }
+            let provider = try MLDictionaryFeatureProvider(dictionary: ["input": MLFeatureValue(multiArray: inputArray)])
             let prediction = try model.prediction(from: provider)
-            guard let spfValue = prediction.featureValue(for: "spf")?.doubleValue else { return nil }
+            guard let outputArray = prediction.featureValue(for: "output")?.multiArrayValue else { return nil }
+
+            var spfValue = Double(truncating: outputArray[0])
+
+            // Denormalize if model was trained with normalization
+            if let norm = normParams {
+                spfValue = norm.denormalizeOutput(spfValue)
+            }
 
             let spf = max(spfValue, 1.0)
             let q90 = conformalQuantile(level: 0.9)

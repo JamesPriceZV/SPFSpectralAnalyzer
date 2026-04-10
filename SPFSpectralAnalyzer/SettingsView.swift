@@ -353,7 +353,11 @@ struct SettingsView: View {
         encodedGroundingConfig != m365GroundingConfigJSON ||
         encodedExportConfig != m365ExportConfigJSON ||
         draftInstrumentationEnabled != instrumentationEnabled ||
-        draftInstrumentationEnhancedDiagnostics != instrumentationEnhancedDiagnostics
+        draftInstrumentationEnhancedDiagnostics != instrumentationEnhancedDiagnostics ||
+        !apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !claudeAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !grokAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+        !geminiAPIKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// Encode the draft priority order to JSON for comparison and persistence.

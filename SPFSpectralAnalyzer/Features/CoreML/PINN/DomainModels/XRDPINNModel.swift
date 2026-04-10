@@ -32,6 +32,8 @@ final class XRDPINNModel: @unchecked Sendable, PINNDomainModel {
 
     nonisolated(unsafe) private var model: MLModel?
     nonisolated(unsafe) private var conformalResiduals: [Double] = []
+    /// Z-score normalization parameters (nil for pre-normalization models).
+    nonisolated(unsafe) private var normParams: PINNNormalizationParams?
     static let modelName = "PINN_XRD"
 
     // MARK: - Model Loading
@@ -69,6 +71,7 @@ final class XRDPINNModel: @unchecked Sendable, PINNDomainModel {
         config.computeUnits = .all
         model = try MLModel(contentsOf: url, configuration: config)
         loadConformalResiduals()
+        normParams = PINNNormalizationParams.load(modelName: Self.modelName)
         status = .ready
     }
 
@@ -102,14 +105,20 @@ final class XRDPINNModel: @unchecked Sendable, PINNDomainModel {
                 return nil
             }
 
+            // Denormalize if model was trained with normalization
+            var denormalizedValue = latticeParam
+            if let norm = normParams {
+                denormalizedValue = norm.denormalizeOutput(denormalizedValue)
+            }
+
             let q90 = conformalQuantile(level: 0.9)
             let physicsScore = computePhysicsConsistency(twoTheta: wavelengths, counts: intensities)
 
             return PINNPredictionResult(
-                primaryValue: latticeParam,
+                primaryValue: denormalizedValue,
                 primaryLabel: "Lattice Parameter (Å)",
-                confidenceLow: max(latticeParam - q90, 0),
-                confidenceHigh: latticeParam + q90,
+                confidenceLow: max(denormalizedValue - q90, 0),
+                confidenceHigh: denormalizedValue + q90,
                 decomposition: extractDSpacings(twoTheta: wavelengths, counts: intensities),
                 physicsConsistencyScore: physicsScore,
                 domain: .xrd,

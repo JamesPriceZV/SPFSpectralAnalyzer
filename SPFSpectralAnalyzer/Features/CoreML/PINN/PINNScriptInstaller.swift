@@ -130,6 +130,9 @@ enum PINNScriptInstaller {
         import torch
         import torch.nn as nn
 
+        # NumPy 2.0 removed np.trapz in favour of np.trapezoid
+        trapz = np.trapezoid if hasattr(np, 'trapezoid') else np.trapz
+
         def parse_args():
             \"\"\"Parse command-line arguments expected by SPF Spectral Analyzer.\"\"\"
             parser = argparse.ArgumentParser(description='PINN Training Script')
@@ -193,7 +196,7 @@ enum PINNScriptInstaller {
             except ImportError as e:
                 print(f"WARNING: coremltools not importable: {e}", flush=True)
                 print(f"This may indicate a Python version incompatibility.", flush=True)
-                print(f"PyTorch model saved at {pt_path}. Convert manually with: python -c \\"import coremltools\\"", flush=True)
+                print(f'PyTorch model saved at {pt_path}. Convert manually with: python -c "import coremltools"', flush=True)
                 print(f"CONVERSION_SKIPPED", flush=True)
                 return
             except Exception as e:
@@ -242,7 +245,7 @@ enum PINNScriptInstaller {
             else:
                 print(f"WARNING: coremlcompiler exited with code {exit_code >> 8 if exit_code > 0 else exit_code}", flush=True)
                 print(f"The .mlpackage was saved at {package_path}", flush=True)
-                print(f"Compile manually: xcrun coremlcompiler compile \\"{package_path}\\" \\"{os.path.dirname(output_path)}\\"", flush=True)
+                print(f'Compile manually: xcrun coremlcompiler compile "{package_path}" "{os.path.dirname(output_path)}"', flush=True)
 
         class AdaptiveTanh(nn.Module):
             \"\"\"Tanh with a learnable scaling parameter.
@@ -304,20 +307,29 @@ enum PINNScriptInstaller {
             Implements techniques from Wang et al. (2021) and Jagtap et al. (2020):
             1. Input concatenation: encoded input gated into every hidden layer.
             2. Residual addition: skip connections where dimensions match.
-            3. Adaptive activations: learnable scaling parameter per layer (2-5x convergence).\"\"\"
+            3. Adaptive activations: learnable scaling parameter per layer (2-5x convergence).
+            Supports variable-width hidden layers by projecting U/V per layer.\"\"\"
             def __init__(self, input_dim, hidden_dims, fourier=None, activation='adaptive_tanh'):
                 super().__init__()
                 self.fourier = fourier
                 enc_dim = fourier.output_dim if fourier is not None else input_dim
-                # Encoder projects input to first hidden dim (also used for concatenation)
+                # Encoder projects input to first hidden dim
                 self.encoder_U = nn.Linear(enc_dim, hidden_dims[0])
                 self.encoder_V = nn.Linear(enc_dim, hidden_dims[0])
+                # Per-layer projections for U/V when hidden dims change
+                self.gate_projs = nn.ModuleList()
                 # Hidden layers with per-layer adaptive activations
                 self.layers = nn.ModuleList()
                 self.activations = nn.ModuleList()
                 for i in range(len(hidden_dims) - 1):
-                    self.layers.append(nn.Linear(hidden_dims[i], hidden_dims[i + 1]))
+                    out_dim = hidden_dims[i + 1]
+                    self.layers.append(nn.Linear(hidden_dims[i], out_dim))
                     self.activations.append(make_activation(activation))
+                    # Project U/V when layer width differs from encoder width
+                    if out_dim != hidden_dims[0]:
+                        self.gate_projs.append(nn.Linear(hidden_dims[0], out_dim, bias=False))
+                    else:
+                        self.gate_projs.append(nn.Identity())
                 # Output head
                 self.output_layer = nn.Linear(hidden_dims[-1], 1)
                 self.first_activation = make_activation(activation)
@@ -329,10 +341,13 @@ enum PINNScriptInstaller {
                 U = self.first_activation(self.encoder_U(x))
                 V = self.first_activation(self.encoder_V(x))
                 h = U
-                for layer, act in zip(self.layers, self.activations):
+                for i, (layer, act) in enumerate(zip(self.layers, self.activations)):
                     h_new = act(layer(h))
+                    # Project U/V to match current layer width (Identity when dims match)
+                    Ug = self.gate_projs[i](U)
+                    Vg = self.gate_projs[i](V)
                     # Element-wise gating with the two encoding branches
-                    h_new = h_new * U + (1 - h_new) * V
+                    h_new = h_new * Ug + (1 - h_new) * Vg
                     # Residual addition when dimensions match
                     if h_new.shape[-1] == h.shape[-1]:
                         h_new = h_new + h
@@ -371,6 +386,32 @@ enum PINNScriptInstaller {
                 return grad_weight * loss
             except Exception:
                 return torch.tensor(0.0)
+
+        def normalize_data(X, y):
+            \"\"\"Z-score normalize features and targets for stable training.
+            Returns (X_norm, y_norm, X_mean, X_std, y_mean, y_std).
+            Normalization parameters are needed for inference denormalization.\"\"\"
+            X_mean = X.mean(dim=0, keepdim=True)
+            X_std = X.std(dim=0, keepdim=True) + 1e-8
+            y_mean = y.mean()
+            y_std = y.std() + 1e-8
+            X_norm = (X - X_mean) / X_std
+            y_norm = (y - y_mean) / y_std
+            return X_norm, y_norm, X_mean, X_std, y_mean, y_std
+
+        def save_normalization_params(output_path, X_mean, X_std, y_mean, y_std):
+            \"\"\"Save normalization parameters as JSON alongside the model.
+            The Swift app loads these to denormalize predictions at inference time.\"\"\"
+            params = {
+                'X_mean': X_mean.squeeze().tolist() if hasattr(X_mean, 'tolist') else float(X_mean),
+                'X_std': X_std.squeeze().tolist() if hasattr(X_std, 'tolist') else float(X_std),
+                'y_mean': float(y_mean),
+                'y_std': float(y_std),
+            }
+            norm_path = output_path + "_normalization.json"
+            with open(norm_path, 'w') as f:
+                json.dump(params, f, indent=2)
+            print(f"Normalization params saved to {norm_path}", flush=True)
 
         class ReLoBRaLo:
             \"\"\"Random Loss Balancing with Look-ahead (ReLoBRaLo).
@@ -480,7 +521,7 @@ enum PINNScriptInstaller {
         import numpy as np
         from pinn_utils import (parse_args, load_training_data, report_progress, convert_to_coreml,
             ReLoBRaLo, FourierFeatureEncoding, ModifiedMLP, MultiHeadPINN, AdaptiveTanh, AdaptiveGELU,
-            make_activation, gradient_loss)
+            make_activation, gradient_loss, trapz, normalize_data, save_normalization_params)
 
         """
     }
@@ -633,8 +674,8 @@ enum PINNScriptInstaller {
                 # Compute derived metrics
                 uvb_mask = (target_wl >= 290) & (target_wl <= 320)
                 uva_mask = (target_wl > 320) & (target_wl <= 400)
-                uvb_area = float(np.trapz(resampled[uvb_mask], target_wl[uvb_mask])) if uvb_mask.any() else 0
-                uva_area = float(np.trapz(resampled[uva_mask], target_wl[uva_mask])) if uva_mask.any() else 0
+                uvb_area = float(trapz(resampled[uvb_mask], target_wl[uvb_mask])) if uvb_mask.any() else 0
+                uva_area = float(trapz(resampled[uva_mask], target_wl[uva_mask])) if uva_mask.any() else 0
                 uva_uvb_ratio = uva_area / (uvb_area + 1e-8)
                 # Transmittance
                 trans = np.power(10, -np.clip(resampled, 0, 10))
@@ -666,7 +707,9 @@ enum PINNScriptInstaller {
             if len(entries) < 2:
                 print("ERROR: Need at least 2 training samples", flush=True)
                 sys.exit(1)
-            X, y = prepare_features(entries)
+            X_raw, y_raw = prepare_features(entries)
+            X, y, X_mean, X_std, y_mean, y_std = normalize_data(X_raw, y_raw)
+            print(f"Normalized: X shape={X.shape}, y range=[{y.min():.3f}, {y.max():.3f}]", flush=True)
             input_dim = X.shape[1]
             model = UVVisPINN(input_dim=input_dim)
             optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -685,6 +728,7 @@ enum PINNScriptInstaller {
                 if epoch % max(1, args.epochs // 100) == 0 or epoch == args.epochs:
                     report_progress(epoch, args.epochs, data_loss.item(), phys_loss.item())
             convert_to_coreml(model, input_dim, args.output, args.domain\(ensembleConvertArg(cfg.ensemble)))
+            save_normalization_params(args.output, X_mean, X_std, y_mean, y_std)
 
         if __name__ == '__main__':
             main()
@@ -1022,7 +1066,9 @@ enum PINNScriptInstaller {
             if len(entries) < 2:
                 print("ERROR: Need at least 2 training samples", flush=True)
                 sys.exit(1)
-            X, y = prepare_features(entries)
+            X_raw, y_raw = prepare_features(entries)
+            X, y, X_mean, X_std, y_mean, y_std = normalize_data(X_raw, y_raw)
+            print(f"Normalized: X shape={X.shape}, y range=[{y.min():.3f}, {y.max():.3f}]", flush=True)
             input_dim = X.shape[1]
             model = \(className)(input_dim=input_dim)
             optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -1041,6 +1087,7 @@ enum PINNScriptInstaller {
                 if epoch % max(1, args.epochs // 100) == 0 or epoch == args.epochs:
                     report_progress(epoch, args.epochs, data_loss.item(), phys_loss.item())
             convert_to_coreml(model, input_dim, args.output, args.domain\(ensembleConvertArg(cfg.ensemble)))
+            save_normalization_params(args.output, X_mean, X_std, y_mean, y_std)
 
         if __name__ == '__main__':
             main()
@@ -1052,7 +1099,7 @@ enum PINNScriptInstaller {
     /// Generates target expansion for multi-head training (y → y_multi).
     private static func ensembleTargetSetup(_ config: PINNEnsembleConfig) -> String {
         guard config.isEnabled, config.numHeads > 1 else { return "" }
-        return "        y_multi = y.expand(-1, \(config.numHeads))"
+        return "    y_multi = y.expand(-1, \(config.numHeads))"
     }
 
     /// Generates data_loss + phys_loss computation for single or multi-head output.
@@ -1060,15 +1107,15 @@ enum PINNScriptInstaller {
     private static func ensembleTrainingLoss(_ config: PINNEnsembleConfig, physicsCall: String) -> String {
         if config.isEnabled, config.numHeads > 1 {
             return """
-                        data_loss = nn.MSELoss()(pred, y_multi)
-                        pred_mean = pred.mean(dim=-1, keepdim=True)
-                        phys_loss = \(physicsCall)
+                    data_loss = nn.MSELoss()(pred, y_multi)
+                    pred_mean = pred.mean(dim=-1, keepdim=True)
+                    phys_loss = \(physicsCall)
             """
         }
         return """
-                    data_loss = nn.MSELoss()(pred, y)
-                    pred_mean = pred
-                    phys_loss = \(physicsCall)
+                data_loss = nn.MSELoss()(pred, y)
+                pred_mean = pred
+                phys_loss = \(physicsCall)
         """
     }
 
@@ -1083,23 +1130,23 @@ enum PINNScriptInstaller {
     /// Generates the balancer setup line (2 or 3 losses).
     private static func gradientTrainingSetup(_ config: GradientTrainingConfig) -> String {
         if config.isEnabled {
-            return "        balancer = ReLoBRaLo(num_losses=3)"
+            return "    balancer = ReLoBRaLo(num_losses=3)"
         }
-        return "        balancer = ReLoBRaLo(num_losses=2)"
+        return "    balancer = ReLoBRaLo(num_losses=2)"
     }
 
     /// Generates the gradient loss computation and total loss assembly.
     private static func gradientTrainingLoop(_ config: GradientTrainingConfig) -> String {
         if config.isEnabled {
             return """
-                        grad_loss = gradient_loss(model, X, y, grad_weight=\(String(format: "%.2f", config.weight)))
-                        weights = balancer.update([data_loss.item(), phys_loss.item(), grad_loss.item()])
-                        total = weights[0] * data_loss + weights[1] * phys_loss + weights[2] * grad_loss
+                    grad_loss = gradient_loss(model, X, y, grad_weight=\(String(format: "%.2f", config.weight)))
+                    weights = balancer.update([data_loss.item(), phys_loss.item(), grad_loss.item()])
+                    total = weights[0] * data_loss + weights[1] * phys_loss + weights[2] * grad_loss
             """
         }
         return """
-                    weights = balancer.update([data_loss.item(), phys_loss.item()])
-                    total = weights[0] * data_loss + weights[1] * phys_loss
+                weights = balancer.update([data_loss.item(), phys_loss.item()])
+                total = weights[0] * data_loss + weights[1] * phys_loss
         """
     }
 }

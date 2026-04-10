@@ -13,9 +13,9 @@ struct PINNDomainDetailPane: View {
 
     // Hyperparameters (defaults from @AppStorage, overridable per session)
     @AppStorage("pinnDefaultEpochs") private var defaultEpochs = 500
-    @AppStorage("pinnDefaultLearningRate") private var defaultLR = 0.001
+    @AppStorage("pinnDefaultLearningRate") private var defaultLR = 0.0003
     @State private var epochs: Int = 500
-    @State private var learningRate: Double = 0.001
+    @State private var learningRate: Double = 0.0003
 
     // Help popovers
     @State private var showEpochHelp = false

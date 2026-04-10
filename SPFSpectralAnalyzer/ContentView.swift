@@ -220,6 +220,9 @@ struct ContentView: View {
             // Manual fetch replaces @Query — synchronous, so data is immediately available.
             refreshAllData()
 
+            // Yield to let the UI render its first frame before heavy cache work.
+            await Task.yield()
+
             // Populate the searchable-text caches for safe dataset filtering
             datasets.updateSearchableTextCache(from: storedDatasets)
             datasets.updateArchivedSearchableTextCache(from: archivedDatasets)
@@ -235,12 +238,16 @@ struct ContentView: View {
                 datasets.selectedStoredDatasetIDs = validSelections
             }
 
+            // Yield again before session restore (another batch of SwiftData queries)
+            await Task.yield()
+
             // Restore last session datasets on launch and auto-load Reference datasets
             if analysis.spectra.isEmpty {
                 let restored = datasets.restoreLastSessionOrShowDataManagement(storedDatasets: storedDatasets)
                 sessionRestoreAttempted = true
                 if restored {
                     analysis.applyAlignmentIfNeeded()
+                    await Task.yield()
                     rebuildAnalysisCaches()
                     analysis.updatePeaks()
                 } else {
@@ -249,6 +256,7 @@ struct ContentView: View {
             } else {
                 sessionRestoreAttempted = true
                 analysis.applyAlignmentIfNeeded()
+                await Task.yield()
                 rebuildAnalysisCaches()
                 analysis.updatePeaks()
             }

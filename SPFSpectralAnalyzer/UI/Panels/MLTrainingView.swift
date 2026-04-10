@@ -59,7 +59,7 @@ struct MLTrainingView: View {
                 MultiModalReportView(report: report, authManager: authManager)
             }
         }
-        .onAppear {
+        .task {
             MLTrainingService.shared.updateAvailableCount(modelContext: modelContext)
         }
     }
@@ -68,6 +68,10 @@ struct MLTrainingView: View {
 
     private var sidebar: some View {
         let pinnService = PINNPredictionService.shared
+        // Read loadVersion to trigger re-render when models finish loading.
+        // Domain models are reference types (not @Observable), so their
+        // status mutations are invisible to SwiftUI without this.
+        let _ = pinnService.registry.loadVersion
 
         return List(selection: $selectedItem) {
             Section {
@@ -137,6 +141,7 @@ struct MLTrainingView: View {
         switch selectedItem {
         case .pinn(let domain):
             PINNDomainDetailPane(domain: domain)
+                .id(domain)
         case .createML:
             CreateMLDetailPane()
         case nil:
@@ -497,7 +502,7 @@ struct CreateMLDetailPane: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .onAppear {
+        .task {
             MLTrainingService.shared.updateAvailableCount(modelContext: modelContext)
         }
     }

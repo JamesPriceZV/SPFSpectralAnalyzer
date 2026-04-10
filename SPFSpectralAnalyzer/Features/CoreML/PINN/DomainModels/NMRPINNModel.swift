@@ -34,6 +34,8 @@ final class NMRPINNModel: @unchecked Sendable, PINNDomainModel {
 
     nonisolated(unsafe) private var model: MLModel?
     nonisolated(unsafe) private var conformalResiduals: [Double] = []
+    /// Z-score normalization parameters (nil for pre-normalization models).
+    nonisolated(unsafe) private var normParams: PINNNormalizationParams?
     static let modelName = "PINN_NMR"
 
     /// Common chemical shift ranges (ppm) for ¹H NMR.
@@ -82,6 +84,7 @@ final class NMRPINNModel: @unchecked Sendable, PINNDomainModel {
         config.computeUnits = .all
         model = try MLModel(contentsOf: url, configuration: config)
         loadConformalResiduals()
+        normParams = PINNNormalizationParams.load(modelName: Self.modelName)
         status = .ready
     }
 
@@ -115,6 +118,12 @@ final class NMRPINNModel: @unchecked Sendable, PINNDomainModel {
                 return nil
             }
 
+            // Denormalize if model was trained with normalization
+            var denormalizedValue = primaryValue
+            if let norm = normParams {
+                denormalizedValue = norm.denormalizeOutput(denormalizedValue)
+            }
+
             let q90 = conformalQuantile(level: 0.9)
             let physicsScore = computePhysicsConsistency(
                 chemicalShifts: wavelengths,
@@ -122,10 +131,10 @@ final class NMRPINNModel: @unchecked Sendable, PINNDomainModel {
             )
 
             return PINNPredictionResult(
-                primaryValue: primaryValue,
+                primaryValue: denormalizedValue,
                 primaryLabel: "Estimated Proton Count",
-                confidenceLow: max(primaryValue - q90, 0),
-                confidenceHigh: primaryValue + q90,
+                confidenceLow: max(denormalizedValue - q90, 0),
+                confidenceHigh: denormalizedValue + q90,
                 decomposition: identifyChemicalShiftRegions(
                     chemicalShifts: wavelengths,
                     intensities: intensities

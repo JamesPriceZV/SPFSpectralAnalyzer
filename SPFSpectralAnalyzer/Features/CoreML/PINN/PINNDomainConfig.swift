@@ -384,43 +384,43 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
                 TrainingDataSource(
                     name: "NIST WebBook — Benzene UV",
                     description: "JCAMP-DX UV absorption spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C71432&Index=0&Type=UV"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C71432&Index=0&Type=UVVis"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Naphthalene UV",
                     description: "JCAMP-DX UV absorption spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C91203&Index=0&Type=UV"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C91203&Index=0&Type=UVVis"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Toluene UV",
                     description: "JCAMP-DX UV absorption spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C108883&Index=0&Type=UV"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C108883&Index=0&Type=UVVis"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Acetone UV",
                     description: "JCAMP-DX UV absorption spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67641&Index=0&Type=UV"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67641&Index=0&Type=UVVis"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Phenol UV",
                     description: "JCAMP-DX UV absorption spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C108952&Index=0&Type=UV"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C108952&Index=0&Type=UVVis"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Styrene UV",
                     description: "JCAMP-DX UV absorption spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C100425&Index=0&Type=UV"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C100425&Index=0&Type=UVVis"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Aniline UV",
                     description: "JCAMP-DX UV absorption spectrum, direct download",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C62533&Index=0&Type=UV"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C62533&Index=0&Type=UVVis"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
@@ -669,19 +669,19 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
                 TrainingDataSource(
                     name: "NIST WebBook — Anthracene UV/Fluorescence",
                     description: "JCAMP-DX UV spectrum for fluorescent reference compound",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C120127&Index=0&Type=UV"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C120127&Index=0&Type=UVVis"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Pyrene UV/Fluorescence",
                     description: "JCAMP-DX UV spectrum for fluorescent reference compound",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C129000&Index=0&Type=UV"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C129000&Index=0&Type=UVVis"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST WebBook — Fluorescein UV",
                     description: "JCAMP-DX UV spectrum for common fluorescent dye",
-                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C2321073&Index=0&Type=UV"),
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C2321073&Index=0&Type=UVVis"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
@@ -837,55 +837,55 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
                 TrainingDataSource(
                     name: "NIST ASD — Fe I Lines (CSV)",
                     description: "Iron emission lines, direct CSV from ASD API",
-                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Fe+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Fe+I&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST ASD — H I Lines (CSV)",
                     description: "Hydrogen emission lines, direct CSV from ASD API",
-                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=H+I&limits_type=0&low_w=100&upp_w=2000&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=H+I&limits_type=0&low_w=100&upp_w=2000&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST ASD — Na I Lines (CSV)",
                     description: "Sodium emission lines, direct CSV from ASD API",
-                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Na+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Na+I&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST ASD — Ca I Lines (CSV)",
                     description: "Calcium emission lines, direct CSV from ASD API",
-                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Ca+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Ca+I&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST ASD — Cu I Lines (CSV)",
                     description: "Copper emission lines, direct CSV from ASD API",
-                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Cu+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Cu+I&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST ASD — Mg I Lines (CSV)",
                     description: "Magnesium emission lines, direct CSV from ASD API",
-                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Mg+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Mg+I&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST ASD — O I Lines (CSV)",
                     description: "Oxygen emission lines, direct CSV from ASD API",
-                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=O+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=O+I&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST ASD — Ar I Lines (CSV)",
                     description: "Argon emission lines (calibration standard), direct CSV",
-                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Ar+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Ar+I&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "NIST ASD — Hg I Lines (CSV)",
                     description: "Mercury emission lines (calibration standard), direct CSV",
-                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Hg+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Hg+I&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
                     isLicensed: false
                 )
             ]
@@ -1251,6 +1251,55 @@ enum PINNModelStatus: Equatable, Sendable {
         case .ready:      return "Ready"
         case .error(let msg): return "Error: \(msg)"
         }
+    }
+}
+
+// MARK: - Normalization Parameters
+
+/// Z-score normalization parameters saved alongside a trained PINN model.
+/// Used to normalize inputs and denormalize outputs at inference time.
+struct PINNNormalizationParams: Codable, Sendable {
+    /// Per-feature means for input normalization (length = input_dim).
+    let xMean: [Double]
+    /// Per-feature standard deviations for input normalization (length = input_dim).
+    let xStd: [Double]
+    /// Target mean for output denormalization.
+    let yMean: Double
+    /// Target standard deviation for output denormalization.
+    let yStd: Double
+
+    enum CodingKeys: String, CodingKey {
+        case xMean = "X_mean"
+        case xStd = "X_std"
+        case yMean = "y_mean"
+        case yStd = "y_std"
+    }
+
+    /// Normalize a feature vector: (x - mean) / std.
+    func normalizeInput(_ features: [Double]) -> [Double] {
+        guard features.count == xMean.count else { return features }
+        return zip(zip(features, xMean), xStd).map { args in
+            let ((val, mean), std) = args
+            return (val - mean) / std
+        }
+    }
+
+    /// Denormalize a model output: prediction * y_std + y_mean.
+    func denormalizeOutput(_ value: Double) -> Double {
+        value * yStd + yMean
+    }
+
+    /// Load normalization params from the standard location next to a model.
+    /// Returns nil if the file doesn't exist (e.g., pre-normalization model).
+    static func load(modelName: String) -> PINNNormalizationParams? {
+        let normURL = PINNModelRegistry.modelDirectory
+            .appendingPathComponent("\(modelName)_normalization.json")
+        guard FileManager.default.fileExists(atPath: normURL.path),
+              let data = try? Data(contentsOf: normURL),
+              let params = try? JSONDecoder().decode(PINNNormalizationParams.self, from: data) else {
+            return nil
+        }
+        return params
     }
 }
 

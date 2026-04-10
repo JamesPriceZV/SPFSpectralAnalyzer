@@ -92,13 +92,24 @@ final class TrainingDataDownloader {
         return dir
     }
 
-    /// Lists downloaded files for a domain.
+    /// Lists downloaded files for a domain, including files in extracted ZIP subdirectories.
     static func downloadedFiles(for domain: PINNDomain) -> [URL] {
         let dir = downloadDirectory(for: domain)
-        guard let items = try? FileManager.default.contentsOfDirectory(
-            at: dir, includingPropertiesForKeys: [.fileSizeKey, .creationDateKey]
+        let fm = FileManager.default
+        guard let enumerator = fm.enumerator(
+            at: dir,
+            includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
+            options: [.skipsHiddenFiles]
         ) else { return [] }
-        return items.sorted { $0.lastPathComponent < $1.lastPathComponent }
+
+        var files: [URL] = []
+        for case let url as URL in enumerator {
+            let isFile = (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) ?? false
+            if isFile {
+                files.append(url)
+            }
+        }
+        return files.sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
     /// Total size of downloaded data for a domain.
@@ -136,7 +147,8 @@ final class TrainingDataDownloader {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         config.httpAdditionalHeaders = [
-            "User-Agent": "SPFSpectralAnalyzer/1.0 (macOS; spectral-data-download)"
+            "User-Agent": "SPFSpectralAnalyzer/1.0 (macOS; spectral-data-download)",
+            "Accept": "application/json"
         ]
         let session = URLSession(configuration: config)
         let (data, response) = try await session.data(from: apiURL)
@@ -193,6 +205,13 @@ final class TrainingDataDownloader {
                 return
             }
 
+            // Reject zero-byte responses (server returned 200 but empty body)
+            let downloadedSize = Int64((try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+            if downloadedSize == 0 {
+                sourceStatuses[sourceName] = .failed("Empty response (0 bytes)")
+                return
+            }
+
             // Read first 512 bytes for format sniffing (avoids loading entire file into memory)
             let prefixData: Data
             do {
@@ -213,6 +232,23 @@ final class TrainingDataDownloader {
                     .replacingOccurrences(of: " ", with: "_")
                     .replacingOccurrences(of: "/", with: "_")
                     .replacingOccurrences(of: "—", with: "-")
+
+                // ZIP files: extract contents into the download directory
+                if format == .zip {
+                    #if os(macOS)
+                    let extractedCount = Self.extractZIP(at: fileURL, to: destDir, prefix: safeName)
+                    Instrumentation.log(
+                        "Extracted ZIP for \(domain.displayName)",
+                        area: .mlTraining, level: .info,
+                        details: "source=\(sourceName) extractedFiles=\(extractedCount) size=\(fileSize)"
+                    )
+                    sourceStatuses[sourceName] = .completed(fileSize: fileSize)
+                    #else
+                    sourceStatuses[sourceName] = .failed("ZIP extraction requires macOS")
+                    #endif
+                    return
+                }
+
                 let dataURL = destDir.appendingPathComponent("\(safeName).\(format.fileExtension)")
                 try? FileManager.default.removeItem(at: dataURL)
                 try FileManager.default.moveItem(at: fileURL, to: dataURL)
@@ -284,7 +320,8 @@ final class TrainingDataDownloader {
         config.timeoutIntervalForRequest = 120
         config.timeoutIntervalForResource = 1800
         config.httpAdditionalHeaders = [
-            "User-Agent": "SPFSpectralAnalyzer/1.0 (macOS; spectral-data-download)"
+            "User-Agent": "SPFSpectralAnalyzer/1.0 (macOS; spectral-data-download)",
+            "Accept": "application/zip, application/octet-stream, application/gzip, application/x-gzip, application/json, text/csv, text/plain, */*"
         ]
         let delegate = DownloadProgressDelegate()
         let session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
@@ -487,6 +524,56 @@ final class TrainingDataDownloader {
         }
     }
 
+    // MARK: - ZIP Extraction
+
+    #if os(macOS)
+    /// Extracts a ZIP archive into the destination directory using /usr/bin/ditto.
+    /// Returns the number of extracted files.
+    @discardableResult
+    static func extractZIP(at zipURL: URL, to destDir: URL, prefix: String) -> Int {
+        let extractDir = destDir.appendingPathComponent(prefix, isDirectory: true)
+        try? FileManager.default.createDirectory(at: extractDir, withIntermediateDirectories: true)
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        process.arguments = ["-xk", zipURL.path, extractDir.path]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            Instrumentation.log(
+                "ZIP extraction failed",
+                area: .mlTraining, level: .warning,
+                details: "error=\(error.localizedDescription)"
+            )
+            return 0
+        }
+
+        guard process.terminationStatus == 0 else {
+            Instrumentation.log(
+                "ditto exited with code \(process.terminationStatus)",
+                area: .mlTraining, level: .warning
+            )
+            return 0
+        }
+
+        let extracted = (try? FileManager.default.contentsOfDirectory(
+            at: extractDir,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+
+        Instrumentation.log(
+            "ZIP extracted \(extracted.count) item(s) to \(extractDir.lastPathComponent)",
+            area: .mlTraining, level: .info
+        )
+        return extracted.count
+    }
+    #endif
+
     // MARK: - Content Format Detection
 
     /// Known spectral data format detected from file content.
@@ -498,6 +585,7 @@ final class TrainingDataDownloader {
         case msp
         case xyText
         case gzip
+        case zip
 
         var fileExtension: String {
             switch self {
@@ -508,6 +596,7 @@ final class TrainingDataDownloader {
             case .msp:     return "msp"
             case .xyText:  return "txt"
             case .gzip:    return "csv.gz"
+            case .zip:     return "zip"
             }
         }
 
@@ -520,6 +609,7 @@ final class TrainingDataDownloader {
             case .msp:     return "MSP"
             case .xyText:  return "XY Text"
             case .gzip:    return "Gzip"
+            case .zip:     return "ZIP"
             }
         }
     }
@@ -551,6 +641,11 @@ final class TrainingDataDownloader {
         let upper = trimmed.uppercased()
         if upper.hasPrefix("NAME:") || (upper.contains("NUM PEAKS:") && upper.contains("MW:")) {
             return .msp
+        }
+
+        // ZIP: magic bytes 0x50 0x4B (PK)
+        if data.count >= 4, data[data.startIndex] == 0x50, data[data.startIndex + 1] == 0x4B {
+            return .zip
         }
 
         // Gzip: magic bytes 0x1F 0x8B

@@ -157,6 +157,8 @@ final class MLTrainingService {
     // MARK: - Count Available Data
 
     /// Updates the count of available reference spectra for training.
+    /// Uses a single batch query instead of per-dataset queries to avoid
+    /// blocking the main thread with N+1 SwiftData fetches.
     func updateAvailableCount(modelContext: ModelContext) {
         let descriptor = FetchDescriptor<StoredDataset>(
             predicate: #Predicate<StoredDataset> { dataset in
@@ -165,14 +167,15 @@ final class MLTrainingService {
         )
         do {
             let datasets = try modelContext.fetch(descriptor)
-            var count = 0
-            for dataset in datasets {
-                guard dataset.modelContext != nil else { continue }
-                let dsID = dataset.id
-                let spectraPredicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID && !$0.isInvalid }
-                let validSpectra = (try? modelContext.fetch(FetchDescriptor<StoredSpectrum>(predicate: spectraPredicate))) ?? []
-                count += validSpectra.count
+            let datasetIDs = Set(datasets.compactMap { $0.modelContext != nil ? $0.id : nil })
+            guard !datasetIDs.isEmpty else {
+                availableSpectrumCount = 0
+                return
             }
+
+            // Single batch fetch of all valid spectra, then count per dataset
+            let allSpectra = try modelContext.fetch(FetchDescriptor<StoredSpectrum>())
+            let count = allSpectra.count(where: { !$0.isInvalid && datasetIDs.contains($0.datasetID) })
             availableSpectrumCount = count
         } catch {
             availableSpectrumCount = 0

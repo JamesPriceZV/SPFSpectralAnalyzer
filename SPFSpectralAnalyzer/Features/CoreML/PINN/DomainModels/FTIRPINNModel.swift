@@ -34,6 +34,8 @@ final class FTIRPINNModel: @unchecked Sendable, PINNDomainModel {
 
     nonisolated(unsafe) private var model: MLModel?
     nonisolated(unsafe) private var conformalResiduals: [Double] = []
+    /// Z-score normalization parameters (nil for pre-normalization models).
+    nonisolated(unsafe) private var normParams: PINNNormalizationParams?
 
     static let modelName = "PINN_FTIR"
 
@@ -86,6 +88,7 @@ final class FTIRPINNModel: @unchecked Sendable, PINNDomainModel {
         config.computeUnits = .all
         model = try MLModel(contentsOf: url, configuration: config)
         loadConformalResiduals()
+        normParams = PINNNormalizationParams.load(modelName: Self.modelName)
         status = .ready
     }
 
@@ -120,6 +123,12 @@ final class FTIRPINNModel: @unchecked Sendable, PINNDomainModel {
                 return nil
             }
 
+            // Denormalize if model was trained with normalization
+            var denormalizedValue = primaryValue
+            if let norm = normParams {
+                denormalizedValue = norm.denormalizeOutput(denormalizedValue)
+            }
+
             let q90 = conformalQuantile(level: 0.9)
             let physicsScore = computePhysicsConsistency(
                 wavenumbers: wavelengths,
@@ -127,10 +136,10 @@ final class FTIRPINNModel: @unchecked Sendable, PINNDomainModel {
             )
 
             return PINNPredictionResult(
-                primaryValue: primaryValue,
+                primaryValue: denormalizedValue,
                 primaryLabel: "Concentration",
-                confidenceLow: max(primaryValue - q90, 0),
-                confidenceHigh: primaryValue + q90,
+                confidenceLow: max(denormalizedValue - q90, 0),
+                confidenceHigh: denormalizedValue + q90,
                 decomposition: identifyFunctionalGroups(wavenumbers: wavelengths, absorbances: intensities),
                 physicsConsistencyScore: physicsScore,
                 domain: .ftir,

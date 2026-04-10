@@ -33,6 +33,8 @@ final class MassSpecPINNModel: @unchecked Sendable, PINNDomainModel {
 
     nonisolated(unsafe) private var model: MLModel?
     nonisolated(unsafe) private var conformalResiduals: [Double] = []
+    /// Z-score normalization parameters (nil for pre-normalization models).
+    nonisolated(unsafe) private var normParams: PINNNormalizationParams?
     static let modelName = "PINN_MassSpec"
 
     // MARK: - Model Loading
@@ -70,6 +72,7 @@ final class MassSpecPINNModel: @unchecked Sendable, PINNDomainModel {
         config.computeUnits = .all
         model = try MLModel(contentsOf: url, configuration: config)
         loadConformalResiduals()
+        normParams = PINNNormalizationParams.load(modelName: Self.modelName)
         status = .ready
     }
 
@@ -103,14 +106,20 @@ final class MassSpecPINNModel: @unchecked Sendable, PINNDomainModel {
                 return nil
             }
 
+            // Denormalize if model was trained with normalization
+            var denormalizedValue = molecularWeight
+            if let norm = normParams {
+                denormalizedValue = norm.denormalizeOutput(denormalizedValue)
+            }
+
             let q90 = conformalQuantile(level: 0.9)
             let physicsScore = computePhysicsConsistency(mzValues: wavelengths, ionCounts: intensities)
 
             return PINNPredictionResult(
-                primaryValue: molecularWeight,
+                primaryValue: denormalizedValue,
                 primaryLabel: "Molecular Weight (Da)",
-                confidenceLow: max(molecularWeight - q90, 0),
-                confidenceHigh: molecularWeight + q90,
+                confidenceLow: max(denormalizedValue - q90, 0),
+                confidenceHigh: denormalizedValue + q90,
                 decomposition: identifyFragmentationPattern(mzValues: wavelengths, ionCounts: intensities),
                 physicsConsistencyScore: physicsScore,
                 domain: .massSpec,

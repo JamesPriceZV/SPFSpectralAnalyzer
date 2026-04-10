@@ -35,6 +35,8 @@ final class ChromatographyPINNModel: @unchecked Sendable, PINNDomainModel {
 
     nonisolated(unsafe) private var model: MLModel?
     nonisolated(unsafe) private var conformalResiduals: [Double] = []
+    /// Z-score normalization parameters (nil for pre-normalization models).
+    nonisolated(unsafe) private var normParams: PINNNormalizationParams?
     static let modelName = "PINN_Chromatography"
 
     // MARK: - Model Loading
@@ -72,6 +74,7 @@ final class ChromatographyPINNModel: @unchecked Sendable, PINNDomainModel {
         config.computeUnits = .all
         model = try MLModel(contentsOf: url, configuration: config)
         loadConformalResiduals()
+        normParams = PINNNormalizationParams.load(modelName: Self.modelName)
         status = .ready
     }
 
@@ -105,14 +108,20 @@ final class ChromatographyPINNModel: @unchecked Sendable, PINNDomainModel {
                 return nil
             }
 
+            // Denormalize if model was trained with normalization
+            var denormalizedValue = retentionTime
+            if let norm = normParams {
+                denormalizedValue = norm.denormalizeOutput(denormalizedValue)
+            }
+
             let q90 = conformalQuantile(level: 0.9)
             let physicsScore = computePhysicsConsistency(retentionTimes: wavelengths, response: intensities)
 
             return PINNPredictionResult(
-                primaryValue: retentionTime,
+                primaryValue: denormalizedValue,
                 primaryLabel: "Retention Time (min)",
-                confidenceLow: max(retentionTime - q90, 0),
-                confidenceHigh: retentionTime + q90,
+                confidenceLow: max(denormalizedValue - q90, 0),
+                confidenceHigh: denormalizedValue + q90,
                 decomposition: analyzePeaks(retentionTimes: wavelengths, response: intensities),
                 physicsConsistencyScore: physicsScore,
                 domain: .chromatography,

@@ -267,14 +267,44 @@ final class DatasetViewModel {
 
         // Build records for newly appeared datasets only
         if !newIDs.isEmpty {
-            for dataset in freshDatasets where newIDs.contains(dataset.id) {
-                if let record = buildSearchRecord(for: dataset) {
+            let datasetsToProcess = freshDatasets.filter { newIDs.contains($0.id) }
+            // Batch spectrum counts in two queries instead of 2 per dataset,
+            // dramatically reducing SwiftData round-trips for large libraries.
+            let spectrumCounts = batchSpectrumCounts(for: newIDs, context: ctx)
+            for dataset in datasetsToProcess {
+                if let record = buildSearchRecord(for: dataset, spectrumCounts: spectrumCounts) {
                     searchableRecordCache[dataset.id] = record
                 }
             }
         }
 
         cachedDatasetIDs = currentIDs
+    }
+
+    /// Fetches total and valid spectrum counts for a batch of dataset IDs in bulk.
+    /// Returns a dictionary mapping dataset ID → (total, valid).
+    private func batchSpectrumCounts(
+        for datasetIDs: Set<UUID>,
+        context: ModelContext
+    ) -> [UUID: (total: Int, valid: Int)] {
+        // Fetch all spectra for the given dataset IDs in one query
+        let allSpectra: [StoredSpectrum]
+        do {
+            allSpectra = try context.fetch(FetchDescriptor<StoredSpectrum>())
+        } catch {
+            return [:]
+        }
+        var result: [UUID: (total: Int, valid: Int)] = [:]
+        for spectrum in allSpectra {
+            guard datasetIDs.contains(spectrum.datasetID) else { continue }
+            var entry = result[spectrum.datasetID, default: (total: 0, valid: 0)]
+            entry.total += 1
+            if !spectrum.isInvalid {
+                entry.valid += 1
+            }
+            result[spectrum.datasetID] = entry
+        }
+        return result
     }
 
     /// Patches specific fields on an existing cache entry without reading any model properties.
@@ -332,8 +362,10 @@ final class DatasetViewModel {
         }
 
         if !newIDs.isEmpty {
-            for dataset in freshDatasets where newIDs.contains(dataset.id) {
-                if let record = buildSearchRecord(for: dataset) {
+            let datasetsToProcess = freshDatasets.filter { newIDs.contains($0.id) }
+            let spectrumCounts = batchSpectrumCounts(for: newIDs, context: ctx)
+            for dataset in datasetsToProcess {
+                if let record = buildSearchRecord(for: dataset, spectrumCounts: spectrumCounts) {
                     archivedSearchableRecordCache[dataset.id] = record
                 }
             }
@@ -372,7 +404,10 @@ final class DatasetViewModel {
     /// spectrum objects into memory and can trigger `swift_weakLoadStrong → brk #0x1`
     /// if CloudKit sync has invalidated the backing store. A predicate-based fetch
     /// goes through the coordinator which handles concurrent access safely.
-    private func buildSearchRecord(for dataset: StoredDataset) -> DatasetSearchRecord? {
+    private func buildSearchRecord(
+        for dataset: StoredDataset,
+        spectrumCounts: [UUID: (total: Int, valid: Int)]? = nil
+    ) -> DatasetSearchRecord? {
         guard let ctx = modelContext else { return nil }
 
         // Re-fetch the dataset through a predicate query to get a valid object.
@@ -384,15 +419,20 @@ final class DatasetViewModel {
         let dsPredicate = #Predicate<StoredDataset> { $0.id == dsID }
         guard let fresh = (try? ctx.fetch(FetchDescriptor<StoredDataset>(predicate: dsPredicate)))?.first else { return nil }
 
-        // Fetch spectrum counts via predicate — avoids relationship traversal
+        // Use pre-computed counts if available (batch path), otherwise query per-dataset
         let spectrumCount: Int
         let validSpectrumCount: Int
-        let predicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID }
-        let totalDescriptor = FetchDescriptor<StoredSpectrum>(predicate: predicate)
-        let validPredicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID && !$0.isInvalid }
-        let validDescriptor = FetchDescriptor<StoredSpectrum>(predicate: validPredicate)
-        spectrumCount = (try? ctx.fetchCount(totalDescriptor)) ?? 0
-        validSpectrumCount = (try? ctx.fetchCount(validDescriptor)) ?? 0
+        if let counts = spectrumCounts?[dsID] {
+            spectrumCount = counts.total
+            validSpectrumCount = counts.valid
+        } else {
+            let predicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID }
+            let totalDescriptor = FetchDescriptor<StoredSpectrum>(predicate: predicate)
+            let validPredicate = #Predicate<StoredSpectrum> { $0.datasetID == dsID && !$0.isInvalid }
+            let validDescriptor = FetchDescriptor<StoredSpectrum>(predicate: validPredicate)
+            spectrumCount = (try? ctx.fetchCount(totalDescriptor)) ?? 0
+            validSpectrumCount = (try? ctx.fetchCount(validDescriptor)) ?? 0
+        }
 
         var result: DatasetSearchRecord?
         do {

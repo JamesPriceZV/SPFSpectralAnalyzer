@@ -31,6 +31,8 @@ final class FluorescencePINNModel: @unchecked Sendable, PINNDomainModel {
 
     nonisolated(unsafe) private var model: MLModel?
     nonisolated(unsafe) private var conformalResiduals: [Double] = []
+    /// Z-score normalization parameters (nil for pre-normalization models).
+    nonisolated(unsafe) private var normParams: PINNNormalizationParams?
     static let modelName = "PINN_Fluorescence"
 
     // MARK: - Model Loading
@@ -68,6 +70,7 @@ final class FluorescencePINNModel: @unchecked Sendable, PINNDomainModel {
         config.computeUnits = .all
         model = try MLModel(contentsOf: url, configuration: config)
         loadConformalResiduals()
+        normParams = PINNNormalizationParams.load(modelName: Self.modelName)
         status = .ready
     }
 
@@ -100,14 +103,20 @@ final class FluorescencePINNModel: @unchecked Sendable, PINNDomainModel {
                 return nil
             }
 
+            // Denormalize if model was trained with normalization
+            var denormalizedValue = concentration
+            if let norm = normParams {
+                denormalizedValue = norm.denormalizeOutput(denormalizedValue)
+            }
+
             let q90 = conformalQuantile(level: 0.9)
             let physicsScore = computePhysicsConsistency(wavelengths: wavelengths, intensities: intensities)
 
             return PINNPredictionResult(
-                primaryValue: concentration,
+                primaryValue: denormalizedValue,
                 primaryLabel: "Fluorophore Concentration",
-                confidenceLow: max(concentration - q90, 0),
-                confidenceHigh: concentration + q90,
+                confidenceLow: max(denormalizedValue - q90, 0),
+                confidenceHigh: denormalizedValue + q90,
                 decomposition: analyzeEmissionCharacteristics(wavelengths: wavelengths, intensities: intensities),
                 physicsConsistencyScore: physicsScore,
                 domain: .fluorescence,

@@ -29,18 +29,14 @@ enum KeychainStore {
             print("[Keychain] Read \(account) from Keychain (\(value.count) chars)")
             return value
         }
-        // Fallback: UserDefaults (iOS — for when Keychain is unreliable
-        // due to provisioning / entitlement issues on certain devices)
-        #if os(iOS)
+        // Fallback: UserDefaults — for when Keychain is unreliable
+        // due to provisioning / entitlement / signing identity issues
         if let fallback = fallbackRead(account: account) {
             print("[Keychain] Read \(account) from UserDefaults fallback (\(fallback.count) chars)")
             return fallback
         }
         print("[Keychain] No value found for \(account)")
         return nil
-        #else
-        return nil
-        #endif
     }
 
     // MARK: - Save
@@ -50,11 +46,11 @@ enum KeychainStore {
         print("[Keychain] Saving \(account) (\(value.count) chars)…")
         let keychainResult = keychainSave(value, account: account)
 
-        #if os(iOS)
-        // Always mirror to UserDefaults fallback on iOS so the key is
-        // available even if Keychain is broken.
+        // Always mirror to UserDefaults fallback so the key is
+        // available even if Keychain is broken (signing identity changes,
+        // entitlement mismatches, hardened runtime restrictions).
         fallbackSave(value, account: account)
-        print("[Keychain] iOS fallback saved \(account)")
+        print("[Keychain] Fallback saved \(account)")
         if !keychainResult.success {
             // Keychain failed but fallback succeeded — report partial success
             // so the UI shows "Key stored" and the key is usable.
@@ -63,7 +59,6 @@ enum KeychainStore {
                 diagnostic: keychainResult.diagnostic.map { "(\($0) — using app storage fallback)" }
             )
         }
-        #endif
 
         return keychainResult
     }
@@ -72,9 +67,7 @@ enum KeychainStore {
 
     static func deletePassword(account: String) {
         keychainDelete(account: account)
-        #if os(iOS)
         fallbackDelete(account: account)
-        #endif
     }
 
     // MARK: - Keychain Primitives
@@ -159,9 +152,8 @@ enum KeychainStore {
         return status
     }
 
-    // MARK: - UserDefaults Fallback (iOS)
+    // MARK: - UserDefaults Fallback
 
-    #if os(iOS)
     private static let fallbackPrefix = "ks_fb_"
 
     private static func fallbackSave(_ value: String, account: String) {
@@ -180,5 +172,4 @@ enum KeychainStore {
     private static func fallbackDelete(account: String) {
         UserDefaults.standard.removeObject(forKey: fallbackPrefix + account)
     }
-    #endif
 }

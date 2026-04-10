@@ -186,7 +186,15 @@ enum PINNDataExportService {
             }
         }
 
-        return (entries: allEntries, sources: sources)
+        // Filter out entries with NaN or Infinity values that would crash JSONEncoder
+        let sanitized = allEntries.filter { entry in
+            entry.knownValue.isFinite &&
+            entry.wavelengths.allSatisfy(\.isFinite) &&
+            entry.intensities.allSatisfy(\.isFinite) &&
+            (entry.applicationQuantityMg?.isFinite ?? true)
+        }
+
+        return (entries: sanitized, sources: sources)
     }
 
     // MARK: - Import

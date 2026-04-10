@@ -44,6 +44,12 @@ final class PINNModelRegistry {
     /// Overall loading state.
     private(set) var isLoading = false
 
+    /// Incremented after each `loadAllModels()` to force SwiftUI re-renders.
+    /// Domain model status changes are invisible to observation (they're
+    /// reference types, not @Observable), so the sidebar must read this
+    /// counter to detect when model readiness has changed.
+    private(set) var loadVersion = 0
+
     /// Domains that have ready models.
     var availableDomains: [PINNDomain] {
         models.values.filter { $0.status.isReady }.map(\.domain).sorted { $0.rawValue < $1.rawValue }
@@ -125,6 +131,7 @@ final class PINNModelRegistry {
         }
 
         isLoading = false
+        loadVersion += 1
     }
 
     // MARK: - Lookup
