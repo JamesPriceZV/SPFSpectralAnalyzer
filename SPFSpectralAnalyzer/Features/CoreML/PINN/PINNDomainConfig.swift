@@ -1,0 +1,1094 @@
+import Foundation
+
+// MARK: - PINN Domain Identification
+
+/// Spectral instrument domains supported by PINN-CoreML models.
+/// Each domain maps to one or more SPC experiment type codes and has
+/// domain-specific physics constraints embedded in the training loss function.
+enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
+    case uvVis           = "UV-Vis"
+    case ftir            = "FTIR"
+    case raman           = "Raman"
+    case massSpec        = "Mass Spec"
+    case nmr             = "NMR"
+    case fluorescence    = "Fluorescence"
+    case xrd             = "XRD"
+    case chromatography  = "Chromatography"
+    case nir             = "NIR"
+    case atomicEmission  = "Atomic Emission"
+
+    var id: String { rawValue }
+
+    var displayName: String { rawValue }
+
+    var iconName: String {
+        switch self {
+        case .uvVis:          return "sun.max.fill"
+        case .ftir:           return "waveform"
+        case .raman:          return "wave.3.left"
+        case .massSpec:       return "atom"
+        case .nmr:            return "gyroscope"
+        case .fluorescence:   return "sparkle"
+        case .xrd:            return "diamond.fill"
+        case .chromatography: return "chart.xyaxis.line"
+        case .nir:            return "waveform.path"
+        case .atomicEmission: return "bolt.fill"
+        }
+    }
+
+    /// Human-readable description of the physics constraints this PINN embeds.
+    var physicsDescription: String {
+        switch self {
+        case .uvVis:
+            return "Beer-Lambert law (A=εcl), SPF Diffey integral, spectral smoothness, concentration non-negativity"
+        case .ftir:
+            return "Beer-Lambert (wavenumber domain), functional group frequency constraints, mass conservation"
+        case .raman:
+            return "Multi-agent spectral decomposition, background smoothness, Raman shift selection rules"
+        case .massSpec:
+            return "Isotope distribution (natural abundance), mass conservation, fragmentation rules"
+        case .nmr:
+            return "Bloch equation residuals, J-coupling patterns, Kramers-Kronig relation"
+        case .fluorescence:
+            return "Stokes shift constraint, mirror-image rule, Kasha's rule, quantum yield consistency"
+        case .xrd:
+            return "Bragg's law (nλ=2d sinθ), systematic absences, structure factor, Debye-Waller"
+        case .chromatography:
+            return "ED/LKM transport PDE (∂c/∂t + u·∂c/∂z + F·∂q/∂t = D·∂²c/∂z²), Langmuir isotherm"
+        case .nir:
+            return "Modified Beer-Lambert for diffuse reflectance, Kubelka-Munk corrections, overtone relationships"
+        case .atomicEmission:
+            return "Boltzmann distribution for excited states, transition selection rules"
+        }
+    }
+
+    /// Key peer-reviewed references for this domain's PINN architecture.
+    var references: [PINNReference] {
+        switch self {
+        case .uvVis:
+            return [
+                PINNReference(
+                    "Raissi, Perdikaris & Karniadakis (2019). Physics-informed neural networks: A deep learning framework for solving forward and inverse problems involving nonlinear partial differential equations. J. Computational Physics, 378, 686–707.",
+                    url: "https://doi.org/10.1016/j.jcp.2018.10.045"
+                ),
+                PINNReference(
+                    "Karniadakis et al. (2021). Physics-informed machine learning. Nature Reviews Physics, 3(6), 422–440.",
+                    url: "https://doi.org/10.1038/s42254-021-00314-5"
+                ),
+                PINNReference(
+                    "Diffey & Robson (1989). A new substrate to measure sunscreen protection factors throughout the ultraviolet spectrum. J. Society of Cosmetic Chemists, 40, 127–133.",
+                    url: "https://pubmed.ncbi.nlm.nih.gov/11537882/"
+                ),
+                PINNReference(
+                    "COLIPA (2011). In vitro method for the determination of the UVA protection factor and critical wavelength values of sunscreen products. European Cosmetic Association.",
+                    url: "https://www.cosmeticseurope.eu/files/4214/6407/8024/2011_-_In_vitro_UV_Protection_Method.pdf"
+                ),
+                PINNReference(
+                    "ISO 24443:2021. Determination of sunscreen UVA photoprotection in vitro. International Organization for Standardization.",
+                    url: "https://www.iso.org/standard/76990.html"
+                ),
+                PINNReference(
+                    "Perkampus (1992). UV-VIS Spectroscopy and Its Applications. Springer-Verlag.",
+                    url: "https://doi.org/10.1007/978-3-642-77477-5"
+                )
+            ]
+        case .ftir:
+            return [
+                PINNReference(
+                    "Griffiths & de Haseth (2007). Fourier Transform Infrared Spectrometry, 2nd ed. Wiley-Interscience.",
+                    url: "https://doi.org/10.1002/047010631X"
+                ),
+                PINNReference(
+                    "Stuart (2004). Infrared Spectroscopy: Fundamentals and Applications. Wiley.",
+                    url: "https://doi.org/10.1002/0470011149"
+                ),
+                PINNReference(
+                    "Smith (2011). Fundamentals of Fourier Transform Infrared Spectroscopy, 2nd ed. CRC Press.",
+                    url: "https://doi.org/10.1201/b10777"
+                ),
+                PINNReference(
+                    "Larkin (2011). Infrared and Raman Spectroscopy: Principles and Spectral Interpretation. Elsevier.",
+                    url: "https://doi.org/10.1016/C2010-0-68479-3"
+                ),
+                PINNReference(
+                    "Raissi, Perdikaris & Karniadakis (2019). Physics-informed neural networks. J. Computational Physics, 378, 686–707.",
+                    url: "https://doi.org/10.1016/j.jcp.2018.10.045"
+                )
+            ]
+        case .raman:
+            return [
+                PINNReference(
+                    "Long (2002). The Raman Effect: A Unified Treatment of the Theory of Raman Scattering by Molecules. Wiley.",
+                    url: "https://doi.org/10.1002/0470845767"
+                ),
+                PINNReference(
+                    "McCreery (2000). Raman Spectroscopy for Chemical Analysis. Wiley-Interscience.",
+                    url: "https://doi.org/10.1002/0471721646"
+                ),
+                PINNReference(
+                    "Ferraro, Nakamoto & Brown (2003). Introductory Raman Spectroscopy, 2nd ed. Academic Press.",
+                    url: "https://doi.org/10.1016/B978-012254105-6/50004-4"
+                ),
+                PINNReference(
+                    "Zhang et al. (2019). Deep learning for Raman spectroscopy: A review. Analytica Chimica Acta, 1058, 48–57.",
+                    url: "https://doi.org/10.1016/j.aca.2019.01.002"
+                ),
+                PINNReference(
+                    "Raissi, Perdikaris & Karniadakis (2019). Physics-informed neural networks. J. Computational Physics, 378, 686–707.",
+                    url: "https://doi.org/10.1016/j.jcp.2018.10.045"
+                )
+            ]
+        case .massSpec:
+            return [
+                PINNReference(
+                    "McLafferty & Turecek (1993). Interpretation of Mass Spectra, 4th ed. University Science Books.",
+                    url: "https://www.worldcat.org/title/27897482"
+                ),
+                PINNReference(
+                    "Gross (2017). Mass Spectrometry: A Textbook, 3rd ed. Springer International.",
+                    url: "https://doi.org/10.1007/978-3-319-54398-7"
+                ),
+                PINNReference(
+                    "Kind & Fiehn (2007). Seven Golden Rules for heuristic filtering of molecular formulas. BMC Bioinformatics, 8, 105.",
+                    url: "https://doi.org/10.1186/1471-2105-8-105"
+                ),
+                PINNReference(
+                    "de Hoffmann & Stroobant (2007). Mass Spectrometry: Principles and Applications, 3rd ed. Wiley.",
+                    url: "https://doi.org/10.1002/mas.20247"
+                ),
+                PINNReference(
+                    "Raissi, Perdikaris & Karniadakis (2019). Physics-informed neural networks. J. Computational Physics, 378, 686–707.",
+                    url: "https://doi.org/10.1016/j.jcp.2018.10.045"
+                )
+            ]
+        case .nmr:
+            return [
+                PINNReference(
+                    "Claridge (2016). High-Resolution NMR Techniques in Organic Chemistry, 3rd ed. Elsevier.",
+                    url: "https://doi.org/10.1016/C2013-0-19117-9"
+                ),
+                PINNReference(
+                    "Keeler (2010). Understanding NMR Spectroscopy, 2nd ed. Wiley.",
+                    url: "https://www.wiley.com/en-us/Understanding+NMR+Spectroscopy%2C+2nd+Edition-p-9780470746080"
+                ),
+                PINNReference(
+                    "Levitt (2008). Spin Dynamics: Basics of Nuclear Magnetic Resonance, 2nd ed. Wiley.",
+                    url: "https://www.wiley.com/en-us/Spin+Dynamics%3A+Basics+of+Nuclear+Magnetic+Resonance%2C+2nd+Edition-p-9780470511176"
+                ),
+                PINNReference(
+                    "Qu et al. (2020). Accelerated NMR spectroscopy with deep learning. Angewandte Chemie Int. Ed., 59(26), 10297–10300.",
+                    url: "https://doi.org/10.1002/anie.201908162"
+                ),
+                PINNReference(
+                    "Raissi, Perdikaris & Karniadakis (2019). Physics-informed neural networks. J. Computational Physics, 378, 686–707.",
+                    url: "https://doi.org/10.1016/j.jcp.2018.10.045"
+                )
+            ]
+        case .fluorescence:
+            return [
+                PINNReference(
+                    "Lakowicz (2006). Principles of Fluorescence Spectroscopy, 3rd ed. Springer.",
+                    url: "https://doi.org/10.1007/978-0-387-46312-4"
+                ),
+                PINNReference(
+                    "Valeur & Berberan-Santos (2012). Molecular Fluorescence: Principles and Applications, 2nd ed. Wiley-VCH.",
+                    url: "https://doi.org/10.1002/9783527650002"
+                ),
+                PINNReference(
+                    "Murphy et al. (2013). Fluorescence spectroscopy and multi-way techniques: PARAFAC. Analytical Methods, 5, 6557–6566.",
+                    url: "https://doi.org/10.1039/C3AY41160E"
+                ),
+                PINNReference(
+                    "Stedmon & Bro (2008). Characterizing dissolved organic matter fluorescence with parallel factor analysis. Limnology and Oceanography: Methods, 6, 572–579.",
+                    url: "https://doi.org/10.4319/lom.2008.6.572"
+                ),
+                PINNReference(
+                    "Raissi, Perdikaris & Karniadakis (2019). Physics-informed neural networks. J. Computational Physics, 378, 686–707.",
+                    url: "https://doi.org/10.1016/j.jcp.2018.10.045"
+                )
+            ]
+        case .xrd:
+            return [
+                PINNReference(
+                    "Rietveld (1969). A profile refinement method for nuclear and magnetic structures. J. Applied Crystallography, 2, 65–71.",
+                    url: "https://doi.org/10.1107/S0021889869006558"
+                ),
+                PINNReference(
+                    "Le Bail, Duroy & Fourquet (1988). Ab-initio structure determination of LiSbWO6 by X-ray powder diffraction. Materials Research Bulletin, 23(3), 447–452.",
+                    url: "https://doi.org/10.1016/0025-5408(88)90019-0"
+                ),
+                PINNReference(
+                    "Cullity & Stock (2001). Elements of X-Ray Diffraction, 3rd ed. Prentice Hall.",
+                    url: "https://www.worldcat.org/title/44684891"
+                ),
+                PINNReference(
+                    "Pecharsky & Zavalij (2009). Fundamentals of Powder Diffraction and Structural Characterization of Materials, 2nd ed. Springer.",
+                    url: "https://doi.org/10.1007/978-0-387-09579-0"
+                ),
+                PINNReference(
+                    "Raissi, Perdikaris & Karniadakis (2019). Physics-informed neural networks. J. Computational Physics, 378, 686–707.",
+                    url: "https://doi.org/10.1016/j.jcp.2018.10.045"
+                )
+            ]
+        case .chromatography:
+            return [
+                PINNReference(
+                    "van Deemter, Zuiderweg & Klinkenberg (1956). Longitudinal diffusion and resistance to mass transfer as causes of nonideality in chromatography. Chemical Engineering Science, 5(6), 271–289.",
+                    url: "https://doi.org/10.1016/0009-2509(56)80003-1"
+                ),
+                PINNReference(
+                    "Guiochon, Felinger, Shirazi & Katti (2006). Fundamentals of Preparative and Nonlinear Chromatography, 2nd ed. Academic Press.",
+                    url: "https://doi.org/10.1016/B978-012370537-2/50030-8"
+                ),
+                PINNReference(
+                    "Snyder, Kirkland & Dolan (2010). Introduction to Modern Liquid Chromatography, 3rd ed. Wiley.",
+                    url: "https://doi.org/10.1002/9780470508183"
+                ),
+                PINNReference(
+                    "Zou et al. (2024). Physics-informed neural networks for chromatographic process modeling. J. Chromatography A, 1719, 464737.",
+                    url: "https://doi.org/10.1016/j.chroma.2024.464737"
+                ),
+                PINNReference(
+                    "Raissi, Perdikaris & Karniadakis (2019). Physics-informed neural networks. J. Computational Physics, 378, 686–707.",
+                    url: "https://doi.org/10.1016/j.jcp.2018.10.045"
+                )
+            ]
+        case .nir:
+            return [
+                PINNReference(
+                    "Burns & Ciurczak (2007). Handbook of Near-Infrared Analysis, 3rd ed. CRC Press.",
+                    url: "https://doi.org/10.1201/9781420007374"
+                ),
+                PINNReference(
+                    "Rinnan, van den Berg & Engelsen (2009). Review of the most common pre-processing techniques for near-infrared spectra. TrAC Trends in Analytical Chemistry, 28(10), 1201–1222.",
+                    url: "https://doi.org/10.1016/j.trac.2009.07.007"
+                ),
+                PINNReference(
+                    "Siesler, Ozaki, Kawata & Heise (2002). Near-Infrared Spectroscopy: Principles, Instruments, Applications. Wiley-VCH.",
+                    url: "https://doi.org/10.1002/9783527612666"
+                ),
+                PINNReference(
+                    "Pasquini (2003). Near infrared spectroscopy: fundamentals, practical aspects and analytical applications. J. Brazilian Chemical Society, 14(2), 198–219.",
+                    url: "https://doi.org/10.1590/S0103-50532003000200006"
+                ),
+                PINNReference(
+                    "Raissi, Perdikaris & Karniadakis (2019). Physics-informed neural networks. J. Computational Physics, 378, 686–707.",
+                    url: "https://doi.org/10.1016/j.jcp.2018.10.045"
+                )
+            ]
+        case .atomicEmission:
+            return [
+                PINNReference(
+                    "NIST Atomic Spectra Database (ver. 5.11). National Institute of Standards and Technology.",
+                    url: "https://www.nist.gov/pml/atomic-spectra-database"
+                ),
+                PINNReference(
+                    "Cremers & Radziemski (2013). Handbook of Laser-Induced Breakdown Spectroscopy, 2nd ed. Wiley.",
+                    url: "https://doi.org/10.1002/9781118567371"
+                ),
+                PINNReference(
+                    "Ingle & Crouch (1988). Spectrochemical Analysis. Prentice Hall.",
+                    url: "https://www.worldcat.org/title/16714196"
+                ),
+                PINNReference(
+                    "Noll (2012). Laser-Induced Breakdown Spectroscopy: Fundamentals and Applications. Springer.",
+                    url: "https://doi.org/10.1007/978-3-642-20668-9"
+                ),
+                PINNReference(
+                    "Raissi, Perdikaris & Karniadakis (2019). Physics-informed neural networks. J. Computational Physics, 378, 686–707.",
+                    url: "https://doi.org/10.1016/j.jcp.2018.10.045"
+                )
+            ]
+        }
+    }
+
+    /// The SPC experiment type codes that map to this domain.
+    var spcExperimentTypeCodes: [UInt8] {
+        switch self {
+        case .uvVis:          return [6]        // UV-VIS Spectrum
+        case .ftir:           return [4]        // FT-IR/FT-NIR/FT-Raman Spectrum or Igram
+        case .raman:          return [10]       // Raman Spectrum
+        case .massSpec:       return [8]        // Mass Spectrum
+        case .nmr:            return [9]        // NMR Spectrum or FID
+        case .fluorescence:   return [11]       // Fluorescence Spectrum
+        case .xrd:            return [7]        // X-ray Diffraction Spectrum
+        case .chromatography: return [1, 2, 3, 13] // GC, General, HPLC, Diode Array
+        case .nir:            return [5]        // NIR Spectrum
+        case .atomicEmission: return [12]       // Atomic Spectrum
+        }
+    }
+
+    /// Human-readable SPC experiment type code descriptions for this domain.
+    var spcExperimentTypeDescriptions: [(code: UInt8, name: String)] {
+        spcExperimentTypeCodes.map { code in
+            let name: String
+            switch code {
+            case 0:  name = "General SPC"
+            case 1:  name = "Gas Chromatogram"
+            case 2:  name = "General Chromatogram"
+            case 3:  name = "HPLC Chromatogram"
+            case 4:  name = "FT-IR/FT-NIR/FT-Raman Spectrum or Igram"
+            case 5:  name = "NIR Spectrum"
+            case 6:  name = "UV-VIS Spectrum"
+            case 7:  name = "X-ray Diffraction Spectrum"
+            case 8:  name = "Mass Spectrum"
+            case 9:  name = "NMR Spectrum or FID"
+            case 10: name = "Raman Spectrum"
+            case 11: name = "Fluorescence Spectrum"
+            case 12: name = "Atomic Spectrum"
+            case 13: name = "Diode Array Chromatogram"
+            default: name = "Unknown (code \(code))"
+            }
+            return (code, name)
+        }
+    }
+
+    /// A training data source with name, description, and optional URL.
+    struct TrainingDataSource: Sendable {
+        let name: String
+        let description: String
+        let url: URL?
+        let isLicensed: Bool
+
+        /// Display label combining name and description.
+        var displayLabel: String {
+            "\(name) (\(description))"
+        }
+    }
+
+    /// Legacy plain-text data sources (backward compatibility).
+    var trainingDataSources: [String] {
+        trainingDataSourcesWithURLs.map(\.displayLabel)
+    }
+
+    /// Training data sources with verified, downloadable URLs for each domain.
+    /// URLs point to direct data file downloads where available (not landing pages).
+    /// Format note: Figshare uses /ndownloader/articles/ for ZIP bundles;
+    ///              Zenodo uses /records/{id}/files/{name}?download=1 for direct files.
+    var trainingDataSourcesWithURLs: [TrainingDataSource] {
+        switch self {
+        case .uvVis:
+            return [
+                TrainingDataSource(
+                    name: "UV/Vis Absorption Spectra Dataset",
+                    description: "18,309 spectra, 8,488 compounds, ZIP bundle (Figshare)",
+                    url: URL(string: "https://figshare.com/ndownloader/articles/7619672/versions/2"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "DB for Chromophore",
+                    description: "20,236 data points, 7,016 chromophores, ZIP bundle (Figshare)",
+                    url: URL(string: "https://figshare.com/ndownloader/articles/12045567/versions/3"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Benzene UV",
+                    description: "JCAMP-DX UV absorption spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C71432&Index=0&Type=UV"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Naphthalene UV",
+                    description: "JCAMP-DX UV absorption spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C91203&Index=0&Type=UV"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Toluene UV",
+                    description: "JCAMP-DX UV absorption spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C108883&Index=0&Type=UV"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Acetone UV",
+                    description: "JCAMP-DX UV absorption spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67641&Index=0&Type=UV"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Phenol UV",
+                    description: "JCAMP-DX UV absorption spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C108952&Index=0&Type=UV"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Styrene UV",
+                    description: "JCAMP-DX UV absorption spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C100425&Index=0&Type=UV"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Aniline UV",
+                    description: "JCAMP-DX UV absorption spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C62533&Index=0&Type=UV"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "User Reference Datasets",
+                    description: "your imported SPC files with knownInVivoSPF values",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .ftir:
+            return [
+                TrainingDataSource(
+                    name: "NIST WebBook — Ethanol IR",
+                    description: "JCAMP-DX spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C64175&Index=1&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Acetone IR",
+                    description: "JCAMP-DX spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67641&Index=0&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Methanol IR",
+                    description: "JCAMP-DX spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67561&Index=1&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Benzene IR",
+                    description: "JCAMP-DX spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C71432&Index=1&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Toluene IR",
+                    description: "JCAMP-DX spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C108883&Index=1&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Water IR",
+                    description: "JCAMP-DX spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C7732185&Index=1&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Chloroform IR",
+                    description: "JCAMP-DX spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67663&Index=0&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Acetic Acid IR",
+                    description: "JCAMP-DX spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C64197&Index=0&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Isopropanol IR",
+                    description: "JCAMP-DX spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67630&Index=0&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RRUFF — Mineral Infrared Processed ZIP",
+                    description: "mineral infrared spectra, bulk TXT download",
+                    url: URL(string: "https://rruff.info/zipped_data_files/infrared/Infrared_Processed.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RRUFF — Mineral Infrared Raw ZIP",
+                    description: "raw mineral infrared spectra, bulk TXT download",
+                    url: URL(string: "https://rruff.info/zipped_data_files/infrared/Infrared_RAW.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST/EPA Gas-Phase IR (SRD 35)",
+                    description: "5,228 IR spectra — requires manual download from NIST",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .raman:
+            return [
+                TrainingDataSource(
+                    name: "RRUFF Raman — Processed ZIP",
+                    description: "22,000+ mineral Raman spectra, bulk TXT download",
+                    url: URL(string: "https://rruff.info/zipped_data_files/raman/LR-Raman_Processed.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RRUFF Raman — Raw ZIP",
+                    description: "22,000+ raw Raman spectra",
+                    url: URL(string: "https://rruff.info/zipped_data_files/raman/LR-Raman_RAW.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RRUFF Raman — HR Processed ZIP",
+                    description: "high-resolution mineral Raman spectra, bulk TXT download",
+                    url: URL(string: "https://rruff.info/zipped_data_files/raman/HR-Raman_Processed.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RRUFF Raman — HR Raw ZIP",
+                    description: "high-resolution raw mineral Raman spectra",
+                    url: URL(string: "https://rruff.info/zipped_data_files/raman/HR-Raman_RAW.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RRUFF Raman — Unoriented Processed ZIP",
+                    description: "unoriented mineral Raman spectra, bulk TXT download",
+                    url: URL(string: "https://rruff.info/zipped_data_files/raman/Unoriented_Raman_Processed.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RRUFF Raman — Oriented Processed ZIP",
+                    description: "oriented single-crystal Raman spectra",
+                    url: URL(string: "https://rruff.info/zipped_data_files/raman/Oriented_Raman_Processed.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "KnowItAll Raman Library",
+                    description: "Bio-Rad/Wiley, 25,000+ spectra",
+                    url: URL(string: "https://sciencesolutions.wiley.com/knowitall-spectroscopy-software/"),
+                    isLicensed: true
+                )
+            ]
+        case .massSpec:
+            return [
+                TrainingDataSource(
+                    name: "MoNA — LC-MS/MS Spectra (SDF)",
+                    description: "1.2M+ LC-MS spectra, direct SDF download",
+                    url: URL(string: "https://mona.fiehnlab.ucdavis.edu/rest/downloads/retrieve/03d5a22c-c1e1-4101-ac70-9a4eae437ef5"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "MoNA — GC-MS Spectra (SDF)",
+                    description: "GC-MS spectra, direct SDF download",
+                    url: URL(string: "https://mona.fiehnlab.ucdavis.edu/rest/downloads/retrieve/e0e9abeb-b8cf-4ef2-8fbb-932de27af313"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "GNPS2 Reference Libraries (JSON)",
+                    description: "2.9M MS/MS spectra, JSON bulk download",
+                    url: URL(string: "https://external.gnps2.org/gnpslibrary"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Ethanol MS",
+                    description: "JCAMP-DX mass spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C64175&Type=Mass"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Acetone MS",
+                    description: "JCAMP-DX mass spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67641&Type=Mass"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Benzene MS",
+                    description: "JCAMP-DX mass spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C71432&Type=Mass"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Caffeine MS",
+                    description: "JCAMP-DX mass spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C58082&Type=Mass"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Aspirin MS",
+                    description: "JCAMP-DX mass spectrum, direct download",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C50782&Type=Mass"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST Mass Spectral Library",
+                    description: "350,000+ spectra (commercial)",
+                    url: URL(string: "https://www.nist.gov/srd/nist-standard-reference-database-1a"),
+                    isLicensed: true
+                )
+            ]
+        case .nmr:
+            return [
+                TrainingDataSource(
+                    name: "nmrshiftdb2 — Full SD with Signals",
+                    description: "53,954 measured spectra, direct SD file download",
+                    url: URL(string: "https://sourceforge.net/projects/nmrshiftdb2/files/data/nmrshiftdb2withsignals.sd/download"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "nmrshiftdb2 — NMReData",
+                    description: "NMReData format with full spectral assignments",
+                    url: URL(string: "https://sourceforge.net/projects/nmrshiftdb2/files/data/nmrshiftdb2.nmredata.sd/download"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "BMRB — Amino Acid Shifts (CSV)",
+                    description: "protein chemical shift statistics, full dataset",
+                    url: URL(string: "https://bmrb.io/ref_info/stats.php?set=full&restype=aa&output=csv"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "BMRB — Nucleotide Shifts (CSV)",
+                    description: "nucleic acid chemical shift statistics",
+                    url: URL(string: "https://bmrb.io/ref_info/stats.php?set=full&restype=nt&output=csv"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "BMRB — Filtered Amino Acid Shifts (CSV)",
+                    description: "curated protein chemical shift statistics",
+                    url: URL(string: "https://bmrb.io/ref_info/stats.php?set=filt&restype=aa&output=csv"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "nmrshiftdb2 — SD File (no signals)",
+                    description: "structure data with chemical shifts, SD format",
+                    url: URL(string: "https://sourceforge.net/projects/nmrshiftdb2/files/data/nmrshiftdb2.sd/download"),
+                    isLicensed: false
+                )
+            ]
+        case .fluorescence:
+            return [
+                TrainingDataSource(
+                    name: "FPbase — Fluorescent Proteins (CSV)",
+                    description: "1,000+ fluorescent protein spectra, direct CSV download",
+                    url: URL(string: "https://www.fpbase.org/api/proteins/?format=csv"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "DB for Chromophore — Fluorescence",
+                    description: "20,236 emission/PLQY/lifetime data points, ZIP bundle",
+                    url: URL(string: "https://figshare.com/ndownloader/articles/12045567/versions/3"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "FPbase — Fluorescent Protein Spectra (CSV)",
+                    description: "1,000+ excitation/emission spectra, direct CSV download",
+                    url: URL(string: "https://www.fpbase.org/api/spectra/?format=csv"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Anthracene UV/Fluorescence",
+                    description: "JCAMP-DX UV spectrum for fluorescent reference compound",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C120127&Index=0&Type=UV"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Pyrene UV/Fluorescence",
+                    description: "JCAMP-DX UV spectrum for fluorescent reference compound",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C129000&Index=0&Type=UV"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Fluorescein UV",
+                    description: "JCAMP-DX UV spectrum for common fluorescent dye",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C2321073&Index=0&Type=UV"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "PhotochemCAD Spectra",
+                    description: "552 absorption + fluorescence spectra — manual download",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .xrd:
+            return [
+                TrainingDataSource(
+                    name: "RRUFF — Powder XRD ZIP",
+                    description: "1,290 powder diffraction patterns, bulk TXT download",
+                    url: URL(string: "https://rruff.info/zipped_data_files/powder/XY_RAW.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RRUFF — CIF structures ZIP",
+                    description: "crystal structure CIF files, bulk download",
+                    url: URL(string: "https://rruff.info/zipped_data_files/CIF.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RRUFF — Powder XRD Processed ZIP",
+                    description: "processed powder diffraction patterns, bulk TXT download",
+                    url: URL(string: "https://rruff.info/zipped_data_files/powder/XY_Processed.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RRUFF — DIF Powder XRD ZIP",
+                    description: "DIF format powder diffraction data, bulk download",
+                    url: URL(string: "https://rruff.info/zipped_data_files/powder/DIF.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "COD — Bulk MySQL Archive",
+                    description: "450,000+ crystal structures, CIF format",
+                    url: URL(string: "https://www.crystallography.net/cod/sql/cod.sql.gz"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "COD — CIF Tarball (Inorganic)",
+                    description: "inorganic crystal structures, bulk CIF download",
+                    url: URL(string: "https://www.crystallography.net/cod/cif/cif-inorg.tar.gz"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "ICDD PDF-4+",
+                    description: "450,000+ entries (commercial)",
+                    url: URL(string: "https://www.icdd.com/pdf-4/"),
+                    isLicensed: true
+                )
+            ]
+        case .chromatography:
+            return [
+                TrainingDataSource(
+                    name: "METLIN SMRT Dataset",
+                    description: "80,038 HPLC retention times, ZIP bundle (Figshare)",
+                    url: URL(string: "https://figshare.com/ndownloader/articles/8038913/versions/6"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RepoRT — Retention Time Dataset (Figshare)",
+                    description: "85,000+ retention times, 56 systems, CSV",
+                    url: URL(string: "https://figshare.com/ndownloader/articles/20399695/versions/2"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Ethanol GC-MS",
+                    description: "JCAMP-DX mass spectrum for GC reference compound",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C64175&Type=Mass"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Hexane GC-MS",
+                    description: "JCAMP-DX mass spectrum for GC reference compound",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C110543&Type=Mass"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Methanol GC-MS",
+                    description: "JCAMP-DX mass spectrum for GC reference compound",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67561&Type=Mass"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Dichloromethane GC-MS",
+                    description: "JCAMP-DX mass spectrum for GC reference compound",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C75092&Type=Mass"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Chloroform GC-MS",
+                    description: "JCAMP-DX mass spectrum for GC reference compound",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C67663&Type=Mass"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "User SPC Chromatogram Imports",
+                    description: "your imported SPC files",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .nir:
+            return [
+                TrainingDataSource(
+                    name: "OSSL NeoSpectra NIR CSV (Google Cloud)",
+                    description: "direct gzipped CSV, no auth needed",
+                    url: URL(string: "https://storage.googleapis.com/soilspec4gg-public/neospectra_nir_v1.2.csv.gz"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "OSSL VisNIR CSV (Google Cloud)",
+                    description: "65,000+ VisNIR scans, direct gzipped CSV",
+                    url: URL(string: "https://storage.googleapis.com/soilspec4gg-public/ossl_visnir_v1.2.csv.gz"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "OSSL MIR CSV (Google Cloud)",
+                    description: "mid-infrared soil spectra, direct gzipped CSV",
+                    url: URL(string: "https://storage.googleapis.com/soilspec4gg-public/ossl_mir_v1.2.csv.gz"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "Kaolinite NIR (NIST WebBook JCAMP-DX)",
+                    description: "sample NIR spectrum for validation",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C1318742&Index=0&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Polyethylene IR/NIR",
+                    description: "JCAMP-DX spectrum, polymer reference",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C9002884&Index=0&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Polystyrene IR/NIR",
+                    description: "JCAMP-DX spectrum, polymer reference",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C9003536&Index=0&Type=IR"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST WebBook — Glucose IR/NIR",
+                    description: "JCAMP-DX spectrum, sugar reference for food NIR",
+                    url: URL(string: "https://webbook.nist.gov/cgi/cbook.cgi?JCAMP=C50997&Index=0&Type=IR"),
+                    isLicensed: false
+                )
+            ]
+        case .atomicEmission:
+            return [
+                TrainingDataSource(
+                    name: "NIST ASD — Fe I Lines (CSV)",
+                    description: "Iron emission lines, direct CSV from ASD API",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Fe+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — H I Lines (CSV)",
+                    description: "Hydrogen emission lines, direct CSV from ASD API",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=H+I&limits_type=0&low_w=100&upp_w=2000&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — Na I Lines (CSV)",
+                    description: "Sodium emission lines, direct CSV from ASD API",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Na+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — Ca I Lines (CSV)",
+                    description: "Calcium emission lines, direct CSV from ASD API",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Ca+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — Cu I Lines (CSV)",
+                    description: "Copper emission lines, direct CSV from ASD API",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Cu+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — Mg I Lines (CSV)",
+                    description: "Magnesium emission lines, direct CSV from ASD API",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Mg+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — O I Lines (CSV)",
+                    description: "Oxygen emission lines, direct CSV from ASD API",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=O+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — Ar I Lines (CSV)",
+                    description: "Argon emission lines (calibration standard), direct CSV",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Ar+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — Hg I Lines (CSV)",
+                    description: "Mercury emission lines (calibration standard), direct CSV",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Hg+I&limits_type=0&low_w=200&upp_w=900&unit=1&submit=Retrieve+Data&de=0&format=3&line_out=0&remove_js=on&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=0&intens_out=on&max_str=&allowed_out=1&forbid_out=1&min_accur=&min_intens=&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                )
+            ]
+        }
+    }
+
+    /// Recommended PINN architecture for this domain.
+    var architectureDescription: String {
+        switch self {
+        case .uvVis:
+            return "4-layer MLP (256-128-128-64), Tanh activation, ReLoBRaLo loss balancing"
+        case .ftir:
+            return "4-layer MLP (512-256-128-64), Tanh, Beer-Lambert + peak position constraints"
+        case .raman:
+            return "Dual-network: Background CNN + Concentration MLP (Puleio et al. 2025 design)"
+        case .massSpec:
+            return "4-layer MLP (256-128-128-64), Tanh, inverse PINN with trainable fragmentation parameters"
+        case .nmr:
+            return "4-layer MLP (512-256-128-64), Tanh, Bloch equation PDE residuals"
+        case .fluorescence:
+            return "Dual-network: Emission network + Component concentration network"
+        case .xrd:
+            return "f-PICNN (Yuan et al. 2024): 8 NCU layers, 64 channels, Tanh, residual connections"
+        case .chromatography:
+            return "LKM-PINN (Tang et al. 2023): 4 networks, 12 layers, 606 neurons, ED transport PDE"
+        case .nir:
+            return "Same as FTIR (shared Beer-Lambert physics) with NIR-specific wavenumber range"
+        case .atomicEmission:
+            return "4-layer MLP, Boltzmann distribution loss for excited state populations"
+        }
+    }
+
+    /// Optional physics constraints that users can toggle on/off for training.
+    var availablePhysicsConstraints: [PhysicsConstraintOption] {
+        switch self {
+        case .uvVis:
+            return [
+                PhysicsConstraintOption(id: "beer_lambert", name: "Beer-Lambert Law", equation: "A(\u{03BB}) = \u{03B5}cl", description: "Absorbance is proportional to concentration and path length", isDefault: true),
+                PhysicsConstraintOption(id: "spf_integral", name: "SPF Diffey Integral", equation: "SPF = \u{222B}E\u{00B7}S / \u{222B}E\u{00B7}S\u{00B7}10^(-A)", description: "SPF calculated from erythemal action spectrum weighted transmittance", isDefault: true),
+                PhysicsConstraintOption(id: "non_negativity", name: "Non-negativity", equation: "A(\u{03BB}) \u{2265} 0", description: "Absorbance values must be non-negative", isDefault: true),
+                PhysicsConstraintOption(id: "spectral_smoothness", name: "Spectral Smoothness", equation: "\u{2016}\u{2202}A/\u{2202}\u{03BB}\u{2016}\u{00B2} penalty", description: "Penalizes jagged or noisy spectral predictions", isDefault: true),
+                PhysicsConstraintOption(id: "photostability_decay", name: "Photostability Decay", equation: "A(t) = A\u{2080}\u{00B7}exp(-kt)", description: "Optional time-dependent UV filter degradation modeling", isDefault: false)
+            ]
+        case .ftir:
+            return [
+                PhysicsConstraintOption(id: "beer_lambert", name: "Beer-Lambert Law", equation: "A(\u{03BD}) = \u{03B5}(\u{03BD})\u{00B7}c\u{00B7}l", description: "Absorbance proportional to concentration in wavenumber domain", isDefault: true),
+                PhysicsConstraintOption(id: "spectral_decomposition", name: "Spectral Decomposition", equation: "I = \u{03A3} c\u{1D62}\u{00B7}S\u{1D62}", description: "Spectrum decomposes into pure component spectra", isDefault: true),
+                PhysicsConstraintOption(id: "peak_position", name: "Peak Position Constraints", equation: "Functional group \u{03BD} ranges", description: "Enforce known functional group frequency ranges", isDefault: true),
+                PhysicsConstraintOption(id: "mass_conservation", name: "Mass Conservation", equation: "\u{03A3}c\u{1D62} = const", description: "Total concentration remains constant during analysis", isDefault: false)
+            ]
+        case .raman:
+            return [
+                PhysicsConstraintOption(id: "spectral_reconstruction", name: "Spectral Reconstruction", equation: "I(\u{03BB}) = \u{03A3} c\u{2C7}\u{00B7}I\u{2080}\u{2C7}(\u{03BB}) + I\u{2095}(\u{03BB})", description: "Observed spectrum is sum of component spectra plus background", isDefault: true),
+                PhysicsConstraintOption(id: "background_smoothness", name: "Background Smoothness", equation: "\u{2016}\u{2202}I\u{2095}/\u{2202}\u{03BB}\u{2016}\u{00B2} penalty", description: "Fluorescence background should be smooth", isDefault: true),
+                PhysicsConstraintOption(id: "concentration_non_neg", name: "Concentration Non-negativity", equation: "c\u{2C7} \u{2265} 0", description: "Component concentrations must be non-negative", isDefault: true),
+                PhysicsConstraintOption(id: "shift_selection_rules", name: "Raman Shift Selection Rules", equation: "\u{0394}\u{03BD} selection rules", description: "Enforce allowed Raman transition selection rules", isDefault: false)
+            ]
+        case .massSpec:
+            return [
+                PhysicsConstraintOption(id: "isotope_distribution", name: "Isotope Distribution", equation: "Natural abundance patterns", description: "Isotope patterns follow binomial/Poisson distribution", isDefault: true),
+                PhysicsConstraintOption(id: "mass_conservation", name: "Mass Conservation", equation: "\u{03A3}m\u{1DA0}\u{1D63}\u{1D43}\u{1D4D} = m\u{209A}\u{2090}\u{1D63}\u{2091}\u{2099}\u{209C}", description: "Fragment masses sum to parent ion mass", isDefault: true),
+                PhysicsConstraintOption(id: "fragmentation_rules", name: "Fragmentation Rules", equation: "Bond dissociation energies", description: "Fragmentation follows known chemical bond dissociation patterns", isDefault: true),
+                PhysicsConstraintOption(id: "charge_conservation", name: "Charge Conservation", equation: "\u{03A3}z = const", description: "Total charge is conserved during fragmentation", isDefault: false)
+            ]
+        case .nmr:
+            return [
+                PhysicsConstraintOption(id: "bloch_equations", name: "Bloch Equations", equation: "dM/dt = \u{03B3}(M \u{00D7} B) - R\u{00B7}(M - M\u{2080})", description: "Magnetization dynamics govern NMR signal evolution", isDefault: true),
+                PhysicsConstraintOption(id: "chemical_shift", name: "Chemical Shift Correlation", equation: "\u{03B4} ~ electron density", description: "Chemical shifts correlate with electronic shielding constants", isDefault: true),
+                PhysicsConstraintOption(id: "j_coupling", name: "J-Coupling Patterns", equation: "Pascal's triangle splitting", description: "Spin-spin coupling follows predictable multiplet patterns", isDefault: true),
+                PhysicsConstraintOption(id: "kramers_kronig", name: "Kramers-Kronig Relation", equation: "Re[\u{03C7}] \u{2194} Im[\u{03C7}]", description: "Real and imaginary parts of susceptibility are related", isDefault: false)
+            ]
+        case .fluorescence:
+            return [
+                PhysicsConstraintOption(id: "stokes_shift", name: "Stokes Shift", equation: "\u{03BB}\u{2091}\u{2098} > \u{03BB}\u{2091}\u{2093}", description: "Emission wavelength is always longer than excitation wavelength", isDefault: true),
+                PhysicsConstraintOption(id: "mirror_image", name: "Mirror-Image Rule", equation: "Abs(\u{03BD}) \u{2248} mirror Em(\u{03BD})", description: "Absorption and emission spectra are approximately mirror images", isDefault: true),
+                PhysicsConstraintOption(id: "kashas_rule", name: "Kasha's Rule", equation: "Em from S\u{2081} only", description: "Emission occurs from lowest excited singlet state regardless of excitation", isDefault: true),
+                PhysicsConstraintOption(id: "quantum_yield", name: "Quantum Yield Consistency", equation: "0 \u{2264} \u{03A6} \u{2264} 1", description: "Quantum yield bounded between 0 and 1", isDefault: false)
+            ]
+        case .xrd:
+            return [
+                PhysicsConstraintOption(id: "braggs_law", name: "Bragg's Law", equation: "n\u{03BB} = 2d\u{00B7}sin\u{03B8}", description: "Diffraction peak positions correspond to valid d-spacings", isDefault: true),
+                PhysicsConstraintOption(id: "systematic_absences", name: "Systematic Absences", equation: "Space group rules", description: "Space group symmetry determines forbidden reflections", isDefault: true),
+                PhysicsConstraintOption(id: "structure_factor", name: "Structure Factor", equation: "F(hkl) = \u{03A3}f\u{2C7}\u{00B7}exp(2\u{03C0}i\u{00B7}r\u{2C7}\u{00B7}G)", description: "Intensities from atomic form factors and positions", isDefault: true),
+                PhysicsConstraintOption(id: "debye_waller", name: "Debye-Waller Factor", equation: "exp(-B\u{00B7}sin\u{00B2}\u{03B8}/\u{03BB}\u{00B2})", description: "Thermal vibration attenuation of diffraction intensities", isDefault: false)
+            ]
+        case .chromatography:
+            return [
+                PhysicsConstraintOption(id: "transport_pde", name: "Transport PDE", equation: "\u{2202}c/\u{2202}t + u\u{00B7}\u{2202}c/\u{2202}z = D\u{00B7}\u{2202}\u{00B2}c/\u{2202}z\u{00B2}", description: "Equilibrium-dispersive model for column mass transport", isDefault: true),
+                PhysicsConstraintOption(id: "langmuir_isotherm", name: "Langmuir Isotherm", equation: "q = q\u{209B}\u{00B7}K\u{00B7}c / (1 + K\u{00B7}c)", description: "Nonlinear adsorption isotherm for overloaded conditions", isDefault: true),
+                PhysicsConstraintOption(id: "mass_balance", name: "Mass Balance", equation: "\u{222B}c\u{00B7}dt = m\u{1D62}\u{2099}\u{2C7}\u{2091}\u{1D9C}\u{209C}\u{2091}\u{1D48}", description: "Total mass eluted equals mass injected", isDefault: true),
+                PhysicsConstraintOption(id: "van_deemter", name: "van Deemter Equation", equation: "H = A + B/u + Cu", description: "Plate height depends on flow rate (eddy, diffusion, mass transfer)", isDefault: false)
+            ]
+        case .nir:
+            return [
+                PhysicsConstraintOption(id: "modified_beer_lambert", name: "Modified Beer-Lambert", equation: "A = log(1/R)", description: "Beer-Lambert adapted for diffuse reflectance measurements", isDefault: true),
+                PhysicsConstraintOption(id: "kubelka_munk", name: "Kubelka-Munk", equation: "f(R) = (1-R)\u{00B2}/2R", description: "Relates reflectance to absorption and scattering coefficients", isDefault: true),
+                PhysicsConstraintOption(id: "overtone_relationships", name: "Overtone Relationships", equation: "\u{03BD}\u{2099} \u{2248} n\u{00B7}\u{03BD}\u{2081}", description: "NIR overtone bands appear at approximate multiples of fundamental frequency", isDefault: true),
+                PhysicsConstraintOption(id: "combination_bands", name: "Combination Bands", equation: "\u{03BD} = \u{03BD}\u{2090} + \u{03BD}\u{2095}", description: "Combination band positions from sum of fundamental frequencies", isDefault: false)
+            ]
+        case .atomicEmission:
+            return [
+                PhysicsConstraintOption(id: "boltzmann_distribution", name: "Boltzmann Distribution", equation: "I \u{221D} gA\u{00B7}exp(-E/kT)", description: "Excited state populations follow Boltzmann statistics", isDefault: true),
+                PhysicsConstraintOption(id: "transition_selection", name: "Transition Selection Rules", equation: "\u{0394}l = \u{00B1}1", description: "Allowed electric dipole transitions follow angular momentum rules", isDefault: true),
+                PhysicsConstraintOption(id: "self_absorption", name: "Self-Absorption Correction", equation: "I\u{2092}\u{2095}\u{209B} = I\u{2080}\u{00B7}(1-exp(-\u{03BA}l))", description: "Correct for reabsorption at high concentrations", isDefault: false)
+            ]
+        }
+    }
+}
+
+/// A peer-reviewed reference with an optional DOI or URL link.
+struct PINNReference: Identifiable, Sendable {
+    let id = UUID()
+    let citation: String
+    let url: String?
+
+    init(_ citation: String, url: String? = nil) {
+        self.citation = citation
+        self.url = url
+    }
+}
+
+/// Represents an optional physics constraint that users can toggle for PINN training.
+struct PhysicsConstraintOption: Identifiable, Sendable {
+    let id: String
+    let name: String
+    let equation: String
+    let description: String
+    let isDefault: Bool
+}
+
+// MARK: - Domain Mapping
+
+/// Maps SPC experiment type codes to PINN domains.
+enum PINNDomainMapping {
+    /// Reverse lookup: experiment type code → PINN domain.
+    static func domain(for experimentTypeCode: UInt8) -> PINNDomain? {
+        for domain in PINNDomain.allCases {
+            if domain.spcExperimentTypeCodes.contains(experimentTypeCode) {
+                return domain
+            }
+        }
+        return nil
+    }
+}
+
+// MARK: - Model Status
+
+/// Status of a PINN domain model's lifecycle.
+enum PINNModelStatus: Equatable, Sendable {
+    case notTrained
+    case loading
+    case ready
+    case error(String)
+
+    var isReady: Bool {
+        if case .ready = self { return true }
+        return false
+    }
+
+    var label: String {
+        switch self {
+        case .notTrained: return "Not Trained"
+        case .loading:    return "Loading"
+        case .ready:      return "Ready"
+        case .error(let msg): return "Error: \(msg)"
+        }
+    }
+}
+
+// MARK: - Prediction Input/Output
+
+/// Input metadata for a PINN prediction request.
+struct PINNInputMetadata: Sendable {
+    let experimentTypeCode: UInt8?
+    let instrumentID: UUID?
+    let plateType: SubstratePlateType?
+    let applicationQuantityMg: Double?
+    let formulationType: FormulationType?
+    let isPostIrradiation: Bool
+}
+
+/// Result of a PINN model prediction.
+struct PINNPredictionResult: Sendable, Equatable {
+    /// The primary predicted value (e.g., SPF, concentration, retention time).
+    let primaryValue: Double
+    /// Label for the primary value (e.g., "SPF", "Concentration (mg/L)").
+    let primaryLabel: String
+    /// Lower bound of conformal prediction interval.
+    let confidenceLow: Double
+    /// Upper bound of conformal prediction interval.
+    let confidenceHigh: Double
+    /// Optional per-wavelength or per-channel decomposition.
+    let decomposition: [String: [Double]]?
+    /// Score (0-1) indicating how well the prediction satisfies physics constraints.
+    let physicsConsistencyScore: Double
+    /// The domain this prediction applies to.
+    let domain: PINNDomain
+
+    /// Formatted display string.
+    var formatted: String {
+        if confidenceLow > 0 && confidenceHigh > 0 {
+            return String(format: "%.1f (%.1f–%.1f)", primaryValue, confidenceLow, confidenceHigh)
+        }
+        return String(format: "%.1f", primaryValue)
+    }
+}
