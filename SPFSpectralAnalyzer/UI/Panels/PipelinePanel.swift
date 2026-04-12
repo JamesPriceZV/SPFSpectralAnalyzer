@@ -260,70 +260,76 @@ extension ContentView {
 
     var inspectorPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Text("Method")
-                    .font(.headline)
-                HelpButton("SPF Calculation Methods", message: "Choose how Sun Protection Factor is calculated from the UV absorbance spectrum:\n\n**COLIPA** \u{2014} The European standard method (2011). Integrates the erythemal action spectrum (how skin responds to UV) with the measured transmittance across 290\u{2013}400 nm. Most widely used for regulatory testing.\n\n**ISO 23675 HDRS** \u{2014} The newer international standard using High Dynamic Range SPF. Uses multiple plate pairs and dose-response curves for improved accuracy.\n\n**Mansur** \u{2014} A simplified equation using pre-calculated erythemal effect \u{00D7} solar intensity values. Quick but only covers UVB (290\u{2013}320 nm).\n\n**Erythemal** \u{2014} Uses the full CIE erythemal action spectrum weighted against solar irradiance. Good for research comparisons.")
-                Picker("", selection: Binding(
-                    get: { SPFCalculationMethod(rawValue: spfCalculationMethodRawValue) ?? .colipa },
-                    set: { spfCalculationMethodRawValue = $0.rawValue }
-                )) {
-                    ForEach(SPFCalculationMethod.allCases) { method in
-                        Text(method.label).tag(method)
-                    }
-                }
-                .pickerStyle(.menu)
-                .labelsHidden()
-                .frame(maxWidth: 160)
-                if SPFCalculationMethod(rawValue: spfCalculationMethodRawValue) == .iso23675 {
-                    Picker("", selection: $analysis.hdrsProductType) {
-                        ForEach(HDRSProductType.allCases) { type in
-                            Text(type.label).tag(type)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Text("Method")
+                        .font(.headline)
+                    HelpButton("SPF Calculation Methods", message: "Choose how Sun Protection Factor is calculated from the UV absorbance spectrum:\n\n**COLIPA** \u{2014} The European standard method (2011). Integrates the erythemal action spectrum (how skin responds to UV) with the measured transmittance across 290\u{2013}400 nm. Most widely used for regulatory testing.\n\n**ISO 23675 HDRS** \u{2014} The newer international standard using High Dynamic Range SPF. Uses multiple plate pairs and dose-response curves for improved accuracy.\n\n**Mansur** \u{2014} A simplified equation using pre-calculated erythemal effect \u{00D7} solar intensity values. Quick but only covers UVB (290\u{2013}320 nm).\n\n**Erythemal** \u{2014} Uses the full CIE erythemal action spectrum weighted against solar irradiance. Good for research comparisons.")
+                    Picker("", selection: Binding(
+                        get: { SPFCalculationMethod(rawValue: spfCalculationMethodRawValue) ?? .colipa },
+                        set: { spfCalculationMethodRawValue = $0.rawValue }
+                    )) {
+                        ForEach(SPFCalculationMethod.allCases) { method in
+                            Text(method.label).tag(method)
                         }
                     }
                     .pickerStyle(.menu)
                     .labelsHidden()
-                    .frame(maxWidth: 100)
-                    .help("ISO 23675 product formulation type")
-                }
-                Button {
-                    rebuildAnalysisCaches()
-                } label: {
-                    if analysis.isRecalculating {
-                        ProgressView()
-                            .scaleEffect(0.5)
-                            .frame(width: 14, height: 14)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                }
-                .help("Recalculate all statistics using the selected method")
-                .buttonStyle(.plain)
-                .disabled(analysis.isRecalculating)
-                let refSummary = datasets.referenceDatasetSummary
-                if refSummary.total > 0 {
+                    .frame(maxWidth: 160)
                     Button {
-                        showReferenceFilterPopover = true
+                        rebuildAnalysisCaches()
                     } label: {
-                        let label = refSummary.included == refSummary.total
-                            ? "\(refSummary.included) ref\(refSummary.included == 1 ? "" : "s")"
-                            : "\(refSummary.included)/\(refSummary.total) refs"
-                        Text(label)
-                            .font(.system(size: 9, weight: .medium, design: .rounded))
-                            .foregroundColor(.blue)
-                            .underline()
+                        if analysis.isRecalculating {
+                            ProgressView()
+                                .scaleEffect(0.5)
+                                .frame(width: 14, height: 14)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
+                    .help("Recalculate all statistics using the selected method")
+                    .buttonStyle(.plain)
+                    .disabled(analysis.isRecalculating)
+                    let refSummary = datasets.referenceDatasetSummary
+                    if refSummary.total > 0 {
+                        Button {
+                            showReferenceFilterPopover = true
+                        } label: {
+                            let label = refSummary.included == refSummary.total
+                                ? "\(refSummary.included) ref\(refSummary.included == 1 ? "" : "s")"
+                                : "\(refSummary.included)/\(refSummary.total) refs"
+                            Text(label)
+                                .font(.system(size: 9, weight: .medium, design: .rounded))
+                                .foregroundColor(.blue)
+                                .underline()
+                        }
+                        .buttonStyle(.plain)
+                        .help("\(refSummary.included) of \(refSummary.total) reference datasets included in calibration. Click to manage.")
+                        .popover(isPresented: $showReferenceFilterPopover) {
+                            referenceFilterPopover
+                        }
+                    }
+                    Spacer()
+                    Button(showInspectorDetails ? "Collapse" : "Expand") {
+                        showInspectorDetails.toggle()
                     }
                     .buttonStyle(.plain)
-                    .help("\(refSummary.included) of \(refSummary.total) reference datasets included in calibration. Click to manage.")
-                    .popover(isPresented: $showReferenceFilterPopover) {
-                        referenceFilterPopover
+                }
+                if SPFCalculationMethod(rawValue: spfCalculationMethodRawValue) == .iso23675 {
+                    HStack(spacing: 8) {
+                        Text("Type")
+                            .font(.subheadline)
+                        Picker("", selection: $analysis.hdrsProductType) {
+                            ForEach(HDRSProductType.allCases) { type in
+                                Text(type.label).tag(type)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                        .frame(maxWidth: 160)
+                        .help("ISO 23675 product formulation type")
                     }
                 }
-                Spacer()
-                Button(showInspectorDetails ? "Collapse" : "Expand") {
-                    showInspectorDetails.toggle()
-                }
-                .buttonStyle(.plain)
             }
 
             if showInspectorDetails {
