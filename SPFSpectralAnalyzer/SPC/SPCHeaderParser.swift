@@ -204,7 +204,7 @@ struct SPCMainHeader: Codable, Sendable {
 
 enum SPCHeaderParser {
     nonisolated static func parseMainHeader(from data: Data) -> SPCMainHeader? {
-        guard data.count >= 324 else { return nil }
+        guard data.count >= 326 else { return nil }
 
         let fileTypeFlags = data.readUInt8(at: 0)
         let spcVersion = data.readUInt8(at: 1)
@@ -212,33 +212,33 @@ enum SPCHeaderParser {
         let yExponent = data.readInt8(at: 3)
         let pointCount = data.readInt32LE(at: 4)
         let firstX = data.readDoubleLE(at: 8)
-        let lastX = data.readDoubleLE(at: 15)
-        let subfileCount = data.readInt32LE(at: 23)
-        let xUnitsCode = data.readUInt8(at: 27)
-        let yUnitsCode = data.readUInt8(at: 28)
-        let zUnitsCode = data.readUInt8(at: 29)
-        let postingDisposition = data.readUInt8(at: 30)
-        let compressedDateRaw = data.readInt32LE(at: 31)
-        let resolutionText = data.readString(at: 35, length: 9)
-        let sourceInstrumentText = data.readString(at: 43, length: 9)
-        let peakPointNumber = data.readUInt16LE(at: 52)
+        let lastX = data.readDoubleLE(at: 16)
+        let subfileCount = data.readInt32LE(at: 24)
+        let xUnitsCode = data.readUInt8(at: 28)
+        let yUnitsCode = data.readUInt8(at: 29)
+        let zUnitsCode = data.readUInt8(at: 30)
+        let postingDisposition = data.readUInt8(at: 31)
+        let compressedDateRaw = data.readInt32LE(at: 32)
+        let resolutionText = data.readString(at: 36, length: 9)
+        let sourceInstrumentText = data.readString(at: 48, length: 9)
+        let peakPointNumber = data.readUInt16LE(at: 58)
         let memo = data.readString(at: 86, length: 130)
         let customAxisCombined = data.readString(at: 216, length: 30)
         let axisParts = customAxisCombined.chunked(into: 10)
         let customAxisX = axisParts.indices.contains(0) ? axisParts[0] : ""
         let customAxisY = axisParts.indices.contains(1) ? axisParts[1] : ""
         let customAxisZ = axisParts.indices.contains(2) ? axisParts[2] : ""
-        let logBlockOffset = data.readInt32LE(at: 246)
-        let fileModificationFlag = data.readInt32LE(at: 250)
-        let processingCode = data.readUInt8(at: 254)
-        let calibrationLevelPlusOne = data.readUInt8(at: 255)
-        let subMethodInjectionNumber = data.readUInt16LE(at: 256)
-        let concentrationFactor = data.readFloatLE(at: 258)
-        let methodFile = data.readString(at: 262, length: 48)
-        let zSubfileIncrement = data.readFloatLE(at: 310)
-        let wPlaneCount = data.readInt32LE(at: 314)
-        let wPlaneIncrement = data.readFloatLE(at: 318)
-        let wAxisUnitsCode = data.readUInt8(at: 322)
+        let logBlockOffset = data.readInt32LE(at: 248)
+        let fileModificationFlag = data.readInt32LE(at: 252)
+        let processingCode = data.readUInt8(at: 256)
+        let calibrationLevelPlusOne = data.readUInt8(at: 257)
+        let subMethodInjectionNumber = data.readUInt16LE(at: 258)
+        let concentrationFactor = data.readFloatLE(at: 260)
+        let methodFile = data.readString(at: 264, length: 48)
+        let zSubfileIncrement = data.readFloatLE(at: 312)
+        let wPlaneCount = data.readInt32LE(at: 316)
+        let wPlaneIncrement = data.readFloatLE(at: 320)
+        let wAxisUnitsCode = data.readUInt8(at: 324)
 
         return SPCMainHeader(
             fileTypeFlags: fileTypeFlags,

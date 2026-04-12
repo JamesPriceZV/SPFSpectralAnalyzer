@@ -108,54 +108,61 @@ nonisolated final class GalacticSPCParser {
             // - If fexp != 0, use fexp (main header controls all subfiles)
             // - If fexp == 0, use subexp per-subfile
             // - Effective exponent of -128 (0x80) means IEEE 32-bit floats
-            let effectiveExp: Int8
-            if fexp != 0 {
-                effectiveExp = fexp
-            } else {
-                effectiveExp = (subexp == Int8(bitPattern: 0x80)) ? subexp : subexp
-            }
+            let effectiveExp: Int8 = (fexp != 0) ? fexp : subexp
 
-            // Read Y data
-            let yValues: [Double]
-            if effectiveExp == -128 { // 0x80: IEEE 32-bit floats
-                let byteCount = subPts * 4
-                guard offset + byteCount <= data.count else { break }
-                yValues = readFloats(at: offset, count: subPts)
-                offset += byteCount
-            } else if is16Bit {
-                let byteCount = subPts * 2
-                guard offset + byteCount <= data.count else { break }
-                yValues = readInt16Y(at: offset, count: subPts, exponent: Int(effectiveExp))
-                offset += byteCount
-            } else {
-                let byteCount = subPts * 4
-                guard offset + byteCount <= data.count else { break }
-                yValues = readInt32Y(at: offset, count: subPts, exponent: Int(effectiveExp))
-                offset += byteCount
-            }
-
-            // Read X data
             let xValues: [Double]
+            let yValues: [Double]
+
             if hasTXYXYS {
-                // Per-subfile X array follows Y data
-                let byteCount = subPts * 4
-                guard offset + byteCount <= data.count else { break }
+                // Per SPC spec: TXYXYS subfiles store X array FIRST, then Y array
+                let xByteCount = subPts * 4
+                guard offset + xByteCount <= data.count else { break }
                 xValues = readFloats(at: offset, count: subPts)
-                offset += byteCount
-            } else if let shared = sharedXFromHeader {
-                if subPts == shared.count {
-                    xValues = shared
+                offset += xByteCount
+
+                // Y data follows X data
+                if effectiveExp == -128 { // 0x80: IEEE 32-bit floats
+                    let byteCount = subPts * 4
+                    guard offset + byteCount <= data.count else { break }
+                    yValues = readFloats(at: offset, count: subPts)
+                    offset += byteCount
+                } else if is16Bit {
+                    let byteCount = subPts * 2
+                    guard offset + byteCount <= data.count else { break }
+                    yValues = readInt16Y(at: offset, count: subPts, exponent: Int(effectiveExp))
+                    offset += byteCount
                 } else {
-                    xValues = generateEvenX(first: ffirst, last: flast, count: subPts)
-                }
-            } else if let even = evenX {
-                if subPts == even.count {
-                    xValues = even
-                } else {
-                    xValues = generateEvenX(first: ffirst, last: flast, count: subPts)
+                    let byteCount = subPts * 4
+                    guard offset + byteCount <= data.count else { break }
+                    yValues = readInt32Y(at: offset, count: subPts, exponent: Int(effectiveExp))
+                    offset += byteCount
                 }
             } else {
-                xValues = generateEvenX(first: ffirst, last: flast, count: subPts)
+                // Non-TXYXYS: Y data in subfile, X from shared array or evenly spaced
+                if effectiveExp == -128 { // 0x80: IEEE 32-bit floats
+                    let byteCount = subPts * 4
+                    guard offset + byteCount <= data.count else { break }
+                    yValues = readFloats(at: offset, count: subPts)
+                    offset += byteCount
+                } else if is16Bit {
+                    let byteCount = subPts * 2
+                    guard offset + byteCount <= data.count else { break }
+                    yValues = readInt16Y(at: offset, count: subPts, exponent: Int(effectiveExp))
+                    offset += byteCount
+                } else {
+                    let byteCount = subPts * 4
+                    guard offset + byteCount <= data.count else { break }
+                    yValues = readInt32Y(at: offset, count: subPts, exponent: Int(effectiveExp))
+                    offset += byteCount
+                }
+
+                if let shared = sharedXFromHeader {
+                    xValues = (subPts == shared.count) ? shared : generateEvenX(first: ffirst, last: flast, count: subPts)
+                } else if let even = evenX {
+                    xValues = (subPts == even.count) ? even : generateEvenX(first: ffirst, last: flast, count: subPts)
+                } else {
+                    xValues = generateEvenX(first: ffirst, last: flast, count: subPts)
+                }
             }
 
             guard !yValues.isEmpty, xValues.count == yValues.count else { continue }

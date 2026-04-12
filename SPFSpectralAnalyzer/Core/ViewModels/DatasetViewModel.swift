@@ -1920,6 +1920,96 @@ final class DatasetViewModel {
         showArchiveConfirmation = true
     }
 
+    /// Re-parses a stored dataset from its cached `fileData` using the current parser,
+    /// replacing stale spectra with freshly parsed X/Y data.
+    func reparseDataset(_ datasetID: UUID, storedDatasets: [StoredDataset]) {
+        guard let ctx = modelContext else {
+            analysis.statusMessage = "No model context available."
+            return
+        }
+        guard let dataset = storedDatasets.first(where: { $0.id == datasetID }) else {
+            analysis.statusMessage = "Dataset not found."
+            return
+        }
+        guard let fileData = dataset.fileData, !fileData.isEmpty else {
+            analysis.statusMessage = "No source file data stored for this dataset. Re-import from the original file."
+            return
+        }
+
+        let fileName = dataset.fileName
+
+        // Re-parse using the appropriate parser
+        let parseResult: ShimadzuSPCParseResult
+        do {
+            if GalacticSPCParser.canParse(fileData) {
+                // Write to a temporary file since the parser expects a URL
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+                try fileData.write(to: tempURL)
+                defer { try? FileManager.default.removeItem(at: tempURL) }
+                let parser = try GalacticSPCParser(fileURL: tempURL)
+                parseResult = try parser.extractSpectraResult()
+            } else {
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+                try fileData.write(to: tempURL)
+                defer { try? FileManager.default.removeItem(at: tempURL) }
+                let parser = try ShimadzuSPCParser(fileURL: tempURL)
+                parseResult = try parser.extractSpectraResult()
+            }
+        } catch {
+            analysis.statusMessage = "Re-parse failed: \(error.localizedDescription)"
+            return
+        }
+
+        // Delete old spectra
+        let spectraPredicate = #Predicate<StoredSpectrum> { $0.datasetID == datasetID }
+        if let oldSpectra = try? ctx.fetch(FetchDescriptor<StoredSpectrum>(predicate: spectraPredicate)) {
+            for spectrum in oldSpectra {
+                ctx.delete(spectrum)
+            }
+        }
+
+        // Create new spectra from re-parsed data
+        let newSpectra = parseResult.spectra.enumerated().map { index, raw in
+            let displayName = ContentView.sampleDisplayName(
+                from: URL(fileURLWithPath: fileName),
+                spectrumName: raw.name,
+                index: index,
+                total: parseResult.spectra.count
+            )
+            let reason = SpectrumValidation.invalidReason(x: raw.x, y: raw.y)
+            return StoredSpectrum(
+                datasetID: datasetID,
+                name: displayName,
+                orderIndex: index,
+                xData: SpectrumBinaryCodec.encodeDoubles(raw.x),
+                yData: SpectrumBinaryCodec.encodeDoubles(raw.y),
+                isInvalid: reason != nil,
+                invalidReason: reason
+            )
+        }
+
+        // Update dataset metadata
+        let metadataJSON = try? JSONEncoder().encode(parseResult.metadata)
+        dataset.metadataJSON = metadataJSON
+        dataset.headerInfoData = parseResult.headerInfoData
+        dataset.spectra = newSpectra
+        for spectrum in newSpectra {
+            spectrum.dataset = dataset
+            ctx.insert(spectrum)
+        }
+
+        // Unload old spectra from analysis if they were loaded
+        analysis.unloadSpectra(forDatasetID: datasetID)
+
+        let specCount = newSpectra.count
+        analysis.statusMessage = "Re-parsed \(fileName): \(specCount) spectra updated."
+        Instrumentation.log(
+            "Dataset re-parsed",
+            area: .importParsing, level: .info,
+            details: "file=\(fileName) spectra=\(specCount)"
+        )
+    }
+
     func prepareDuplicateCleanup(storedDatasets: [StoredDataset], archivedDatasets: [StoredDataset]) {
         let allDatasets = storedDatasets + archivedDatasets
         guard allDatasets.count > 1 else {

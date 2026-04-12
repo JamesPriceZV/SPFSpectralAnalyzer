@@ -792,6 +792,11 @@ extension ContentView {
             } label: {
                 Label("Unload from Analysis", systemImage: "arrow.uturn.up")
             }
+            Button {
+                datasets.reparseDataset(datasetID, storedDatasets: storedDatasets)
+            } label: {
+                Label("Re-parse from Source", systemImage: "arrow.triangle.2.circlepath")
+            }
             Divider()
             Button(role: .destructive) {
                 datasets.requestPermanentDeleteFromActive(ids: [datasetID])
