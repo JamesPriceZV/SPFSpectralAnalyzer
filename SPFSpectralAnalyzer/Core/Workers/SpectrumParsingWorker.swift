@@ -21,8 +21,15 @@ actor SpectrumParsingWorker {
             var fileRawSpectra: [RawSpectrumInput] = []
             var fileWarnings: [String] = []
             do {
-                let parser = try ShimadzuSPCParser(fileURL: url)
-                let result = try parser.extractSpectraResult()
+                let result: ShimadzuSPCParseResult
+                if let fileData = try? Data(contentsOf: url, options: .mappedIfSafe),
+                   GalacticSPCParser.canParse(fileData) {
+                    let parser = try GalacticSPCParser(fileURL: url)
+                    result = try parser.extractSpectraResult()
+                } else {
+                    let parser = try ShimadzuSPCParser(fileURL: url)
+                    result = try parser.extractSpectraResult()
+                }
                 let namedSpectra = result.spectra.enumerated().map { index, spectrum in
                     let name = ContentView.sampleDisplayName(
                         from: url,
