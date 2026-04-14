@@ -145,6 +145,18 @@ extension ContentView {
             } message: {
                 Text(datasets.directDeleteConfirmationMessage())
             }
+            .sheet(isPresented: $spcLibraryBridge.isEditorPresented) {
+                SPCEditorSheet(bridge: spcLibraryBridge)
+                    .environment(\.modelContext, modelContext)
+            }
+            .alert("SPC Error", isPresented: Binding(
+                get: { spcLibraryBridge.presentedError != nil },
+                set: { if !$0 { spcLibraryBridge.presentedError = nil } }
+            )) {
+                Button("OK", role: .cancel) { spcLibraryBridge.presentedError = nil }
+            } message: {
+                Text(spcLibraryBridge.presentedError ?? "")
+            }
     }
 
     func applyProcessingChangeHandlers<V: View>(_ view: V) -> some View {

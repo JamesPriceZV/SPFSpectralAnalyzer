@@ -1,6 +1,6 @@
 import Foundation
 
-enum CompoundFileError: Error, CustomStringConvertible {
+enum SDACompoundFileError: Error, CustomStringConvertible {
     case invalidSignature
     case unsupportedSectorSize(Int)
     case unsupportedMiniSectorSize(Int)
@@ -40,7 +40,7 @@ private struct BinaryReader {
 
     nonisolated func readUInt16LE(at offset: Int) throws -> UInt16 {
         let end = offset + 2
-        guard end <= data.count else { throw CompoundFileError.readOutOfBounds }
+        guard end <= data.count else { throw SDACompoundFileError.readOutOfBounds }
         return data.subdata(in: offset..<end).withUnsafeBytes { ptr in
             ptr.load(as: UInt16.self)
         }.littleEndian
@@ -48,7 +48,7 @@ private struct BinaryReader {
 
     nonisolated func readUInt32LE(at offset: Int) throws -> UInt32 {
         let end = offset + 4
-        guard end <= data.count else { throw CompoundFileError.readOutOfBounds }
+        guard end <= data.count else { throw SDACompoundFileError.readOutOfBounds }
         return data.subdata(in: offset..<end).withUnsafeBytes { ptr in
             ptr.load(as: UInt32.self)
         }.littleEndian
@@ -60,14 +60,14 @@ private struct BinaryReader {
 
     nonisolated func readUInt64LE(at offset: Int) throws -> UInt64 {
         let end = offset + 8
-        guard end <= data.count else { throw CompoundFileError.readOutOfBounds }
+        guard end <= data.count else { throw SDACompoundFileError.readOutOfBounds }
         return data.subdata(in: offset..<end).withUnsafeBytes { ptr in
             ptr.load(as: UInt64.self)
         }.littleEndian
     }
 }
 
-struct CompoundFileDirectoryEntry: Sendable {
+struct SDACompoundFileDirectoryEntry: Sendable {
     let name: String
     let objectType: UInt8
     let leftSibling: Int32
@@ -77,7 +77,7 @@ struct CompoundFileDirectoryEntry: Sendable {
     let streamSize: UInt64
 }
 
-nonisolated final class CompoundFile {
+nonisolated final class SDACompoundFile {
     private let fileURL: URL
     private let fileHandle: FileHandle
     private let fileSize: UInt64
@@ -93,7 +93,7 @@ nonisolated final class CompoundFile {
 
     private let fat: [Int32]
     private let miniFAT: [Int32]
-    private let directoryEntries: [CompoundFileDirectoryEntry]
+    private let directoryEntries: [SDACompoundFileDirectoryEntry]
     private let miniStreamData: Data
 
     private static let headerSize = 512
@@ -110,7 +110,7 @@ nonisolated final class CompoundFile {
         let fileSize = (attrs[.size] as? NSNumber)?.uint64Value ?? 0
 
         func readData(at offset: UInt64, count: Int) throws -> Data {
-            guard offset + UInt64(count) <= fileSize else { throw CompoundFileError.readOutOfBounds }
+            guard offset + UInt64(count) <= fileSize else { throw SDACompoundFileError.readOutOfBounds }
             try fileHandle.seek(toOffset: offset)
             if let data = try fileHandle.read(upToCount: count) {
                 return data
@@ -119,16 +119,16 @@ nonisolated final class CompoundFile {
         }
 
         func readSector(_ index: Int32, sectorSize: Int) throws -> Data {
-            if index < 0 { throw CompoundFileError.invalidSectorIndex(Int(index)) }
-            let offset = UInt64(CompoundFile.headerSize + Int(index) * sectorSize)
+            if index < 0 { throw SDACompoundFileError.invalidSectorIndex(Int(index)) }
+            let offset = UInt64(SDACompoundFile.headerSize + Int(index) * sectorSize)
             return try readData(at: offset, count: sectorSize)
         }
 
-        let header = try readData(at: 0, count: CompoundFile.headerSize)
+        let header = try readData(at: 0, count: SDACompoundFile.headerSize)
         let reader = BinaryReader(data: header)
 
-        if Array(header.prefix(8)) != CompoundFile.signature {
-            throw CompoundFileError.invalidSignature
+        if Array(header.prefix(8)) != SDACompoundFile.signature {
+            throw SDACompoundFileError.invalidSignature
         }
 
         let sectorShift = Int(try reader.readUInt16LE(at: 30))
@@ -137,10 +137,10 @@ nonisolated final class CompoundFile {
         let miniSectorSize = 1 << miniSectorShift
 
         if sectorSize != 512 && sectorSize != 4096 {
-            throw CompoundFileError.unsupportedSectorSize(sectorSize)
+            throw SDACompoundFileError.unsupportedSectorSize(sectorSize)
         }
         if miniSectorSize != 64 {
-            throw CompoundFileError.unsupportedMiniSectorSize(miniSectorSize)
+            throw SDACompoundFileError.unsupportedMiniSectorSize(miniSectorSize)
         }
 
         let numFATSectors = Int32(bitPattern: try reader.readUInt32LE(at: 44))
@@ -151,8 +151,8 @@ nonisolated final class CompoundFile {
         let firstDIFATSector = Int32(bitPattern: try reader.readUInt32LE(at: 68))
         let numDIFATSectors = Int32(bitPattern: try reader.readUInt32LE(at: 72))
 
-        let difatEntries = try CompoundFile.readHeaderDIFAT(reader: reader)
-        let fatSectorIndices = try CompoundFile.buildFATSectorList(
+        let difatEntries = try SDACompoundFile.readHeaderDIFAT(reader: reader)
+        let fatSectorIndices = try SDACompoundFile.buildFATSectorList(
             difatHeader: difatEntries,
             firstDIFATSector: firstDIFATSector,
             numDIFATSectors: numDIFATSectors,
@@ -162,7 +162,7 @@ nonisolated final class CompoundFile {
             }
         )
 
-        let fat = try CompoundFile.readFAT(
+        let fat = try SDACompoundFile.readFAT(
             fatSectorIndices: fatSectorIndices,
             sectorSize: sectorSize,
             readSector: { index in
@@ -171,7 +171,7 @@ nonisolated final class CompoundFile {
             expectedCount: Int(numFATSectors)
         )
 
-        let directoryEntries = try CompoundFile.readDirectoryEntries(
+        let directoryEntries = try SDACompoundFile.readDirectoryEntries(
             startSector: firstDirSector,
             sectorSize: sectorSize,
             fat: fat,
@@ -180,7 +180,7 @@ nonisolated final class CompoundFile {
             }
         )
 
-        let miniFAT = try CompoundFile.readMiniFAT(
+        let miniFAT = try SDACompoundFile.readMiniFAT(
             startSector: firstMiniFATSector,
             numSectors: numMiniFATSectors,
             sectorSize: sectorSize,
@@ -190,7 +190,7 @@ nonisolated final class CompoundFile {
             }
         )
 
-        let miniStreamData = try CompoundFile.readMiniStream(
+        let miniStreamData = try SDACompoundFile.readMiniStream(
             directoryEntries: directoryEntries,
             sectorSize: sectorSize,
             fat: fat,
@@ -224,21 +224,21 @@ nonisolated final class CompoundFile {
         directoryEntries.count
     }
 
-    func allDirectoryEntries() -> [CompoundFileDirectoryEntry] {
+    func allDirectoryEntries() -> [SDACompoundFileDirectoryEntry] {
         directoryEntries
     }
 
-    func directoryEntry(at index: Int32) throws -> CompoundFileDirectoryEntry {
+    func directoryEntry(at index: Int32) throws -> SDACompoundFileDirectoryEntry {
         let idx = Int(index)
         guard idx >= 0 && idx < directoryEntries.count else {
-            throw CompoundFileError.directoryNotFound
+            throw SDACompoundFileError.directoryNotFound
         }
         return directoryEntries[idx]
     }
 
-    func streamData(for entry: CompoundFileDirectoryEntry) throws -> Data {
+    func streamData(for entry: SDACompoundFileDirectoryEntry) throws -> Data {
         let size = Int(entry.streamSize)
-        if size < 0 { throw CompoundFileError.invalidStreamSize }
+        if size < 0 { throw SDACompoundFileError.invalidStreamSize }
         if size == 0 { return Data() }
 
         if size < miniStreamCutoff && entry.objectType == 2 {
@@ -248,7 +248,7 @@ nonisolated final class CompoundFile {
     }
 
     private func readStream(startSector: Int32, size: Int) throws -> Data {
-        return try CompoundFile.readStream(
+        return try SDACompoundFile.readStream(
             startSector: startSector,
             size: size,
             sectorSize: sectorSize,
@@ -260,7 +260,7 @@ nonisolated final class CompoundFile {
     }
 
     private func readMiniStream(startSector: Int32, size: Int) throws -> Data {
-        return try CompoundFile.readMiniStreamData(
+        return try SDACompoundFile.readMiniStreamData(
             startSector: startSector,
             size: size,
             miniSectorSize: miniSectorSize,
@@ -270,7 +270,7 @@ nonisolated final class CompoundFile {
     }
 
     private func readData(at offset: UInt64, count: Int) throws -> Data {
-        guard offset + UInt64(count) <= fileSize else { throw CompoundFileError.readOutOfBounds }
+        guard offset + UInt64(count) <= fileSize else { throw SDACompoundFileError.readOutOfBounds }
         try fileHandle.seek(toOffset: offset)
         if let data = try fileHandle.read(upToCount: count) {
             return data
@@ -279,8 +279,8 @@ nonisolated final class CompoundFile {
     }
 
     private func readSector(_ index: Int32) throws -> Data {
-        if index < 0 { throw CompoundFileError.invalidSectorIndex(Int(index)) }
-        let offset = UInt64(CompoundFile.headerSize + Int(index) * sectorSize)
+        if index < 0 { throw SDACompoundFileError.invalidSectorIndex(Int(index)) }
+        let offset = UInt64(SDACompoundFile.headerSize + Int(index) * sectorSize)
         return try readData(at: offset, count: sectorSize)
     }
 
@@ -352,11 +352,11 @@ nonisolated final class CompoundFile {
         sectorSize: Int,
         fat: [Int32],
         readSector: (Int32) throws -> Data
-    ) throws -> [CompoundFileDirectoryEntry] {
+    ) throws -> [SDACompoundFileDirectoryEntry] {
         let dirData = try readStream(startSector: startSector, size: Int.max, sectorSize: sectorSize, fat: fat, readSector: readSector, allowUnknownSize: true)
         let entrySize = 128
         let count = dirData.count / entrySize
-        var entries: [CompoundFileDirectoryEntry] = []
+        var entries: [SDACompoundFileDirectoryEntry] = []
         entries.reserveCapacity(count)
 
         for i in 0..<count {
@@ -378,7 +378,7 @@ nonisolated final class CompoundFile {
             let startSector = try reader.readInt32LE(at: 116)
             let streamSize = try reader.readUInt64LE(at: 120)
 
-            entries.append(CompoundFileDirectoryEntry(
+            entries.append(SDACompoundFileDirectoryEntry(
                 name: name,
                 objectType: objectType,
                 leftSibling: leftSibling,
@@ -412,7 +412,7 @@ nonisolated final class CompoundFile {
     }
 
     private static func readMiniStream(
-        directoryEntries: [CompoundFileDirectoryEntry],
+        directoryEntries: [SDACompoundFileDirectoryEntry],
         sectorSize: Int,
         fat: [Int32],
         readSector: (Int32) throws -> Data
@@ -442,11 +442,11 @@ nonisolated final class CompoundFile {
 
         while current != endOfChain {
             if visited.contains(current) {
-                throw CompoundFileError.chainLoopDetected
+                throw SDACompoundFileError.chainLoopDetected
             }
             visited.insert(current)
             if Int(current) >= maxSectors {
-                throw CompoundFileError.invalidSectorIndex(Int(current))
+                throw SDACompoundFileError.invalidSectorIndex(Int(current))
             }
 
             let sectorData = try readSector(current)
@@ -462,7 +462,7 @@ nonisolated final class CompoundFile {
         }
 
         if !allowUnknownSize && remaining > 0 {
-            throw CompoundFileError.invalidStreamSize
+            throw SDACompoundFileError.invalidStreamSize
         }
 
         return data
@@ -483,26 +483,26 @@ nonisolated final class CompoundFile {
 
         while current != endOfChain {
             if visited.contains(current) {
-                throw CompoundFileError.chainLoopDetected
+                throw SDACompoundFileError.chainLoopDetected
             }
             visited.insert(current)
             let offset = Int(current) * miniSectorSize
             let end = offset + miniSectorSize
             if end > miniStream.count {
-                throw CompoundFileError.readOutOfBounds
+                throw SDACompoundFileError.readOutOfBounds
             }
             let take = min(remaining, miniSectorSize)
             data.append(miniStream.subdata(in: offset..<(offset + take)))
             remaining -= take
             if remaining <= 0 { break }
             if Int(current) >= miniFAT.count {
-                throw CompoundFileError.invalidSectorIndex(Int(current))
+                throw SDACompoundFileError.invalidSectorIndex(Int(current))
             }
             current = miniFAT[Int(current)]
         }
 
         if remaining > 0 {
-            throw CompoundFileError.invalidStreamSize
+            throw SDACompoundFileError.invalidStreamSize
         }
 
         return data

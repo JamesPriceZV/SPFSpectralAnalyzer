@@ -30,7 +30,7 @@ enum ValidationService {
     }
 
     static func validateHeader<T>(
-        _ header: SPCMainHeader, spectra: [T],
+        _ header: SDAMainHeader, spectra: [T],
         spectrumName: (T) -> String,
         xProvider: (T) -> [Double],
         yProvider: (T) -> [Double],

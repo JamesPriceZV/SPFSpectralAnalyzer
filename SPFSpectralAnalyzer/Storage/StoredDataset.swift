@@ -67,6 +67,12 @@ public final class StoredDataset {
     /// PMMA plate subtype: "moulded" or "sandblasted" (only meaningful when plateType == "pmma").
     var pmmaPlateSubtype: String?
 
+    /// True when this dataset was saved from the SPCKit editor rather than imported directly.
+    var spcKitEdited: Bool = false
+
+    /// The output format used when saving via SPCKit ("Thermo Galactic SPC" or "Shimadzu (OLE2/CFB)").
+    var spcFileFormat: String?
+
     /// User-assigned post-irradiation override.
     /// - `nil`: Auto-detect from filename (default).
     /// - `true`: Manually marked as post-irradiation.

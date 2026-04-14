@@ -25,6 +25,7 @@ struct HelpView: View {
         DocCHelpPage(id: "tutorial-workflow", title: "Tutorial: Workflow", resourcePath: "HelpContent/Tutorials/Workflow.tutorial", docKey: "Workflow"),
         DocCHelpPage(id: "workflow-design", title: "Workflow Design", resourcePath: "HelpContent/HowTo/WorkflowDesign.md", docKey: "WorkflowDesign"),
         DocCHelpPage(id: "import-spc", title: "Import SPC Files", resourcePath: "HelpContent/HowTo/ImportSPC.md", docKey: "ImportSPC"),
+        DocCHelpPage(id: "spc-editor", title: "SPC Editor", resourcePath: "HelpContent/HowTo/SPCEditor.md", docKey: "SPCEditor"),
         DocCHelpPage(id: "analyze-combine", title: "Analyze and Combine", resourcePath: "HelpContent/HowTo/AnalyzeAndCombine.md", docKey: "AnalyzeAndCombine"),
         DocCHelpPage(id: "ai-analysis", title: "AI Analysis", resourcePath: "HelpContent/HowTo/AIAnalysis.md", docKey: "AIAnalysis"),
         DocCHelpPage(id: "ml-model-training", title: "ML Model Training", resourcePath: "HelpContent/HowTo/MLModelTraining.md", docKey: "MLModelTraining"),

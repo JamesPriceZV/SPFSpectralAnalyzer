@@ -141,7 +141,7 @@ struct SPCExperimentTypeCode: Codable, Sendable {
     }
 }
 
-struct SPCCompressedDate: Codable, Sendable {
+struct SDACompressedDate: Codable, Sendable {
     let rawValue: Int32
     let year: Int
     let month: Int
@@ -160,7 +160,7 @@ struct SPCCompressedDate: Codable, Sendable {
     }
 }
 
-struct SPCMainHeader: Codable, Sendable {
+struct SDAMainHeader: Codable, Sendable {
     let fileTypeFlags: UInt8
     let spcVersion: UInt8
     let experimentTypeCode: UInt8
@@ -173,7 +173,7 @@ struct SPCMainHeader: Codable, Sendable {
     let yUnitsCode: UInt8
     let zUnitsCode: UInt8
     let postingDisposition: UInt8
-    let compressedDate: SPCCompressedDate
+    let compressedDate: SDACompressedDate
     let resolutionText: String
     let sourceInstrumentText: String
     let peakPointNumber: UInt16
@@ -203,7 +203,7 @@ struct SPCMainHeader: Codable, Sendable {
 }
 
 enum SPCHeaderParser {
-    nonisolated static func parseMainHeader(from data: Data) -> SPCMainHeader? {
+    nonisolated static func parseMainHeader(from data: Data) -> SDAMainHeader? {
         guard data.count >= 326 else { return nil }
 
         let fileTypeFlags = data.readUInt8(at: 0)
@@ -240,7 +240,7 @@ enum SPCHeaderParser {
         let wPlaneIncrement = data.readFloatLE(at: 320)
         let wAxisUnitsCode = data.readUInt8(at: 324)
 
-        return SPCMainHeader(
+        return SDAMainHeader(
             fileTypeFlags: fileTypeFlags,
             spcVersion: spcVersion,
             experimentTypeCode: experimentTypeCode,
@@ -253,7 +253,7 @@ enum SPCHeaderParser {
             yUnitsCode: yUnitsCode,
             zUnitsCode: zUnitsCode,
             postingDisposition: postingDisposition,
-            compressedDate: SPCCompressedDate(rawValue: compressedDateRaw),
+            compressedDate: SDACompressedDate(rawValue: compressedDateRaw),
             resolutionText: resolutionText,
             sourceInstrumentText: sourceInstrumentText,
             peakPointNumber: peakPointNumber,

@@ -95,7 +95,7 @@ extension ContentView {
         return analysis.activeMetadata
     }
 
-    var activeHeader: SPCMainHeader? {
+    var activeHeader: SDAMainHeader? {
         activeMetadataFromSelection?.mainHeader
     }
 
@@ -266,7 +266,7 @@ extension ContentView {
         return lines
     }
 
-    func spcDateString(_ date: SPCCompressedDate) -> String {
+    func spcDateString(_ date: SDACompressedDate) -> String {
         if date.year == 0 && date.month == 0 && date.day == 0 && date.hour == 0 && date.minute == 0 {
             return "Unknown"
         }

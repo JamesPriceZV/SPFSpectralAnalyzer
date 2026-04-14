@@ -31,5 +31,40 @@
 	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>SPF Spectral Analyzer needs to open Terminal to install Python ML packages (PyTorch, coremltools, scikit-learn) required for PINN model training.</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>SPC Spectral File</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>spc</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+		</dict>
+	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.thermogalactic.spc</string>
+			<key>UTTypeDescription</key>
+			<string>Thermo Galactic SPC Spectral File</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>spc</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>

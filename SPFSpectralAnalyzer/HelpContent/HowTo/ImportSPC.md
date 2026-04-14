@@ -43,7 +43,7 @@ Shimadzu instruments use a Compound Binary File (also known as OLE2 or CFB) cont
 - Microsoft Compound Binary File Format (MS-CFB): https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cfb/
 
 ### Format Detection
-The correct parser is selected automatically based on the file's signature bytes. If byte 1 matches a Galactic version (0x4B, 0x4D, or 0xCF), the Galactic parser is used. Otherwise, the file is attempted as a Shimadzu OLE2 container.
+All SPC files are parsed by the unified SPCParser engine, which automatically detects the format from signature bytes. Galactic/Thermo files (version bytes 0x4B, 0x4D, or 0xCF) and Shimadzu OLE2/CFB containers (magic bytes D0 CF 11 E0) are both handled transparently.
 
 ## Steps
 1. Open the Import tab in ``ContentView``.
@@ -52,11 +52,12 @@ The correct parser is selected automatically based on the file's signature bytes
 4. Confirm the spectra appear in the list of loaded datasets.
 
 ## What Happens Behind the Scenes
-- The file's magic bytes are inspected to determine the format.
-- Galactic/Thermo files are parsed with the Galactic SPC parser, which handles evenly-spaced X, shared X arrays (TXVALS), per-subfile X-Y pairs (TXYXYS), multi-subfile layouts, and both integer-scaled and IEEE float Y values.
-- Shimadzu files are parsed with the Compound File parser, navigating the OLE2 directory tree to extract X and Y data streams.
+- The unified SPCParser engine inspects the file's magic bytes and parses both Galactic/Thermo binary and Shimadzu OLE2/CFB formats automatically.
+- Galactic/Thermo parsing handles evenly-spaced X, shared X arrays (TXVALS), per-subfile X-Y pairs (TXYXYS), multi-subfile layouts, and both integer-scaled and IEEE float Y values.
+- Shimadzu parsing navigates the OLE2 directory tree to extract X and Y data streams.
 - The SPC header is parsed separately for display, showing flags, unit codes, experiment type, memo text, and axis ranges.
 - Imported files are persisted as ``StoredDataset`` entries with their original file bytes cached. Parsed spectra are stored as ``StoredSpectrum`` binary blobs for fast reloading without re-parsing.
+- After import, you can open any SPC dataset in the <doc:SPCEditor> to edit, transform, and re-save in either format.
 
 ## Re-parsing Stored Datasets
 If a dataset was imported with an older parser version that had bugs, the stored spectra may contain stale or incorrect data. To refresh without deleting and re-importing:

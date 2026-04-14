@@ -775,7 +775,7 @@ final class DatasetViewModel {
         }
     }
 
-    func validateLoadedSpectra(activeHeader: SPCMainHeader?) {
+    func validateLoadedSpectra(activeHeader: SDAMainHeader?) {
         guard !analysis.spectra.isEmpty else {
             analysis.statusMessage = "No loaded spectra to validate."
             return
@@ -806,7 +806,7 @@ final class DatasetViewModel {
     }
 
     func validateHeader<T>(
-        _ header: SPCMainHeader, spectra: [T],
+        _ header: SDAMainHeader, spectra: [T],
         spectrumName: (T) -> String,
         xProvider: (T) -> [Double],
         yProvider: (T) -> [Double],

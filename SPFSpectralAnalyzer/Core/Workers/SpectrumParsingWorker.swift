@@ -22,14 +22,9 @@ actor SpectrumParsingWorker {
             var fileWarnings: [String] = []
             do {
                 let result: ShimadzuSPCParseResult
-                if let fileData = try? Data(contentsOf: url, options: .mappedIfSafe),
-                   GalacticSPCParser.canParse(fileData) {
-                    let parser = try GalacticSPCParser(fileURL: url)
-                    result = try parser.extractSpectraResult()
-                } else {
-                    let parser = try ShimadzuSPCParser(fileURL: url)
-                    result = try parser.extractSpectraResult()
-                }
+                // Phase 2: Use SPCKit's unified SPCParser for all SPC file formats.
+                let spcFile = try await SPCParser.parse(url: url)
+                result = SPCKitAdapter.toParseResult(spcFile, url: url)
                 let namedSpectra = result.spectra.enumerated().map { index, spectrum in
                     let name = ContentView.sampleDisplayName(
                         from: url,

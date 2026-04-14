@@ -587,6 +587,15 @@ extension ContentView {
                                 .font(.caption2)
                                 .foregroundColor(.orange)
                         }
+                        if storedDatasets.first(where: { $0.id == datasetID })?.spcKitEdited == true {
+                            Text("SPC\u{270F}")
+                                .font(.system(size: 7, weight: .bold, design: .rounded))
+                                .padding(.horizontal, 3)
+                                .padding(.vertical, 1)
+                                .background(Color.blue.opacity(0.15))
+                                .foregroundColor(.blue)
+                                .cornerRadius(2)
+                        }
                         if isRef {
                             Text("REF")
                                 .font(.caption2.bold())
@@ -778,6 +787,23 @@ extension ContentView {
                     datasets.setDatasetRole(nil, knownInVivoSPF: nil, for: datasetID, storedDatasets: storedDatasets)
                 } label: {
                     Label("Clear Role", systemImage: "xmark.circle")
+                }
+            }
+            Divider()
+            if let dataset = storedDatasets.first(where: { $0.id == datasetID }),
+               SPCLibraryBridge.canOpen(dataset) {
+                Button {
+                    Task { await spcLibraryBridge.openForEditing(dataset) }
+                } label: {
+                    Label("Open in SPC Editor...", systemImage: "waveform.and.magnifyingglass")
+                }
+            }
+            if datasets.selectedStoredDatasetIDs.count >= 2 {
+                Button {
+                    let selected = storedDatasets.filter { datasets.selectedStoredDatasetIDs.contains($0.id) }
+                    Task { await spcLibraryBridge.combineDatasets(selected) }
+                } label: {
+                    Label("Combine Selected into SPC...", systemImage: "arrow.triangle.merge")
                 }
             }
             Divider()

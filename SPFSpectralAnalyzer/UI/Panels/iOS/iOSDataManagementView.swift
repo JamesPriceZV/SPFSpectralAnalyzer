@@ -13,6 +13,7 @@ struct iOSDataManagementView: View {
     var storedDatasets: [StoredDataset]
     var archivedDatasets: [StoredDataset]
     var instruments: [StoredInstrument]
+    @Bindable var spcLibraryBridge: SPCLibraryBridge
 
     @EnvironmentObject var dataStoreController: DataStoreController
 
@@ -845,6 +846,15 @@ struct iOSDataManagementView: View {
                     datasets.setDatasetRole(nil, knownInVivoSPF: nil, for: datasetID, storedDatasets: storedDatasets)
                 } label: {
                     Label("Clear Role", systemImage: "xmark.circle")
+                }
+            }
+            Divider()
+            if let dataset = storedDatasets.first(where: { $0.id == datasetID }),
+               SPCLibraryBridge.canOpen(dataset) {
+                Button {
+                    Task { await spcLibraryBridge.openForEditing(dataset) }
+                } label: {
+                    Label("Open in SPC Editor...", systemImage: "waveform.and.magnifyingglass")
                 }
             }
             Divider()

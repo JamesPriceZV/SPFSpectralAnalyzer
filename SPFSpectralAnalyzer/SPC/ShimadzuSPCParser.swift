@@ -108,11 +108,11 @@ struct ShimadzuSPCMetadata: Codable, Sendable {
     let directoryEntryNames: [String]
     let dataSetNames: [String]
     let headerInfoByteCount: Int
-    let mainHeader: SPCMainHeader?
+    let mainHeader: SDAMainHeader?
 }
 
 nonisolated final class ShimadzuSPCParser {
-    private let compound: CompoundFile
+    private let compound: SDACompoundFile
     private let compoundFileURL: URL
 
     private let nameXData = "X Data.1"
@@ -125,7 +125,7 @@ nonisolated final class ShimadzuSPCParser {
 
     init(fileURL: URL) throws {
         self.compoundFileURL = fileURL
-        self.compound = try CompoundFile(fileURL: fileURL)
+        self.compound = try SDACompoundFile(fileURL: fileURL)
         Task { @MainActor in
             Instrumentation.log(
                 "SPC file opened",

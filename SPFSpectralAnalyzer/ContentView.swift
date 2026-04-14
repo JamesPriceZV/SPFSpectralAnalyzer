@@ -112,6 +112,7 @@ struct ContentView: View {
 
     @State var aiVM: AIViewModel
     @State var pendingShareContent: ShareableContent?
+    @State var spcLibraryBridge = SPCLibraryBridge()
 
     @EnvironmentObject var instrumentManager: InstrumentManager
 
@@ -455,7 +456,8 @@ struct ContentView: View {
             appMode: $appMode,
             storedDatasets: storedDatasets,
             archivedDatasets: archivedDatasets,
-            instruments: instruments
+            instruments: instruments,
+            spcLibraryBridge: spcLibraryBridge
         )
         #else
         importPanel
