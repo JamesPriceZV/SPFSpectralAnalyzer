@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import UniformTypeIdentifiers
 #if canImport(MSAL)
 @preconcurrency import MSAL
@@ -146,8 +147,11 @@ extension ContentView {
                 Text(datasets.directDeleteConfirmationMessage())
             }
             .sheet(isPresented: $spcLibraryBridge.isEditorPresented) {
-                SPCEditorSheet(bridge: spcLibraryBridge)
+                SPCEditorSheet(bridge: spcLibraryBridge, storedDatasets: storedDatasets)
                     .environment(\.modelContext, modelContext)
+                    .presentationSizing(.fitted)
+                    .frame(minWidth: 800, idealWidth: 1100, maxWidth: .infinity,
+                           minHeight: 550, idealHeight: 750, maxHeight: .infinity)
             }
             .alert("SPC Error", isPresented: Binding(
                 get: { spcLibraryBridge.presentedError != nil },

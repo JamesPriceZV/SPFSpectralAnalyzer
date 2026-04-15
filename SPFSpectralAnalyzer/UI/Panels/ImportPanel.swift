@@ -31,6 +31,9 @@ extension ContentView {
             onCompletion: datasets.handleImport(result:)
         )
         #endif
+        .sheet(isPresented: $datasets.showPermanentDeleteSheet) {
+            permanentDeleteSheet
+        }
     }
 
     private var importPanelLeftPane: some View {
@@ -63,9 +66,19 @@ extension ContentView {
                                 .font(.caption)
                                 .foregroundColor(dropTargeted ? .accentColor : .secondary)
                         }
+                        .allowsHitTesting(false)
                     )
-                    .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
-                        handleFileDrop(providers)
+                    .contentShape(Rectangle())
+                    .dropDestination(for: URL.self) { urls, _ in
+                        let spcURLs = urls.filter { $0.pathExtension.lowercased() == "spc" }
+                        guard !spcURLs.isEmpty else { return false }
+                        let ds = datasets
+                        Task { @MainActor in
+                            await ds.loadSpectra(from: spcURLs, append: false)
+                        }
+                        return true
+                    } isTargeted: { targeted in
+                        dropTargeted = targeted
                     }
             }
             .padding(.horizontal, 12)
@@ -193,11 +206,30 @@ extension ContentView {
 
                     // Search field
                     HStack(spacing: 6) {
-                        TextField("Search", text: datasets.datasetTab == .archived
-                            ? $datasets.archivedSearchText
-                            : $datasets.datasetSearchText)
-                            .textFieldStyle(.roundedBorder)
-                            .accessibilityIdentifier("datasetSearchField")
+                        ZStack(alignment: .trailing) {
+                            TextField("Search", text: datasets.datasetTab == .archived
+                                ? $datasets.archivedSearchText
+                                : $datasets.datasetSearchText)
+                                .textFieldStyle(.roundedBorder)
+                                .accessibilityIdentifier("datasetSearchField")
+                            if !(datasets.datasetTab == .archived
+                                 ? datasets.archivedSearchText
+                                 : datasets.datasetSearchText).isEmpty {
+                                Button {
+                                    if datasets.datasetTab == .archived {
+                                        datasets.archivedSearchText = ""
+                                    } else {
+                                        datasets.datasetSearchText = ""
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.secondary)
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.trailing, 6)
+                            }
+                        }
                         Button {
                             datasets.showDatasetSearchHelp.toggle()
                         } label: {
@@ -243,6 +275,12 @@ extension ContentView {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 4)
                     }
+                    // Force ScrollView re-creation when search text changes.
+                    // LazyVStack can fail to re-evaluate @Observable property
+                    // accesses inside ViewBuilder closures on some SwiftUI versions.
+                    .id(datasets.datasetTab == .archived
+                        ? datasets.archivedSearchText
+                        : datasets.datasetSearchText)
                 }
             }
         }
@@ -790,44 +828,75 @@ extension ContentView {
                 }
             }
             Divider()
-            if let dataset = storedDatasets.first(where: { $0.id == datasetID }),
-               SPCLibraryBridge.canOpen(dataset) {
+            // SPCKit menu: Create, Edit, Duplicate
+            Menu {
                 Button {
-                    Task { await spcLibraryBridge.openForEditing(dataset) }
+                    spcLibraryBridge.createNewDataset()
                 } label: {
-                    Label("Open in SPC Editor...", systemImage: "waveform.and.magnifyingglass")
+                    Label("Create New Dataset…", systemImage: "plus.rectangle")
                 }
-            }
-            if datasets.selectedStoredDatasetIDs.count >= 2 {
-                Button {
-                    let selected = storedDatasets.filter { datasets.selectedStoredDatasetIDs.contains($0.id) }
-                    Task { await spcLibraryBridge.combineDatasets(selected) }
-                } label: {
-                    Label("Combine Selected into SPC...", systemImage: "arrow.triangle.merge")
+                if let dataset = storedDatasets.first(where: { $0.id == datasetID }),
+                   SPCLibraryBridge.canOpen(dataset) {
+                    let selectedCount = datasets.selectedStoredDatasetIDs.count
+                    if selectedCount >= 2, datasets.selectedStoredDatasetIDs.contains(datasetID) {
+                        Button {
+                            let selected = storedDatasets.filter { datasets.selectedStoredDatasetIDs.contains($0.id) }
+                            Task { await spcLibraryBridge.combineDatasets(selected) }
+                        } label: {
+                            Label("Edit \(selectedCount) Combined…", systemImage: "arrow.triangle.merge")
+                        }
+                    } else {
+                        Button {
+                            Task { await spcLibraryBridge.openForEditing(dataset) }
+                        } label: {
+                            Label("Edit…", systemImage: "pencil.and.outline")
+                        }
+                    }
+                    Button {
+                        Task { await spcLibraryBridge.duplicateDataset(dataset) }
+                    } label: {
+                        Label("Duplicate…", systemImage: "doc.on.doc")
+                    }
                 }
+            } label: {
+                Label("SPCKit", systemImage: "waveform.and.magnifyingglass")
             }
             Divider()
+            let isPartOfMultiSelection = datasets.selectedStoredDatasetIDs.contains(datasetID)
+                && datasets.selectedStoredDatasetIDs.count > 1
+            let affectedIDs: Set<UUID> = isPartOfMultiSelection
+                ? datasets.selectedStoredDatasetIDs
+                : [datasetID]
+            let affectedCount = affectedIDs.count
             Button {
-                datasets.selectedStoredDatasetIDs = [datasetID]
+                datasets.selectedStoredDatasetIDs = affectedIDs
                 datasets.deleteStoredDatasetSelection(storedDatasets: storedDatasets)
             } label: {
-                Label("Archive", systemImage: "archivebox")
+                Label(affectedCount > 1 ? "Archive \(affectedCount) Datasets" : "Archive",
+                      systemImage: "archivebox")
             }
             Button {
-                analysis.unloadSpectra(forDatasetID: datasetID)
+                for id in affectedIDs {
+                    analysis.unloadSpectra(forDatasetID: id)
+                }
             } label: {
-                Label("Unload from Analysis", systemImage: "arrow.uturn.up")
+                Label(affectedCount > 1 ? "Unload \(affectedCount) from Analysis" : "Unload from Analysis",
+                      systemImage: "arrow.uturn.up")
             }
             Button {
-                datasets.reparseDataset(datasetID, storedDatasets: storedDatasets)
+                for id in affectedIDs {
+                    datasets.reparseDataset(id, storedDatasets: storedDatasets)
+                }
             } label: {
-                Label("Re-parse from Source", systemImage: "arrow.triangle.2.circlepath")
+                Label(affectedCount > 1 ? "Re-parse \(affectedCount) from Source" : "Re-parse from Source",
+                      systemImage: "arrow.triangle.2.circlepath")
             }
             Divider()
             Button(role: .destructive) {
-                datasets.requestPermanentDeleteFromActive(ids: [datasetID])
+                datasets.requestPermanentDeleteFromActive(ids: affectedIDs)
             } label: {
-                Label("Delete Permanently", systemImage: "trash")
+                Label(affectedCount > 1 ? "Delete \(affectedCount) Permanently" : "Delete Permanently",
+                      systemImage: "trash")
             }
         }
     }
@@ -875,6 +944,54 @@ extension ContentView {
             .cornerRadius(10)
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            let isPartOfMultiSelection = datasets.archivedDatasetSelection.contains(datasetID)
+                && datasets.archivedDatasetSelection.count > 1
+            let affectedIDs: Set<UUID> = isPartOfMultiSelection
+                ? datasets.archivedDatasetSelection
+                : [datasetID]
+            let affectedCount = affectedIDs.count
+
+            Button {
+                datasets.archivedDatasetSelection = affectedIDs
+                datasets.restoreArchivedSelection(archivedDatasets: archivedDatasets)
+            } label: {
+                Label(affectedCount > 1 ? "Unarchive \(affectedCount) Datasets" : "Unarchive",
+                      systemImage: "tray.and.arrow.up")
+            }
+            Divider()
+            // SPCKit menu: Edit, Duplicate
+            Menu {
+                if let dataset = archivedDatasets.first(where: { $0.id == datasetID }),
+                   SPCLibraryBridge.canOpen(dataset) {
+                    Button {
+                        Task { await spcLibraryBridge.openForEditing(dataset) }
+                    } label: {
+                        Label("Edit…", systemImage: "pencil.and.outline")
+                    }
+                    Button {
+                        Task { await spcLibraryBridge.duplicateDataset(dataset) }
+                    } label: {
+                        Label("Duplicate…", systemImage: "doc.on.doc")
+                    }
+                }
+                Button {
+                    spcLibraryBridge.createNewDataset()
+                } label: {
+                    Label("Create New Dataset…", systemImage: "plus.rectangle")
+                }
+            } label: {
+                Label("SPCKit", systemImage: "waveform.and.magnifyingglass")
+            }
+            Divider()
+            Button(role: .destructive) {
+                datasets.pendingPermanentDeleteIDs = affectedIDs
+                datasets.showPermanentDeleteSheet = true
+            } label: {
+                Label(affectedCount > 1 ? "Delete \(affectedCount) Permanently" : "Delete Permanently",
+                      systemImage: "trash")
+            }
+        }
     }
 
     func storedDatasetPickerRow(_ datasetID: UUID) -> some View {
@@ -1014,41 +1131,6 @@ extension ContentView {
                 analysis.unloadSpectra(forDatasetID: datasetID)
             } label: {
                 Label("Unload from Analysis", systemImage: "arrow.uturn.up")
-            }
-        }
-    }
-
-    private func handleFileDrop(_ providers: [NSItemProvider]) -> Bool {
-        let fileProviders = providers.filter {
-            $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier)
-        }
-        guard !fileProviders.isEmpty else { return false }
-
-        // Capture datasets reference for the async block
-        let ds = datasets
-        Task { @MainActor in
-            var urls: [URL] = []
-            for provider in fileProviders {
-                if let url = await loadFileURL(from: provider),
-                   url.pathExtension.lowercased() == "spc" {
-                    urls.append(url)
-                }
-            }
-            guard !urls.isEmpty else { return }
-            await ds.loadSpectra(from: urls, append: false)
-        }
-        return true
-    }
-
-    private func loadFileURL(from provider: NSItemProvider) async -> URL? {
-        await withCheckedContinuation { continuation in
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { data, _ in
-                guard let urlData = data as? Data,
-                      let url = URL(dataRepresentation: urlData, relativeTo: nil) else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                continuation.resume(returning: url)
             }
         }
     }

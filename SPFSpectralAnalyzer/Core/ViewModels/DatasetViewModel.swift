@@ -331,10 +331,22 @@ final class DatasetViewModel {
     func filteredDatasetIDs(from ids: [UUID]) -> [UUID] {
         let query = SearchQuery.parse(datasetSearchText)
         guard !query.isEmpty else { return ids }
-        return ids.filter { id in
+        let result = ids.filter { id in
             guard let record = searchableRecordCache[id] else { return true }
             return query.matches(record)
         }
+        #if DEBUG
+        if result.isEmpty && !ids.isEmpty {
+            let cachedCount = ids.filter { searchableRecordCache[$0] != nil }.count
+            let sampleNames = ids.prefix(3).compactMap { searchableRecordCache[$0]?.fileName }
+            Instrumentation.log(
+                "Search returned 0 results",
+                area: .importParsing, level: .warning,
+                details: "query=\"\(datasetSearchText)\" inputIDs=\(ids.count) cached=\(cachedCount) sampleNames=\(sampleNames)"
+            )
+        }
+        #endif
+        return result
     }
 
     /// Cached search records for archived datasets.
@@ -569,6 +581,17 @@ final class DatasetViewModel {
             let wasEmpty = analysis.spectra.isEmpty
             updateActiveMetadata(from: parsedFiles, append: append)
             let fileNameToDatasetID = persistParsedFiles(parsedFiles)
+
+            // Detect files that were skipped as duplicates during persistence
+            let persistedFileNames = Set(fileNameToDatasetID.keys)
+            let duplicateFiles = parsedFiles.filter { !persistedFileNames.contains($0.url.lastPathComponent) }
+            if !duplicateFiles.isEmpty {
+                let names = duplicateFiles.map { $0.url.lastPathComponent }.joined(separator: ", ")
+                let dupWarning = "\(duplicateFiles.count) file(s) already in library (duplicate hash): \(names)"
+                analysis.validationLogEntries.append(
+                    ValidationLogEntry(timestamp: Date(), message: dupWarning)
+                )
+            }
 
             // Tag each spectrum with its source dataset ID for session tracking
             for spectrum in validSpectra {

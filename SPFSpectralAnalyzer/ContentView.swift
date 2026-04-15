@@ -185,13 +185,6 @@ struct ContentView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
                 }
-                #if os(macOS)
-                if appMode == .library {
-                    compactSyncStatusBar
-                        .padding(.horizontal, 16)
-                        .padding(.top, 6)
-                }
-                #endif
                 contentArea
                 #if os(macOS)
                 if showBottomTray {
@@ -460,7 +453,12 @@ struct ContentView: View {
             spcLibraryBridge: spcLibraryBridge
         )
         #else
-        importPanel
+        VStack(spacing: 0) {
+            compactSyncStatusBar
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
+            importPanel
+        }
         #endif
     }
 

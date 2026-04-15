@@ -849,19 +849,55 @@ struct iOSDataManagementView: View {
                 }
             }
             Divider()
-            if let dataset = storedDatasets.first(where: { $0.id == datasetID }),
-               SPCLibraryBridge.canOpen(dataset) {
+            Menu {
                 Button {
-                    Task { await spcLibraryBridge.openForEditing(dataset) }
+                    spcLibraryBridge.createNewDataset()
                 } label: {
-                    Label("Open in SPC Editor...", systemImage: "waveform.and.magnifyingglass")
+                    Label("Create New Dataset…", systemImage: "plus.rectangle")
                 }
+                if let dataset = storedDatasets.first(where: { $0.id == datasetID }),
+                   SPCLibraryBridge.canOpen(dataset) {
+                    Button {
+                        Task { await spcLibraryBridge.openForEditing(dataset) }
+                    } label: {
+                        Label("Edit…", systemImage: "pencil.and.outline")
+                    }
+                    Button {
+                        Task { await spcLibraryBridge.duplicateDataset(dataset) }
+                    } label: {
+                        Label("Duplicate…", systemImage: "doc.on.doc")
+                    }
+                }
+            } label: {
+                Label("SPCKit", systemImage: "waveform.and.magnifyingglass")
             }
             Divider()
-            Button(role: .destructive) {
-                datasets.requestPermanentDeleteFromActive(ids: [datasetID])
+            let isPartOfMultiSelection = datasets.selectedStoredDatasetIDs.contains(datasetID)
+                && datasets.selectedStoredDatasetIDs.count > 1
+            let affectedIDs: Set<UUID> = isPartOfMultiSelection
+                ? datasets.selectedStoredDatasetIDs
+                : [datasetID]
+            let affectedCount = affectedIDs.count
+            Button {
+                datasets.selectedStoredDatasetIDs = affectedIDs
+                datasets.deleteStoredDatasetSelection(storedDatasets: storedDatasets)
             } label: {
-                Label("Delete Permanently", systemImage: "trash")
+                Label(affectedCount > 1 ? "Archive \(affectedCount) Datasets" : "Archive",
+                      systemImage: "archivebox")
+            }
+            Button {
+                for id in affectedIDs {
+                    analysis.unloadSpectra(forDatasetID: id)
+                }
+            } label: {
+                Label(affectedCount > 1 ? "Unload \(affectedCount) from Analysis" : "Unload from Analysis",
+                      systemImage: "arrow.uturn.up")
+            }
+            Button(role: .destructive) {
+                datasets.requestPermanentDeleteFromActive(ids: affectedIDs)
+            } label: {
+                Label(affectedCount > 1 ? "Delete \(affectedCount) Permanently" : "Delete Permanently",
+                      systemImage: "trash")
             }
         }
     }
