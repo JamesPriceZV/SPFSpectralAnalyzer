@@ -29,6 +29,7 @@ struct HelpView: View {
         DocCHelpPage(id: "analyze-combine", title: "Analyze and Combine", resourcePath: "HelpContent/HowTo/AnalyzeAndCombine.md", docKey: "AnalyzeAndCombine"),
         DocCHelpPage(id: "ai-analysis", title: "AI Analysis", resourcePath: "HelpContent/HowTo/AIAnalysis.md", docKey: "AIAnalysis"),
         DocCHelpPage(id: "ml-model-training", title: "ML Model Training", resourcePath: "HelpContent/HowTo/MLModelTraining.md", docKey: "MLModelTraining"),
+        DocCHelpPage(id: "pinn-training-data", title: "PINN Training Data (25 Modalities)", resourcePath: "HelpContent/HowTo/PINNTrainingData.md", docKey: "PINNTrainingData"),
         DocCHelpPage(id: "formula-cards", title: "Formula Card Parsing", resourcePath: "HelpContent/HowTo/FormulaCards.md", docKey: "FormulaCards"),
         DocCHelpPage(id: "export-data", title: "Export Data", resourcePath: "HelpContent/HowTo/ExportData.md", docKey: "ExportData"),
         DocCHelpPage(id: "spf-methods", title: "SPF Calculation Methods", resourcePath: "HelpContent/HowTo/SPFCalculationMethods.md", docKey: "SPFCalculationMethods"),

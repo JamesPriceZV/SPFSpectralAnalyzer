@@ -15,7 +15,9 @@ A boosted tree regressor that learns to predict SPF from UV-Vis spectral feature
 **Best for:** Users who want quick, practical SPF predictions from their in-vitro spectral data.
 
 ### PINN Physics Models (Advanced)
-Ten domain-specific physics-informed neural networks that encode spectral physics (Beer-Lambert law, Kramers-Kronig relations, etc.) directly into the model architecture. Each domain covers a different spectral technique: UV-Vis, FTIR, Raman, Mass Spec, NMR, Fluorescence, XRD, Chromatography, NIR, and Atomic Emission.
+Twenty-five domain-specific physics-informed neural networks that encode spectral physics (Beer-Lambert law, Bragg diffraction, Saha-Boltzmann plasma model, Kramers-Kronig relations, etc.) directly into the model architecture. Modalities span UV-Vis, FTIR, NIR, Raman, Mass Spec (EI and MS/MS), NMR (1H and 13C), Fluorescence, XRD, XPS, EELS, Atomic Emission, LIBS, GC/HPLC Retention, HITRAN, Atmospheric UV/Vis, USGS Reflectance, Optical Constants, SAXS/SANS, Circular Dichroism, Microwave/Rotational, TGA, and THz spectroscopy.
+
+See <doc:PINNTrainingData> for the complete reference data pipeline covering all 25 modalities.
 
 **Best for:** Researchers who need physics-constrained predictions that respect known spectral relationships.
 
