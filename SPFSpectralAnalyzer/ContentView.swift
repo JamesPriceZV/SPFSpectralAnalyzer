@@ -392,6 +392,14 @@ struct ContentView: View {
                 }
             }
 
+            #if os(iOS)
+            TabSection("Settings") {
+                Tab("Settings", systemImage: "gearshape", value: AppMode.settings) {
+                    SettingsView(m365AuthManager: aiVM.m365AuthManager)
+                }
+            }
+            #endif
+
             TabSection("Enterprise") {
                 Tab("Copilot", systemImage: "sparkle", value: AppMode.enterprise) {
                     CopilotChatView(authManager: aiVM.m365AuthManager)
@@ -426,15 +434,13 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         #if os(iOS)
         .sheet(isPresented: $showSettingsSheet) {
-            NavigationStack {
-                SettingsView(m365AuthManager: aiVM.m365AuthManager)
-                    .navigationTitle("Settings")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Done") { showSettingsSheet = false }
-                        }
-                    }
+            SettingsView(m365AuthManager: aiVM.m365AuthManager, isSheet: true)
+        }
+        .onChange(of: appMode) { _, newMode in
+            if newMode == .analysis,
+               analysis.spectra.isEmpty,
+               !datasets.selectedStoredDatasetIDs.isEmpty {
+                datasets.loadStoredDatasetSelection(append: false, storedDatasets: storedDatasets)
             }
         }
         #endif

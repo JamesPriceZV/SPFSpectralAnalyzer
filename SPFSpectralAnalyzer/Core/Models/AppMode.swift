@@ -19,6 +19,9 @@ enum AppMode: String, CaseIterable, Identifiable {
     case instruments = "Instruments"
     case mlTraining = "ML Training"
     case jobsDownloads = "Jobs & Downloads"
+    #if os(iOS)
+    case settings = "Settings"
+    #endif
 
     var id: String { rawValue }
 

@@ -3,15 +3,20 @@ import SwiftData
 
 @Model
 final class StoredTrainingRecord {
-    var id: UUID
-    var modalityRaw: String
-    var sourceID: String
-    var createdAt: Date
-    var featuresData: Data
-    var targetsJSON: [String: Double]
-    var metadataJSON: [String: String]
-    var isComputedLabel: Bool
+    var id: UUID = UUID()
+    var modalityRaw: String = ""
+    var sourceID: String = ""
+    var createdAt: Date = Date()
+    var featuresData: Data = Data()
+    var targetsJSON: [String: Double] = [:]
+    var metadataJSON: [String: String] = [:]
+    var isComputedLabel: Bool = false
     var computationMethod: String?
+    var qualityScore: Double = 1.0
+    var annotationNotes: String? = nil
+    var isExcluded: Bool = false
+
+    init() {}
 
     init(from record: TrainingRecord) {
         self.id = record.id

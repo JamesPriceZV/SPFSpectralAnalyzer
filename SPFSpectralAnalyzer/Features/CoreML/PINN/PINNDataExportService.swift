@@ -104,7 +104,7 @@ enum PINNDataExportService {
         let dir = PINNTrainingManager.trainingDataDirectory
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-        let filename = "\(domain.rawValue.lowercased().replacingOccurrences(of: " ", with: "_"))_training_data.json"
+        let filename = "\(domain.scriptBaseName)_training_data.json"
         let fileURL = dir.appendingPathComponent(filename)
         try data.write(to: fileURL)
 
@@ -164,7 +164,7 @@ enum PINNDataExportService {
 
         // 3. Previously imported files in TrainingData root directory
         let trainingDir = PINNTrainingManager.trainingDataDirectory
-        let domainPrefix = domain.rawValue.lowercased().replacingOccurrences(of: " ", with: "_")
+        let domainPrefix = domain.scriptBaseName
         if let rootFiles = try? FileManager.default.contentsOfDirectory(
             at: trainingDir, includingPropertiesForKeys: nil
         ) {
@@ -268,7 +268,7 @@ enum PINNDataExportService {
         let dir = PINNTrainingManager.trainingDataDirectory
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-        let destFilename = "\(domain.rawValue.lowercased().replacingOccurrences(of: " ", with: "_"))_imported.\(sourceURL.pathExtension)"
+        let destFilename = "\(domain.scriptBaseName)_imported.\(sourceURL.pathExtension)"
         let destURL = dir.appendingPathComponent(destFilename)
 
         if FileManager.default.fileExists(atPath: destURL.path) {

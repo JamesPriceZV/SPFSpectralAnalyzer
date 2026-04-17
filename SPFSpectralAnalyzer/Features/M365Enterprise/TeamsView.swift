@@ -51,11 +51,22 @@ struct TeamsView: View {
                 .foregroundStyle(.secondary)
             Text("Sign in to use Teams")
                 .font(.title3.bold())
-            Text("Sign in from the Enterprise Search tab to access Microsoft Teams messaging.")
+            Text("Sign in to Microsoft 365 to access Teams messaging.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 400)
+            Button {
+                Task { try? await viewModel.authManager.signIn(scopes: M365Config.retrievalScopes) }
+            } label: {
+                Label("Sign In to Microsoft 365", systemImage: "person.badge.key")
+            }
+            .controlSize(.large)
+            #if compiler(>=6.2)
+            .buttonStyle(.glassProminent)
+            #else
+            .buttonStyle(.borderedProminent)
+            #endif
             Spacer()
         }
         .frame(maxWidth: .infinity)

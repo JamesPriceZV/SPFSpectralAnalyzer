@@ -119,7 +119,7 @@ The Training Loss chart shows two curves:
 Both should decrease during training. If physics loss increases, try a lower learning rate.
 
 **Step 7: Use the trained model**
-After training completes, the model loads automatically. Trained models sync to iOS/iPadOS via iCloud.
+After training completes, the model reloads automatically and its status updates to **Ready** throughout the app — in the domain detail pane, the ML Training sidebar, and the AI Inspector. Trained models sync to iOS/iPadOS via iCloud.
 
 ### Training Data Formats
 
@@ -176,6 +176,13 @@ Verify your Python installation meets the requirements:
 1. Open Terminal and run `python3 --version` (must be 3.10+)
 2. Run `python3 -c "import torch; print(torch.__version__)"` to verify PyTorch
 3. Run `python3 -c "import coremltools; print(coremltools.__version__)"` to verify coremltools (must be 7+)
+
+### Model shows "Not Trained" after training completes
+If training finishes but the status badge still shows "Not Trained," the trained model file may have failed to load. Check the Diagnostics Console → ML Training tab for errors. Common causes:
+- **CoreML conversion skipped:** The Python script saved a `.pt` file but coremltools failed to convert it. Install or update coremltools: `pip install --upgrade coremltools`.
+- **Invalid model format:** The `.mlpackage` was saved but could not be compiled. Try re-training with a fresh Python environment.
+
+On iOS/iPadOS, use the **Reload Models** button in the PINN domain detail pane to re-check for iCloud-synced models.
 
 ### Model not appearing on iOS
 Check iCloud sync status in Settings → iCloud & Data. Models sync through the app's CloudKit container and may take a few minutes to propagate.

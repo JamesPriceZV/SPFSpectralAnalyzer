@@ -34,6 +34,15 @@ final class DatasetViewModel {
     var appendOnImport = false
     var showStoredDatasetPicker = false
 
+    // MARK: - Re-parse File Browser
+
+    /// When true, presents a file picker so the user can locate the original
+    /// source file for datasets whose `fileData` is missing.
+    var showReparseFilePicker = false
+
+    /// Dataset IDs waiting for the user to select a source file via the picker.
+    var pendingReparseDatasetIDs: [UUID] = []
+
     // MARK: - Dataset Selection
 
     var datasetTab: DatasetTab = .samples
@@ -1945,6 +1954,38 @@ final class DatasetViewModel {
 
     /// Re-parses a stored dataset from its cached `fileData` using the current parser,
     /// replacing stale spectra with freshly parsed X/Y data.
+    /// Re-parse multiple datasets from their stored source data, with aggregate feedback.
+    func reparseDatasets(_ datasetIDs: [UUID], storedDatasets: [StoredDataset]) {
+        var successCount = 0
+        var totalSpectra = 0
+        var missingSourceIDs: [UUID] = []
+
+        for id in datasetIDs {
+            reparseDataset(id, storedDatasets: storedDatasets)
+            // Check if the status message changed to a success message
+            if analysis.statusMessage.contains("Re-parsed") {
+                successCount += 1
+                // Extract spectra count from "Re-parsed ...: N spectra updated."
+                if let range = analysis.statusMessage.range(of: #"(\d+) spectra"#, options: .regularExpression),
+                   let n = Int(analysis.statusMessage[range].split(separator: " ").first ?? "") {
+                    totalSpectra += n
+                }
+            } else if analysis.statusMessage.contains("No source file data") {
+                missingSourceIDs.append(id)
+            }
+        }
+
+        if !missingSourceIDs.isEmpty {
+            // Offer file picker for datasets with missing source data
+            pendingReparseDatasetIDs = missingSourceIDs
+            showReparseFilePicker = true
+            let parsed = successCount > 0 ? "Re-parsed \(successCount) dataset(s). " : ""
+            analysis.statusMessage = "\(parsed)\(missingSourceIDs.count) dataset(s) have no stored source data — select the original file(s) to re-parse."
+        } else if datasetIDs.count > 1 {
+            analysis.statusMessage = "Re-parsed \(successCount) datasets (\(totalSpectra) spectra updated)."
+        }
+    }
+
     func reparseDataset(_ datasetID: UUID, storedDatasets: [StoredDataset]) {
         guard let ctx = modelContext else {
             analysis.statusMessage = "No model context available."
@@ -2031,6 +2072,43 @@ final class DatasetViewModel {
             area: .importParsing, level: .info,
             details: "file=\(fileName) spectra=\(specCount)"
         )
+    }
+
+    /// Handles the result of the re-parse file picker.
+    /// Reads the selected file, stores its data in each pending dataset, then re-parses.
+    func handleReparseFileImport(result: Result<[URL], Error>, storedDatasets: [StoredDataset]) {
+        defer { pendingReparseDatasetIDs = [] }
+
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+
+            guard let fileData = try? Data(contentsOf: url) else {
+                analysis.statusMessage = "Could not read file: \(url.lastPathComponent)"
+                return
+            }
+
+            var successCount = 0
+            for datasetID in pendingReparseDatasetIDs {
+                guard let dataset = storedDatasets.first(where: { $0.id == datasetID }) else { continue }
+                // Store the file data so future re-parses won't need the picker again
+                dataset.fileData = fileData
+                dataset.fileName = url.lastPathComponent
+                reparseDataset(datasetID, storedDatasets: storedDatasets)
+                if analysis.statusMessage.contains("Re-parsed") {
+                    successCount += 1
+                }
+            }
+
+            if pendingReparseDatasetIDs.count > 1 {
+                analysis.statusMessage = "Re-parsed \(successCount)/\(pendingReparseDatasetIDs.count) datasets from \(url.lastPathComponent)."
+            }
+
+        case .failure(let error):
+            analysis.statusMessage = "File selection cancelled: \(error.localizedDescription)"
+        }
     }
 
     func prepareDuplicateCleanup(storedDatasets: [StoredDataset], archivedDatasets: [StoredDataset]) {

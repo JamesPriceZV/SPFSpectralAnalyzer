@@ -23,7 +23,7 @@ actor MassSpecSynthesizer {
         let mPlus1Ratio = mw < 500 ? Double(spectrum[safe: mw] ?? 0) / max(Double(spectrum[safe: mw - 1] ?? 0), 1e-9) : 0
         let numPeaks = spectrum.filter { $0 > 0.05 }.count
 
-        var derived: [String: Double] = [
+        let derived: [String: Double] = [
             "molecular_ion_mz": molecularWeight,
             "base_peak_mz": Double(basePeak?.mz ?? 0),
             "m_plus_1_ratio": mPlus1Ratio,

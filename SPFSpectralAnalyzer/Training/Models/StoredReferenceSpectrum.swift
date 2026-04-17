@@ -3,12 +3,14 @@ import SwiftData
 
 @Model
 final class StoredReferenceSpectrum {
-    var id: UUID
-    var modalityRaw: String
-    var sourceID: String
-    var xData: Data
-    var yData: Data
-    var metadataJSON: [String: String]
+    var id: UUID = UUID()
+    var modalityRaw: String = ""
+    var sourceID: String = ""
+    var xData: Data = Data()
+    var yData: Data = Data()
+    var metadataJSON: [String: String] = [:]
+
+    init() {}
 
     init(from ref: ReferenceSpectrum) {
         self.id = ref.id

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Generates and installs Python PINN training scripts for all 10 spectral domains.
+/// Generates and installs Python PINN training scripts for all 22 spectral domains.
 ///
 /// Each script follows the same CLI interface expected by `PINNTrainingManager`:
 /// ```
@@ -99,7 +99,7 @@ enum PINNScriptInstaller {
 
     /// Returns the expected script filename for a domain.
     static func scriptFilename(for domain: PINNDomain) -> String {
-        "train_pinn_\(domain.rawValue.lowercased().replacingOccurrences(of: " ", with: "_")).py"
+        "train_pinn_\(domain.scriptBaseName).py"
     }
 
     // MARK: - Requirements File
@@ -486,7 +486,19 @@ enum PINNScriptInstaller {
         case .xrd:            body = xrdScript(cfg: cfg)
         case .chromatography: body = chromatographyScript(cfg: cfg)
         case .nir:            body = nirScript(cfg: cfg)
-        case .atomicEmission: body = atomicEmissionScript(cfg: cfg)
+        case .atomicEmission:      body = atomicEmissionScript(cfg: cfg)
+        case .xps:                 body = genericDomainScript(cfg: cfg, domain: domain)
+        case .libs:                body = genericDomainScript(cfg: cfg, domain: domain)
+        case .hitran:              body = genericDomainScript(cfg: cfg, domain: domain)
+        case .atmosphericUVVis:    body = genericDomainScript(cfg: cfg, domain: domain)
+        case .usgsReflectance:     body = genericDomainScript(cfg: cfg, domain: domain)
+        case .opticalConstants:    body = genericDomainScript(cfg: cfg, domain: domain)
+        case .eels:                body = genericDomainScript(cfg: cfg, domain: domain)
+        case .saxs:                body = genericDomainScript(cfg: cfg, domain: domain)
+        case .circularDichroism:   body = genericDomainScript(cfg: cfg, domain: domain)
+        case .microwaveRotational: body = genericDomainScript(cfg: cfg, domain: domain)
+        case .thermogravimetric:   body = genericDomainScript(cfg: cfg, domain: domain)
+        case .terahertz:           body = genericDomainScript(cfg: cfg, domain: domain)
         }
         return header + body
     }
@@ -907,6 +919,28 @@ enum PINNScriptInstaller {
                 # Non-negativity of emission intensity
                 neg_penalty = torch.relu(-predictions).mean() * 0.1
                 # Line sharpness: atomic lines should be narrow (penalize wide peaks)
+                smooth = torch.tensor(0.0)
+                if absorbance_batch is not None and absorbance_batch.shape[-1] > 2:
+                    d2 = absorbance_batch[:, 2:] - 2 * absorbance_batch[:, 1:-1] + absorbance_batch[:, :-2]
+                    smooth = (d2 ** 2).mean() * 0.001
+                return neg_penalty + smooth
+            """,
+            cfg: cfg
+        )
+    }
+
+    /// Generic domain script for new modalities (XPS, LIBS, HITRAN, etc.).
+    /// Uses the standard PINN template with domain-appropriate physics loss.
+    private static func genericDomainScript(cfg: DomainScriptConfig, domain: PINNDomain) -> String {
+        let className = domain.rawValue
+            .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "/", with: "") + "PINN"
+        return genericPINNScript(
+            className: className,
+            physicsDoc: domain.physicsDescription,
+            physicsBody: """
+                # Generic physics loss: non-negativity + smoothness
+                neg_penalty = torch.relu(-predictions).mean() * 0.1
                 smooth = torch.tensor(0.0)
                 if absorbance_batch is not None and absorbance_batch.shape[-1] > 2:
                     d2 = absorbance_batch[:, 2:] - 2 * absorbance_batch[:, 1:-1] + absorbance_batch[:, :-2]

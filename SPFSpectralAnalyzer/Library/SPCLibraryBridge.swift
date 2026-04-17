@@ -38,10 +38,12 @@ final class SPCLibraryBridge {
             store.documentName = baseName
             // Name subfiles after the dataset filename
             let subfiles = store.resolvedSubfiles
-            for sub in subfiles {
-                let name = subfiles.count == 1 ? baseName : "\(baseName)_\(sub.id + 1)"
-                await store.apply(.renameSubfile(subfileIndex: sub.id, newName: name))
+            for (arrayIndex, _) in subfiles.enumerated() {
+                let name = subfiles.count == 1 ? baseName : "\(baseName)_\(arrayIndex + 1)"
+                await store.apply(.renameSubfile(subfileIndex: arrayIndex, newName: name))
             }
+            // Ensure the view sees all renames before presenting
+            await store.refreshResolvedStatePublic()
             activeStore = store
             editingDataset = dataset
             isEditorPresented = true
@@ -128,10 +130,11 @@ final class SPCLibraryBridge {
             store.documentName = copyName
             // Name subfiles after the duplicate filename
             let subfiles = store.resolvedSubfiles
-            for sub in subfiles {
-                let name = subfiles.count == 1 ? copyName : "\(copyName)_\(sub.id + 1)"
-                await store.apply(.renameSubfile(subfileIndex: sub.id, newName: name))
+            for (arrayIndex, _) in subfiles.enumerated() {
+                let name = subfiles.count == 1 ? copyName : "\(copyName)_\(arrayIndex + 1)"
+                await store.apply(.renameSubfile(subfileIndex: arrayIndex, newName: name))
             }
+            await store.refreshResolvedStatePublic()
             activeStore = store
             editingDataset = nil   // Not editing the original — this is a new copy
             isEditorPresented = true
@@ -160,6 +163,17 @@ final class SPCLibraryBridge {
             store.loadParsed(baseFile)
             await store.refreshResolvedStatePublic()
             store.documentName = "Combined"
+
+            // Rename the base file's subfiles using the first dataset's filename
+            if let firstName = datasets.first?.fileName {
+                let baseName = firstName
+                    .replacingOccurrences(of: ".spc", with: "", options: .caseInsensitive)
+                let baseSubfiles = store.resolvedSubfiles
+                for (arrayIndex, _) in baseSubfiles.enumerated() {
+                    let name = baseSubfiles.count == 1 ? baseName : "\(baseName) [\(arrayIndex)]"
+                    await store.apply(.renameSubfile(subfileIndex: arrayIndex, newName: name))
+                }
+            }
 
             for dataset in datasets.dropFirst() {
                 guard let data = dataset.fileData else { continue }

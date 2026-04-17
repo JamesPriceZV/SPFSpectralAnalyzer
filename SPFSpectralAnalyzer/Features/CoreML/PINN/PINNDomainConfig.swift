@@ -16,10 +16,36 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
     case chromatography  = "Chromatography"
     case nir             = "NIR"
     case atomicEmission  = "Atomic Emission"
+    case xps             = "XPS"
+    case libs            = "LIBS"
+    case hitran          = "HITRAN"
+    case atmosphericUVVis = "Atmospheric UV/Vis"
+    case usgsReflectance = "USGS Reflectance"
+    case opticalConstants = "Optical Constants"
+    case eels            = "EELS"
+    case saxs            = "SAXS"
+    case circularDichroism = "Circular Dichroism"
+    case microwaveRotational = "Microwave/Rotational"
+    case thermogravimetric = "TGA"
+    case terahertz       = "THz"
 
     var id: String { rawValue }
 
     var displayName: String { rawValue }
+
+    /// Canonical model filename base (e.g. "PINN_UVVis"), matching each domain model's `modelName`.
+    /// Strips all non-alphanumeric characters from `rawValue`.
+    var modelBaseName: String {
+        "PINN_\(rawValue.filter { $0.isLetter || $0.isNumber })"
+    }
+
+    /// Filename-safe name for training scripts (e.g. "train_pinn_uv-vis.py").
+    /// Lowercased with spaces and slashes replaced by underscores.
+    var scriptBaseName: String {
+        rawValue.lowercased()
+            .replacingOccurrences(of: " ", with: "_")
+            .replacingOccurrences(of: "/", with: "_")
+    }
 
     var iconName: String {
         switch self {
@@ -33,6 +59,18 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
         case .chromatography: return "chart.xyaxis.line"
         case .nir:            return "waveform.path"
         case .atomicEmission: return "bolt.fill"
+        case .xps:                 return "rays"
+        case .libs:                return "bolt.horizontal.fill"
+        case .hitran:              return "wind"
+        case .atmosphericUVVis:    return "cloud.sun.fill"
+        case .usgsReflectance:     return "mountain.2.fill"
+        case .opticalConstants:    return "eyeglasses"
+        case .eels:                return "circle.dotted"
+        case .saxs:                return "circle.hexagongrid"
+        case .circularDichroism:   return "arrow.trianglehead.2.clockwise.rotate.90"
+        case .microwaveRotational: return "antenna.radiowaves.left.and.right"
+        case .thermogravimetric:   return "flame.fill"
+        case .terahertz:           return "wave.3.right"
         }
     }
 
@@ -59,6 +97,30 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             return "Modified Beer-Lambert for diffuse reflectance, Kubelka-Munk corrections, overtone relationships"
         case .atomicEmission:
             return "Boltzmann distribution for excited states, transition selection rules"
+        case .xps:
+            return "Photoelectric BE=hv-KE-phi, Koopmans' theorem, Scofield cross-sections"
+        case .libs:
+            return "Saha-Boltzmann plasma diagnostics, Stark broadening for electron density"
+        case .hitran:
+            return "Voigt line profile S(T)*f(v-v0,gamma_D,gamma_L), HITRAN line parameters"
+        case .atmosphericUVVis:
+            return "Beer-Lambert with temperature-dependent cross-sections, photolysis J-values"
+        case .usgsReflectance:
+            return "Kubelka-Munk F(R)=(1-R)^2/2R, continuum removal for mineral identification"
+        case .opticalConstants:
+            return "Sellmeier n^2=1+Sum(Bi*lambda^2/(lambda^2-Ci)), Kramers-Kronig relations"
+        case .eels:
+            return "Core-loss ELNES onset=E_edge, Kramers-Kronig transform for dielectric function"
+        case .saxs:
+            return "Guinier I(q)=I0*exp(-q^2*Rg^2/3), Porod law I~q^-4 for surface scattering"
+        case .circularDichroism:
+            return "Cotton effect delta-epsilon, basis-spectrum decomposition for secondary structure"
+        case .microwaveRotational:
+            return "Rigid rotor E_J=hBJ(J+1), centrifugal distortion for molecular geometry"
+        case .thermogravimetric:
+            return "Arrhenius kinetics, Coats-Redfern: ln(-d_alpha/dT)=ln(A/beta)-Ea/RT"
+        case .terahertz:
+            return "Drude sigma1(w)=sigma0/(1+w^2*tau^2), Lorentz oscillator model"
         }
     }
 
@@ -299,6 +361,130 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
                     url: "https://doi.org/10.1016/j.jcp.2018.10.045"
                 )
             ]
+        case .xps:
+            return [
+                PINNReference(
+                    "Moulder et al. (1992). Handbook of X-ray Photoelectron Spectroscopy. Perkin-Elmer.",
+                    url: "https://www.worldcat.org/title/28388301"
+                ),
+                PINNReference(
+                    "NIST X-ray Photoelectron Spectroscopy Database SRD 20.",
+                    url: "https://srdata.nist.gov/xps/"
+                )
+            ]
+        case .libs:
+            return [
+                PINNReference(
+                    "Cremers & Radziemski (2013). Handbook of Laser-Induced Breakdown Spectroscopy, 2nd ed. Wiley.",
+                    url: "https://doi.org/10.1002/9781118567371"
+                ),
+                PINNReference(
+                    "Noll (2012). Laser-Induced Breakdown Spectroscopy: Fundamentals and Applications. Springer.",
+                    url: "https://doi.org/10.1007/978-3-642-20668-9"
+                )
+            ]
+        case .hitran:
+            return [
+                PINNReference(
+                    "Gordon et al. (2022). The HITRAN2020 molecular spectroscopic database. JQSRT, 277, 107949.",
+                    url: "https://doi.org/10.1016/j.jqsrt.2021.107949"
+                ),
+                PINNReference(
+                    "Rothman et al. (2013). The HITRAN2012 molecular spectroscopic database. JQSRT, 130, 4–50.",
+                    url: "https://doi.org/10.1016/j.jqsrt.2013.07.002"
+                )
+            ]
+        case .atmosphericUVVis:
+            return [
+                PINNReference(
+                    "Keller-Rudek et al. (2013). The MPI-Mainz UV/VIS Spectral Atlas. Earth System Science Data, 5(2), 365–373.",
+                    url: "https://doi.org/10.5194/essd-5-365-2013"
+                )
+            ]
+        case .usgsReflectance:
+            return [
+                PINNReference(
+                    "Kokaly et al. (2017). USGS Spectral Library Version 7. USGS Data Series 1035.",
+                    url: "https://doi.org/10.3133/ds1035"
+                ),
+                PINNReference(
+                    "Clark et al. (2007). USGS Digital Spectral Library splib06a. USGS Digital Data Series 231.",
+                    url: "https://doi.org/10.3133/ds231"
+                )
+            ]
+        case .opticalConstants:
+            return [
+                PINNReference(
+                    "Polyanskiy (2024). Refractive index database. refractiveindex.info.",
+                    url: "https://refractiveindex.info"
+                )
+            ]
+        case .eels:
+            return [
+                PINNReference(
+                    "Egerton (2011). Electron Energy-Loss Spectroscopy in the Electron Microscope, 3rd ed. Springer.",
+                    url: "https://doi.org/10.1007/978-1-4419-9583-4"
+                ),
+                PINNReference(
+                    "Verbeeck & Van Aert (2004). Model based quantification of EELS spectra. Ultramicroscopy, 101, 207–224.",
+                    url: "https://doi.org/10.1016/j.ultramic.2004.06.004"
+                )
+            ]
+        case .saxs:
+            return [
+                PINNReference(
+                    "Guinier & Fournet (1955). Small-Angle Scattering of X-Rays. Wiley.",
+                    url: "https://www.worldcat.org/title/1322975"
+                ),
+                PINNReference(
+                    "Kikhney et al. (2020). SASBDB: Towards an automatically curated SAS data repository. Protein Science, 29, 66–75.",
+                    url: "https://doi.org/10.1002/pro.3731"
+                )
+            ]
+        case .circularDichroism:
+            return [
+                PINNReference(
+                    "Greenfield (2006). Using circular dichroism spectra to estimate protein secondary structure. Nature Protocols, 1(6), 2876–2890.",
+                    url: "https://doi.org/10.1038/nprot.2006.202"
+                ),
+                PINNReference(
+                    "Whitmore & Wallace (2008). Protein secondary structure analyses from circular dichroism spectroscopy. Biopolymers, 89(5), 392–400.",
+                    url: "https://doi.org/10.1002/bip.20853"
+                )
+            ]
+        case .microwaveRotational:
+            return [
+                PINNReference(
+                    "Gordy & Cook (1984). Microwave Molecular Spectra. Wiley-Interscience.",
+                    url: "https://doi.org/10.1002/9780470142813"
+                ),
+                PINNReference(
+                    "Muller et al. (2005). The Cologne Database for Molecular Spectroscopy (CDMS). J. Molecular Structure, 742, 215–227.",
+                    url: "https://doi.org/10.1016/j.molstruc.2005.01.027"
+                )
+            ]
+        case .thermogravimetric:
+            return [
+                PINNReference(
+                    "Coats & Redfern (1964). Kinetic parameters from thermogravimetric data. Nature, 201, 68–69.",
+                    url: "https://doi.org/10.1038/201068a0"
+                ),
+                PINNReference(
+                    "Vyazovkin et al. (2011). ICTAC Kinetics Committee recommendations. Thermochimica Acta, 520, 1–19.",
+                    url: "https://doi.org/10.1016/j.tca.2011.03.034"
+                )
+            ]
+        case .terahertz:
+            return [
+                PINNReference(
+                    "Jepsen et al. (2011). Terahertz spectroscopy and imaging – Modern techniques and applications. Laser & Photonics Reviews, 5(1), 124–166.",
+                    url: "https://doi.org/10.1002/lpor.201000011"
+                ),
+                PINNReference(
+                    "Naftaly et al. (2007). Terahertz time-domain spectroscopy for material characterization. Proceedings of the IEEE, 95(8), 1658–1665.",
+                    url: "https://doi.org/10.1109/JPROC.2007.898835"
+                )
+            ]
         }
     }
 
@@ -315,6 +501,18 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
         case .chromatography: return [1, 2, 3, 13] // GC, General, HPLC, Diode Array
         case .nir:            return [5]        // NIR Spectrum
         case .atomicEmission: return [12]       // Atomic Spectrum
+        case .xps:                 return [14]  // X-ray Photoelectron Spectrum
+        case .libs:                return [15]  // LIBS Spectrum
+        case .hitran:              return [16]  // HITRAN Molecular Lines
+        case .atmosphericUVVis:    return [17]  // Atmospheric UV/Vis Cross-Section
+        case .usgsReflectance:     return [18]  // USGS Reflectance
+        case .opticalConstants:    return [19]  // Optical Constants (n,k)
+        case .eels:                return [20]  // Electron Energy Loss Spectrum
+        case .saxs:                return [21]  // Small-Angle Scattering
+        case .circularDichroism:   return [22]  // Circular Dichroism
+        case .microwaveRotational: return [23]  // Microwave Rotational
+        case .thermogravimetric:   return [24]  // Thermogravimetric Analysis
+        case .terahertz:           return [25]  // Terahertz Spectrum
         }
     }
 
@@ -337,6 +535,18 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             case 11: name = "Fluorescence Spectrum"
             case 12: name = "Atomic Spectrum"
             case 13: name = "Diode Array Chromatogram"
+            case 14: name = "X-ray Photoelectron Spectrum"
+            case 15: name = "LIBS Spectrum"
+            case 16: name = "HITRAN Molecular Lines"
+            case 17: name = "Atmospheric UV/Vis Cross-Section"
+            case 18: name = "USGS Reflectance Spectrum"
+            case 19: name = "Optical Constants (n, k)"
+            case 20: name = "Electron Energy Loss Spectrum"
+            case 21: name = "Small-Angle Scattering"
+            case 22: name = "Circular Dichroism Spectrum"
+            case 23: name = "Microwave Rotational Spectrum"
+            case 24: name = "Thermogravimetric Analysis"
+            case 25: name = "Terahertz Spectrum"
             default: name = "Unknown (code \(code))"
             }
             return (code, name)
@@ -487,15 +697,9 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
                     isLicensed: false
                 ),
                 TrainingDataSource(
-                    name: "RRUFF — Mineral Infrared Processed ZIP",
-                    description: "mineral infrared spectra, bulk TXT download",
-                    url: URL(string: "https://rruff.info/zipped_data_files/infrared/Infrared_Processed.zip"),
-                    isLicensed: false
-                ),
-                TrainingDataSource(
-                    name: "RRUFF — Mineral Infrared Raw ZIP",
-                    description: "raw mineral infrared spectra, bulk TXT download",
-                    url: URL(string: "https://rruff.info/zipped_data_files/infrared/Infrared_RAW.zip"),
+                    name: "RRUFF — Mineral Infrared ZIP",
+                    description: "937 mineral infrared spectra, bulk TXT download",
+                    url: URL(string: "https://www.rruff.net/zipped_data_files/infrared/RAW.zip"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
@@ -508,39 +712,27 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
         case .raman:
             return [
                 TrainingDataSource(
-                    name: "RRUFF Raman — Processed ZIP",
-                    description: "22,000+ mineral Raman spectra, bulk TXT download",
-                    url: URL(string: "https://rruff.info/zipped_data_files/raman/LR-Raman_Processed.zip"),
+                    name: "RRUFF Raman — LR (All) ZIP",
+                    description: "7,764+ low-resolution mineral Raman spectra, bulk TXT download",
+                    url: URL(string: "https://www.rruff.net/zipped_data_files/raman/LR-Raman.zip"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
-                    name: "RRUFF Raman — Raw ZIP",
-                    description: "22,000+ raw Raman spectra",
-                    url: URL(string: "https://rruff.info/zipped_data_files/raman/LR-Raman_RAW.zip"),
+                    name: "RRUFF Raman — Excellent Unoriented ZIP",
+                    description: "highest quality unoriented Raman spectra, bulk TXT download",
+                    url: URL(string: "https://www.rruff.net/zipped_data_files/raman/excellent_unoriented.zip"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
-                    name: "RRUFF Raman — HR Processed ZIP",
-                    description: "high-resolution mineral Raman spectra, bulk TXT download",
-                    url: URL(string: "https://rruff.info/zipped_data_files/raman/HR-Raman_Processed.zip"),
+                    name: "RRUFF Raman — Excellent Oriented ZIP",
+                    description: "highest quality oriented single-crystal Raman spectra",
+                    url: URL(string: "https://www.rruff.net/zipped_data_files/raman/excellent_oriented.zip"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
-                    name: "RRUFF Raman — HR Raw ZIP",
-                    description: "high-resolution raw mineral Raman spectra",
-                    url: URL(string: "https://rruff.info/zipped_data_files/raman/HR-Raman_RAW.zip"),
-                    isLicensed: false
-                ),
-                TrainingDataSource(
-                    name: "RRUFF Raman — Unoriented Processed ZIP",
-                    description: "unoriented mineral Raman spectra, bulk TXT download",
-                    url: URL(string: "https://rruff.info/zipped_data_files/raman/Unoriented_Raman_Processed.zip"),
-                    isLicensed: false
-                ),
-                TrainingDataSource(
-                    name: "RRUFF Raman — Oriented Processed ZIP",
-                    description: "oriented single-crystal Raman spectra",
-                    url: URL(string: "https://rruff.info/zipped_data_files/raman/Oriented_Raman_Processed.zip"),
+                    name: "RRUFF Raman — Fair Unoriented ZIP",
+                    description: "fair quality unoriented Raman spectra",
+                    url: URL(string: "https://www.rruff.net/zipped_data_files/raman/fair_unoriented.zip"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
@@ -694,27 +886,27 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
         case .xrd:
             return [
                 TrainingDataSource(
-                    name: "RRUFF — Powder XRD ZIP",
-                    description: "1,290 powder diffraction patterns, bulk TXT download",
-                    url: URL(string: "https://rruff.info/zipped_data_files/powder/XY_RAW.zip"),
-                    isLicensed: false
-                ),
-                TrainingDataSource(
-                    name: "RRUFF — CIF structures ZIP",
-                    description: "crystal structure CIF files, bulk download",
-                    url: URL(string: "https://rruff.info/zipped_data_files/CIF.zip"),
+                    name: "RRUFF — Powder XRD Raw ZIP",
+                    description: "powder diffraction patterns (XY raw), bulk TXT download",
+                    url: URL(string: "https://www.rruff.net/zipped_data_files/powder/XY_RAW.zip"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "RRUFF — Powder XRD Processed ZIP",
                     description: "processed powder diffraction patterns, bulk TXT download",
-                    url: URL(string: "https://rruff.info/zipped_data_files/powder/XY_Processed.zip"),
+                    url: URL(string: "https://www.rruff.net/zipped_data_files/powder/XY_Processed.zip"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
                     name: "RRUFF — DIF Powder XRD ZIP",
                     description: "DIF format powder diffraction data, bulk download",
-                    url: URL(string: "https://rruff.info/zipped_data_files/powder/DIF.zip"),
+                    url: URL(string: "https://www.rruff.net/zipped_data_files/powder/DIF.zip"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "RRUFF — Refinement Data ZIP",
+                    description: "refinement data for crystal structures, bulk download",
+                    url: URL(string: "https://www.rruff.net/zipped_data_files/powder/Refinement_Data.zip"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
@@ -889,6 +1081,114 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
                     isLicensed: false
                 )
             ]
+        case .xps:
+            return [
+                TrainingDataSource(
+                    name: "NIST XPS Database SRD 20",
+                    description: "33,000+ XPS records — browse srdata.nist.gov/xps",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .libs:
+            return [
+                TrainingDataSource(
+                    name: "NIST ASD — LIBS Elements",
+                    description: "Uses same NIST ASD data as Atomic Emission with plasma parameters",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .hitran:
+            return [
+                TrainingDataSource(
+                    name: "HITRAN2024 Line-by-Line",
+                    description: "61 molecules, registration required — hitran.org",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .atmosphericUVVis:
+            return [
+                TrainingDataSource(
+                    name: "MPI-Mainz UV/Vis Spectral Atlas",
+                    description: "~800 atmospheric species, free JCAMP-DX",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .usgsReflectance:
+            return [
+                TrainingDataSource(
+                    name: "USGS Spectral Library splib07",
+                    description: "2,800+ spectra, free download",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .opticalConstants:
+            return [
+                TrainingDataSource(
+                    name: "refractiveindex.info Database (GitHub ZIP)",
+                    description: "1,000+ materials, CC0 YAML data, full repository archive",
+                    url: URL(string: "https://github.com/polyanskiy/refractiveindex.info-database/archive/refs/heads/main.zip"),
+                    isLicensed: false
+                )
+            ]
+        case .eels:
+            return [
+                TrainingDataSource(
+                    name: "EELS Database (eelsdb.eu)",
+                    description: "290 spectra, ODbL license",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .saxs:
+            return [
+                TrainingDataSource(
+                    name: "SASBDB (sasbdb.org)",
+                    description: "5,000+ SAXS/SANS profiles, free",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .circularDichroism:
+            return [
+                TrainingDataSource(
+                    name: "PCDDB (pcddb.cryst.bbk.ac.uk)",
+                    description: "1,800+ CD spectra, free",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .microwaveRotational:
+            return [
+                TrainingDataSource(
+                    name: "CDMS (cdms.astro.uni-koeln.de)",
+                    description: "~750 species, free catalog",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .thermogravimetric:
+            return [
+                TrainingDataSource(
+                    name: "NIST JANAF Thermochemical Tables",
+                    description: "Thermodynamic data — manual download",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
+        case .terahertz:
+            return [
+                TrainingDataSource(
+                    name: "Zenodo THz Pharma Datasets",
+                    description: "500+ THz spectra — search Zenodo",
+                    url: nil,
+                    isLicensed: false
+                )
+            ]
         }
     }
 
@@ -915,7 +1215,19 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
         case .xrd:            physicsNote = "Bragg's law + structure factor constraints"
         case .chromatography: physicsNote = "ED transport PDE + Langmuir isotherm"
         case .nir:            physicsNote = "modified Beer-Lambert + Kubelka-Munk"
-        case .atomicEmission: physicsNote = "Boltzmann distribution loss"
+        case .atomicEmission:      physicsNote = "Boltzmann distribution loss"
+        case .xps:                 physicsNote = "photoelectric equation + Scofield cross-sections"
+        case .libs:                physicsNote = "Saha-Boltzmann + Stark broadening"
+        case .hitran:              physicsNote = "Voigt profile + temperature scaling"
+        case .atmosphericUVVis:    physicsNote = "Beer-Lambert with sigma(lambda,T)"
+        case .usgsReflectance:     physicsNote = "Kubelka-Munk + continuum removal"
+        case .opticalConstants:    physicsNote = "Sellmeier + Kramers-Kronig"
+        case .eels:                physicsNote = "core-loss onset + Kramers-Kronig"
+        case .saxs:                physicsNote = "Guinier + Porod law"
+        case .circularDichroism:   physicsNote = "Cotton effect + basis decomposition"
+        case .microwaveRotational: physicsNote = "rigid rotor + centrifugal distortion"
+        case .thermogravimetric:   physicsNote = "Arrhenius + Coats-Redfern"
+        case .terahertz:           physicsNote = "Drude + Lorentz oscillator"
         }
 
         return "\(hiddenLayers.count)-layer \(mlpType) (\(layerStr)), \(act), \(physicsNote)\(fourierSuffix)\(ensembleSuffix)"
@@ -994,6 +1306,66 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
                 PhysicsConstraintOption(id: "transition_selection", name: "Transition Selection Rules", equation: "\u{0394}l = \u{00B1}1", description: "Allowed electric dipole transitions follow angular momentum rules", isDefault: true),
                 PhysicsConstraintOption(id: "self_absorption", name: "Self-Absorption Correction", equation: "I\u{2092}\u{2095}\u{209B} = I\u{2080}\u{00B7}(1-exp(-\u{03BA}l))", description: "Correct for reabsorption at high concentrations", isDefault: false)
             ]
+        case .xps:
+            return [
+                PhysicsConstraintOption(id: "photoelectric", name: "Photoelectric Equation", equation: "BE = h\u{03BD} - KE - \u{03C6}", description: "Binding energy from kinetic energy and photon energy", isDefault: true),
+                PhysicsConstraintOption(id: "scofield_cross_sections", name: "Scofield Cross-Sections", equation: "\u{03C3}(h\u{03BD})", description: "Relative photoionisation cross-sections for quantification", isDefault: true)
+            ]
+        case .libs:
+            return [
+                PhysicsConstraintOption(id: "saha_boltzmann", name: "Saha-Boltzmann", equation: "n\u{2091}/n\u{2080} = f(T, n\u{2091})", description: "Ionisation equilibrium for plasma temperature diagnostics", isDefault: true),
+                PhysicsConstraintOption(id: "stark_broadening", name: "Stark Broadening", equation: "\u{0394}\u{03BB} \u{221D} n\u{2091}", description: "Line broadening proportional to electron density", isDefault: true)
+            ]
+        case .hitran:
+            return [
+                PhysicsConstraintOption(id: "voigt_profile", name: "Voigt Line Profile", equation: "V(\u{03BD}; \u{03B3}_D, \u{03B3}_L)", description: "Convolution of Doppler and pressure broadening", isDefault: true),
+                PhysicsConstraintOption(id: "temperature_scaling", name: "Temperature Scaling", equation: "S(T) = S(T\u{2080})\u{00B7}Q(T\u{2080})/Q(T)\u{00B7}...", description: "Line intensity temperature dependence from partition function", isDefault: true)
+            ]
+        case .atmosphericUVVis:
+            return [
+                PhysicsConstraintOption(id: "beer_lambert_atm", name: "Beer-Lambert (Atmospheric)", equation: "I = I\u{2080}exp(-\u{03C3}Nl)", description: "Atmospheric extinction via cross-sections", isDefault: true),
+                PhysicsConstraintOption(id: "temp_dependent_sigma", name: "Temperature-Dependent \u{03C3}", equation: "\u{03C3}(\u{03BB},T)", description: "Cross-sections vary with atmospheric temperature", isDefault: true)
+            ]
+        case .usgsReflectance:
+            return [
+                PhysicsConstraintOption(id: "kubelka_munk", name: "Kubelka-Munk", equation: "F(R) = (1-R)\u{00B2}/2R", description: "Relates reflectance to absorption and scattering", isDefault: true),
+                PhysicsConstraintOption(id: "continuum_removal", name: "Continuum Removal", equation: "R' = R/R_hull", description: "Normalize reflectance to convex hull for feature extraction", isDefault: true)
+            ]
+        case .opticalConstants:
+            return [
+                PhysicsConstraintOption(id: "sellmeier", name: "Sellmeier Equation", equation: "n\u{00B2} = 1 + \u{03A3}B\u{1D62}\u{03BB}\u{00B2}/(\u{03BB}\u{00B2}-C\u{1D62})", description: "Refractive index dispersion from resonance wavelengths", isDefault: true),
+                PhysicsConstraintOption(id: "kramers_kronig_opt", name: "Kramers-Kronig", equation: "n \u{2194} k", description: "Real and imaginary refractive index are related by KK transform", isDefault: true)
+            ]
+        case .eels:
+            return [
+                PhysicsConstraintOption(id: "core_loss_onset", name: "Core-Loss Onset", equation: "E = E_edge", description: "Edge onset corresponds to elemental core-level binding energy", isDefault: true),
+                PhysicsConstraintOption(id: "kramers_kronig_eels", name: "Kramers-Kronig", equation: "\u{03B5}\u{2081} \u{2194} \u{03B5}\u{2082}", description: "Dielectric function components related by KK transform", isDefault: true)
+            ]
+        case .saxs:
+            return [
+                PhysicsConstraintOption(id: "guinier", name: "Guinier Approximation", equation: "I(q) = I\u{2080}exp(-q\u{00B2}Rg\u{00B2}/3)", description: "Low-q regime gives radius of gyration", isDefault: true),
+                PhysicsConstraintOption(id: "porod", name: "Porod Law", equation: "I(q) \u{221D} q\u{207B}\u{2074}", description: "High-q regime indicates sharp interfaces", isDefault: true)
+            ]
+        case .circularDichroism:
+            return [
+                PhysicsConstraintOption(id: "cotton_effect", name: "Cotton Effect", equation: "\u{0394}\u{03B5} = \u{03B5}_L - \u{03B5}_R", description: "Differential absorption of left/right circularly polarised light", isDefault: true),
+                PhysicsConstraintOption(id: "basis_decomposition", name: "Basis Spectrum Decomposition", equation: "CD = \u{03A3}f\u{1D62}\u{00B7}CD\u{1D62}", description: "CD spectrum as linear combination of secondary structure basis spectra", isDefault: true)
+            ]
+        case .microwaveRotational:
+            return [
+                PhysicsConstraintOption(id: "rigid_rotor", name: "Rigid Rotor", equation: "E_J = hBJ(J+1)", description: "Rotational energy levels from moment of inertia", isDefault: true),
+                PhysicsConstraintOption(id: "centrifugal_distortion", name: "Centrifugal Distortion", equation: "E_J = hBJ(J+1) - hDJ\u{00B2}(J+1)\u{00B2}", description: "Correction for non-rigid molecular rotation", isDefault: true)
+            ]
+        case .thermogravimetric:
+            return [
+                PhysicsConstraintOption(id: "arrhenius", name: "Arrhenius Kinetics", equation: "k = A\u{00B7}exp(-Ea/RT)", description: "Temperature-dependent decomposition rate constant", isDefault: true),
+                PhysicsConstraintOption(id: "coats_redfern", name: "Coats-Redfern", equation: "ln(-d\u{03B1}/dT) = ln(A/\u{03B2}) - Ea/RT", description: "Model-fitting method for activation energy determination", isDefault: true)
+            ]
+        case .terahertz:
+            return [
+                PhysicsConstraintOption(id: "drude", name: "Drude Model", equation: "\u{03C3}\u{2081}(\u{03C9}) = \u{03C3}\u{2080}/(1+\u{03C9}\u{00B2}\u{03C4}\u{00B2})", description: "Free-carrier conductivity in THz regime", isDefault: true),
+                PhysicsConstraintOption(id: "lorentz_thz", name: "Lorentz Oscillator", equation: "\u{03B5}(\u{03C9}) = \u{03B5}\u{221E} + \u{03A3}S\u{1D62}/(\u{03C9}\u{1D62}\u{00B2}-\u{03C9}\u{00B2}-i\u{03B3}\u{1D62}\u{03C9})", description: "Phonon/vibrational mode dielectric response", isDefault: true)
+            ]
         }
     }
 }
@@ -1044,6 +1416,30 @@ extension PINNDomain {
             return FourierEncodingConfig(numFrequencies: 128, sigma: 10.0, isEnabled: true)
         case .atomicEmission:
             return FourierEncodingConfig(numFrequencies: 96, sigma: 10.0, isEnabled: true)
+        case .xps:
+            return FourierEncodingConfig(numFrequencies: 64, sigma: 6.0, isEnabled: true)
+        case .libs:
+            return FourierEncodingConfig(numFrequencies: 96, sigma: 10.0, isEnabled: true)
+        case .hitran:
+            return FourierEncodingConfig(numFrequencies: 128, sigma: 10.0, isEnabled: true)
+        case .atmosphericUVVis:
+            return FourierEncodingConfig(numFrequencies: 64, sigma: 6.0, isEnabled: true)
+        case .usgsReflectance:
+            return FourierEncodingConfig(numFrequencies: 64, sigma: 8.0, isEnabled: true)
+        case .opticalConstants:
+            return FourierEncodingConfig(numFrequencies: 64, sigma: 8.0, isEnabled: true)
+        case .eels:
+            return FourierEncodingConfig(numFrequencies: 64, sigma: 8.0, isEnabled: true)
+        case .saxs:
+            return FourierEncodingConfig(numFrequencies: 48, sigma: 6.0, isEnabled: true)
+        case .circularDichroism:
+            return FourierEncodingConfig(numFrequencies: 32, sigma: 4.0, isEnabled: true)
+        case .microwaveRotational:
+            return FourierEncodingConfig(numFrequencies: 96, sigma: 10.0, isEnabled: true)
+        case .thermogravimetric:
+            return FourierEncodingConfig(numFrequencies: 32, sigma: 4.0, isEnabled: true)
+        case .terahertz:
+            return FourierEncodingConfig(numFrequencies: 48, sigma: 6.0, isEnabled: true)
         }
     }
 }
@@ -1109,6 +1505,8 @@ extension PINNDomain {
     /// (FTIR functional groups, NMR multiplets). Narrower networks suffice for
     /// domains with broad smooth spectra (UV-Vis, Fluorescence) or discrete
     /// outputs (Atomic Emission), reducing overfitting risk on smaller datasets.
+    // Note: new domains not listed here use the default `adaptiveTanh` via the default case above.
+
     var hiddenLayers: [Int] {
         switch self {
         case .uvVis:          return [256, 192, 128, 64]   // Broad smooth spectra, Beer-Lambert
@@ -1121,6 +1519,18 @@ extension PINNDomain {
         case .chromatography: return [384, 256, 192, 96]   // Transport PDE residuals, Langmuir isotherm
         case .nir:            return [512, 256, 192, 96]   // Overtone bands — broader than FTIR fundamentals
         case .atomicEmission: return [256, 128, 96, 48]    // Discrete lines, straightforward Boltzmann distribution
+        case .xps:                 return [384, 256, 128, 64]   // Wide BE range, multiple core-level peaks
+        case .libs:                return [256, 192, 128, 64]   // Similar to atomic emission + plasma params
+        case .hitran:              return [512, 384, 256, 128]  // Dense molecular line spectra
+        case .atmosphericUVVis:    return [256, 192, 128, 64]   // Broad cross-section features
+        case .usgsReflectance:     return [384, 256, 192, 96]   // Wide wavelength range, absorption features
+        case .opticalConstants:    return [256, 192, 128, 64]   // Smooth dispersion curves
+        case .eels:                return [256, 192, 128, 64]   // Core-loss edge features
+        case .saxs:                return [256, 128, 128, 64]   // Smooth scattering profiles
+        case .circularDichroism:   return [256, 128, 128, 64]   // Broad CD bands
+        case .microwaveRotational: return [256, 128, 96, 48]    // Discrete rotational lines
+        case .thermogravimetric:   return [256, 128, 128, 64]   // Smooth mass loss curves
+        case .terahertz:           return [256, 128, 128, 64]   // Broad THz absorption features
         }
     }
 }
@@ -1161,6 +1571,18 @@ extension PINNDomain {
         case .chromatography: return GradientTrainingConfig(isEnabled: true, weight: 0.1)
         case .nir:            return GradientTrainingConfig(isEnabled: true, weight: 0.1)
         case .atomicEmission: return GradientTrainingConfig(isEnabled: false, weight: 0)  // Discrete lines — derivatives less meaningful
+        case .xps:                 return GradientTrainingConfig(isEnabled: true, weight: 0.05)
+        case .libs:                return GradientTrainingConfig(isEnabled: false, weight: 0)
+        case .hitran:              return GradientTrainingConfig(isEnabled: true, weight: 0.1)
+        case .atmosphericUVVis:    return GradientTrainingConfig(isEnabled: true, weight: 0.1)
+        case .usgsReflectance:     return GradientTrainingConfig(isEnabled: true, weight: 0.05)
+        case .opticalConstants:    return GradientTrainingConfig(isEnabled: true, weight: 0.1)
+        case .eels:                return GradientTrainingConfig(isEnabled: true, weight: 0.05)
+        case .saxs:                return GradientTrainingConfig(isEnabled: true, weight: 0.05)
+        case .circularDichroism:   return GradientTrainingConfig(isEnabled: true, weight: 0.05)
+        case .microwaveRotational: return GradientTrainingConfig(isEnabled: false, weight: 0)
+        case .thermogravimetric:   return GradientTrainingConfig(isEnabled: true, weight: 0.1)
+        case .terahertz:           return GradientTrainingConfig(isEnabled: true, weight: 0.05)
         }
     }
 }
@@ -1188,8 +1610,10 @@ extension PINNDomain {
     var ensembleConfig: PINNEnsembleConfig {
         switch self {
         case .massSpec:       return PINNEnsembleConfig(isEnabled: true, numHeads: 3)
-        case .atomicEmission: return PINNEnsembleConfig(isEnabled: true, numHeads: 3)
-        default:              return PINNEnsembleConfig(isEnabled: true, numHeads: 5)
+        case .atomicEmission:      return PINNEnsembleConfig(isEnabled: true, numHeads: 3)
+        case .libs:                return PINNEnsembleConfig(isEnabled: true, numHeads: 3)
+        case .microwaveRotational: return PINNEnsembleConfig(isEnabled: true, numHeads: 3)
+        default:                   return PINNEnsembleConfig(isEnabled: true, numHeads: 5)
         }
     }
 }

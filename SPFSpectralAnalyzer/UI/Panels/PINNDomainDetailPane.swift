@@ -71,6 +71,9 @@ struct PINNDomainDetailPane: View {
     // MARK: - Status Section
 
     private var statusSection: some View {
+        // Read loadVersion to force re-render when model status changes
+        // (domain models are reference types, not @Observable).
+        let _ = PINNPredictionService.shared.registry.loadVersion
         let model = PINNPredictionService.shared.registry.models[domain]
         let status = model?.status ?? .notTrained
 
@@ -362,6 +365,7 @@ struct PINNDomainDetailPane: View {
     private var iosTrainingSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 8) {
+                let _ = PINNPredictionService.shared.registry.loadVersion
                 let model = PINNPredictionService.shared.registry.models[domain]
                 let status = model?.status ?? .notTrained
 
@@ -745,7 +749,7 @@ struct PINNDomainDetailPane: View {
         GroupBox {
             DisclosureGroup {
                 VStack(alignment: .leading, spacing: 8) {
-                    let scriptName = "train_pinn_\(domain.rawValue.lowercased().replacingOccurrences(of: " ", with: "_")).py"
+                    let scriptName = PINNScriptInstaller.scriptFilename(for: domain)
                     let scriptURL = PINNTrainingManager.scriptsDirectory.appendingPathComponent(scriptName)
                     let scriptExists = FileManager.default.fileExists(atPath: scriptURL.path)
 
@@ -896,9 +900,15 @@ struct PINNDomainDetailPane: View {
                 constraints: enabledConstraintIDs
             )
 
-            // Reload models after training completes
+            // Reload the trained domain model so its status updates to .ready.
+            // Only reload this single domain — avoids re-creating all 22 model
+            // instances and the 30-second iCloud retry loop that loadModels() does.
             if case .completed = trainingManager.status {
-                await PINNPredictionService.shared.loadModels()
+                let registry = PINNPredictionService.shared.registry
+                if let model = registry.models[domain] {
+                    try? await model.loadModel()
+                }
+                registry.loadVersion += 1
             }
         } catch {
             trainingManager.status = .failed("Failed to prepare training data: \(error.localizedDescription)")

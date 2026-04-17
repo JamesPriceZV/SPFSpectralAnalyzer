@@ -19,6 +19,7 @@ struct JobsDownloadsView: View {
             VStack(alignment: .leading, spacing: 20) {
                 headerSection
 
+                #if os(macOS)
                 // Active downloads
                 downloadSection
 
@@ -26,6 +27,10 @@ struct JobsDownloadsView: View {
 
                 // Training data on disk + actions
                 trainingDataSection
+                #else
+                // iOS: show model sync status only
+                iOSModelStatusSection
+                #endif
 
                 Spacer()
             }
@@ -41,6 +46,23 @@ struct JobsDownloadsView: View {
             Label("Jobs & Downloads", systemImage: "square.and.arrow.down.on.square")
                 .font(.title2.bold())
 
+            #if os(iOS)
+            Text("PINN models are trained on Mac and synced to this device via iCloud.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                Button {
+                    Task { await pinnService.loadModels() }
+                } label: {
+                    Label("Refresh Models", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .disabled(pinnService.isLoading)
+            }
+            .padding(.top, 4)
+            #else
             Text("Training data downloads and model training status across all PINN domains.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -56,7 +78,6 @@ struct JobsDownloadsView: View {
                 .controlSize(.small)
                 .disabled(downloader.status.isActive)
 
-                #if os(macOS)
                 Button {
                     let result = PINNScriptInstaller.installAllScripts()
                     if !result.errors.isEmpty {
@@ -70,14 +91,15 @@ struct JobsDownloadsView: View {
                     Label("Install All Scripts", systemImage: "arrow.down.doc")
                 }
                 .controlSize(.small)
-                #endif
             }
             .padding(.top, 4)
+            #endif
         }
     }
 
-    // MARK: - Downloads
+    // MARK: - Downloads (macOS only)
 
+    #if os(macOS)
     private var downloadSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Downloads")
@@ -209,7 +231,7 @@ struct JobsDownloadsView: View {
         }
     }
 
-    // MARK: - Training Data on Disk
+    // MARK: - Training Data on Disk (macOS)
 
     private var trainingDataSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -268,7 +290,8 @@ struct JobsDownloadsView: View {
                 }
             }
 
-            // Script status
+            // Script status (macOS only — scripts can't execute on iOS)
+            #if os(macOS)
             HStack(spacing: 6) {
                 Circle()
                     .fill(scriptInstalled ? Color.green : Color.orange)
@@ -277,6 +300,7 @@ struct JobsDownloadsView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
+            #endif
 
             // Training progress (if active) or last training summary
             if let mgr = manager {
@@ -319,6 +343,7 @@ struct JobsDownloadsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
         #endif
     }
+    #endif // os(macOS) — end of download/training data sections
 
     @ViewBuilder
     private func modelStatusBadge(_ status: PINNModelStatus) -> some View {
@@ -344,6 +369,7 @@ struct JobsDownloadsView: View {
         }
     }
 
+    #if os(macOS)
     @ViewBuilder
     private func trainingStatusRow(_ manager: PINNTrainingManager) -> some View {
         switch manager.status {
@@ -406,6 +432,102 @@ struct JobsDownloadsView: View {
             }
         }
     }
+    #endif // os(macOS) — end of training status/metrics
+
+    // MARK: - iOS Model Status
+
+    #if os(iOS)
+    private var iOSModelStatusSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            let _ = pinnService.registry.loadVersion
+
+            HStack {
+                Text("PINN Model Status")
+                    .font(.headline)
+                Spacer()
+                Text("\(pinnService.readyModelCount)/\(PINNDomain.allCases.count) ready")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if pinnService.isLoading {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Checking iCloud for models…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 12),
+                GridItem(.flexible(), spacing: 12)
+            ], spacing: 10) {
+                ForEach(PINNDomain.allCases) { domain in
+                    iOSDomainCard(domain)
+                }
+            }
+
+            if pinnService.readyModelCount == 0 {
+                VStack(alignment: .leading, spacing: 6) {
+                    Divider()
+                    Label("No models available", systemImage: "info.circle")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text("Train PINN models on your Mac, then they sync automatically via iCloud. Tap Refresh Models to check for updates.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    private func iOSDomainCard(_ domain: PINNDomain) -> some View {
+        let modelStatus = pinnService.registry.models[domain]?.status ?? .notTrained
+
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: domain.iconName)
+                    .foregroundStyle(.blue)
+                    .frame(width: 20)
+                Text(domain.displayName)
+                    .font(.subheadline.weight(.medium))
+                Spacer()
+                modelStatusBadge(modelStatus)
+            }
+
+            // Show sync hint for models not yet available
+            switch modelStatus {
+            case .ready:
+                Text("Model loaded and ready for predictions")
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+            case .loading:
+                Text("Downloading from iCloud…")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            case .notTrained:
+                Text("Train on Mac to enable")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            case .error(let msg):
+                Text(msg)
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+                    .lineLimit(2)
+            }
+        }
+        .padding(10)
+        #if compiler(>=6.2)
+        .glassEffect(.regular, in: .rect(cornerRadius: 10))
+        #else
+        .background(Color.primary.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        #endif
+    }
+    #endif
 
     // MARK: - Training
 

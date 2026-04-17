@@ -1,4 +1,5 @@
 import Foundation
+import CoreML
 import Observation
 
 /// Orchestrates PINN model training via an external Python process (macOS only).
@@ -124,7 +125,7 @@ final class PINNTrainingManager {
         try? fm.createDirectory(at: PINNModelRegistry.modelDirectory, withIntermediateDirectories: true)
 
         // 2. Export reference data
-        let dataURL = Self.trainingDataDirectory.appendingPathComponent("\(domain.rawValue)_training_data.json")
+        let dataURL = Self.trainingDataDirectory.appendingPathComponent("\(domain.scriptBaseName)_training_data.json")
         do {
             try referenceData.write(to: dataURL)
         } catch {
@@ -133,7 +134,7 @@ final class PINNTrainingManager {
         }
 
         // 3. Find Python training script
-        let scriptName = "train_pinn_\(domain.rawValue.lowercased().replacingOccurrences(of: " ", with: "_")).py"
+        let scriptName = "train_pinn_\(domain.scriptBaseName).py"
         let scriptURL = Self.scriptsDirectory.appendingPathComponent(scriptName)
 
         guard fm.fileExists(atPath: scriptURL.path) else {
@@ -180,7 +181,7 @@ final class PINNTrainingManager {
         status = .training(progress: 0, epoch: 0, totalEpochs: epochs)
 
         let outputModelURL = PINNModelRegistry.modelDirectory
-            .appendingPathComponent("PINN_\(domain.rawValue.replacingOccurrences(of: " ", with: ""))")
+            .appendingPathComponent(domain.modelBaseName)
 
         let success = await runPythonTraining(
             pythonPath: resolvedPython,
@@ -199,6 +200,31 @@ final class PINNTrainingManager {
             let mlmodelURL = outputModelURL.appendingPathExtension("mlmodelc")
             let mlpackageURL = outputModelURL.appendingPathExtension("mlpackage")
             let ptURL = outputModelURL.appendingPathExtension("pt")
+
+            // 5a. If .mlpackage exists but .mlmodelc does not, compile it via CoreML
+            if !fm.fileExists(atPath: mlmodelURL.path), fm.fileExists(atPath: mlpackageURL.path) {
+                do {
+                    let compiledURL = try await Task.detached {
+                        try MLModel.compileModel(at: mlpackageURL)
+                    }.value
+                    // compileModel returns a temp URL — move it to the final location
+                    if fm.fileExists(atPath: mlmodelURL.path) {
+                        try? fm.removeItem(at: mlmodelURL)
+                    }
+                    try fm.moveItem(at: compiledURL, to: mlmodelURL)
+                    Instrumentation.log(
+                        "Compiled .mlpackage → .mlmodelc via CoreML",
+                        area: .mlTraining, level: .info,
+                        details: "path=\(mlmodelURL.path)"
+                    )
+                } catch {
+                    Instrumentation.log(
+                        "Swift-side .mlpackage compilation failed: \(error.localizedDescription)",
+                        area: .mlTraining, level: .warning,
+                        details: "Will fall back to .mlpackage loading"
+                    )
+                }
+            }
 
             if fm.fileExists(atPath: mlmodelURL.path) {
                 status = .completed(domain: domain)

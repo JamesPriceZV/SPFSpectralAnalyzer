@@ -163,7 +163,7 @@ final class DataStoreController: ObservableObject {
     private static let initCountLock = NSLock()
     private static var initCount = 0
 
-    private let schema = Schema([StoredDataset.self, StoredSpectrum.self, StoredInstrument.self, StoredFormulaCard.self, Item.self] as [any PersistentModel.Type])
+    private let schema = Schema([StoredDataset.self, StoredSpectrum.self, StoredInstrument.self, StoredFormulaCard.self, Item.self, StoredTrainingRecord.self, StoredReferenceSpectrum.self] as [any PersistentModel.Type])
 
     #if DEBUG
     func runCloudKitSchemaInit() {

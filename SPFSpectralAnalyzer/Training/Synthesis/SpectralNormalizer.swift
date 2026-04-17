@@ -20,7 +20,7 @@ nonisolated enum SpectralNormalizer {
     static func maxNormalize(_ values: inout [Float]) {
         guard let mx = values.max(), mx > 0 else { return }
         var divisor = mx
-        var count = Int32(values.count)
+        let count = Int32(values.count)
         vDSP_vsdiv(values, 1, &divisor, &values, 1, vDSP_Length(count))
     }
 

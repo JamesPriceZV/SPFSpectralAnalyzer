@@ -16,7 +16,11 @@ struct SPCEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showFileImporter = false
     @State private var showLibraryPicker = false
+    #if os(iOS)
+    @State private var showDataTable = false
+    #else
     @State private var showDataTable = true
+    #endif
 
     var body: some View {
         Group {
@@ -97,7 +101,7 @@ struct SPCEditorSheet: View {
         }
         // Add subfiles from Library stored datasets
         .sheet(isPresented: $showLibraryPicker) {
-            SPCLibraryDatasetPicker(bridge: bridge)
+            SPCLibraryDatasetPicker(bridge: bridge, availableDatasets: storedDatasets)
         }
     }
 
@@ -117,8 +121,13 @@ struct SPCEditorSheet: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if showDataTable {
                     Divider()
+                    #if os(iOS)
+                    iOSXYDataTableView(store: store)
+                        .frame(minWidth: 200, idealWidth: 280, maxWidth: 360)
+                    #else
                     XYDataTableView(store: store)
                         .frame(minWidth: 240, idealWidth: 300, maxWidth: 400)
+                    #endif
                 }
             }
         }
@@ -246,17 +255,16 @@ struct SPCEditorSheet: View {
 /// into the currently open SPC editor session.
 struct SPCLibraryDatasetPicker: View {
     @Bindable var bridge: SPCLibraryBridge
-    @Query(filter: #Predicate<StoredDataset> { !$0.isArchived },
-           sort: \StoredDataset.importedAt, order: .reverse)
-    private var storedDatasets: [StoredDataset]
+    var availableDatasets: [StoredDataset]
     @Environment(\.dismiss) private var dismiss
     @State private var selectedIDs: Set<UUID> = []
     @State private var filterText = ""
 
     private var filteredDatasets: [StoredDataset] {
-        guard !filterText.isEmpty else { return storedDatasets }
+        let nonArchived = availableDatasets.filter { !$0.isArchived }
+        guard !filterText.isEmpty else { return nonArchived }
         let query = filterText.lowercased()
-        return storedDatasets.filter { $0.fileName.lowercased().contains(query) }
+        return nonArchived.filter { $0.fileName.lowercased().contains(query) }
     }
 
     var body: some View {
@@ -277,7 +285,7 @@ struct SPCLibraryDatasetPicker: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button("Add \(selectedIDs.count) Dataset\(selectedIDs.count == 1 ? "" : "s")") {
-                        let selected = storedDatasets.filter { selectedIDs.contains($0.id) }
+                        let selected = availableDatasets.filter { selectedIDs.contains($0.id) }
                         Task {
                             await bridge.addDatasetsToEditor(selected)
                         }

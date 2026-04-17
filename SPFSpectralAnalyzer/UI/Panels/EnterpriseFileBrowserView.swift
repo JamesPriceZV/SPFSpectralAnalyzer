@@ -350,6 +350,17 @@ struct EnterpriseFileBrowserView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 400)
+            Button {
+                Task { try? await viewModel.authManager.signIn(scopes: M365Config.retrievalScopes) }
+            } label: {
+                Label("Sign In to Microsoft 365", systemImage: "person.badge.key")
+            }
+            .controlSize(.large)
+            #if compiler(>=6.2)
+            .buttonStyle(.glassProminent)
+            #else
+            .buttonStyle(.borderedProminent)
+            #endif
             Spacer()
         }
         .frame(maxWidth: .infinity)

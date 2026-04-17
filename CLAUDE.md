@@ -1,1238 +1,1384 @@
-# SPF Spectral Analyzer — SPCKit Integration
+# Universal Physical Spectral Data Analyzer — PINN Training System
+## Part 1 of 2 — Architecture, Foundation, and Modalities 1–11
 
-## AUTONOMOUS IMPLEMENTATION INSTRUCTIONS
-
-This file drives a complete, autonomous implementation of the SPCKit integration into the
-SPF Spectral Analyzer Library. Execute every phase in order. Do not skip steps. After each
-phase, verify the project compiles before proceeding to the next phase.
-
----
-
-## Project Context
-
-**SPF Spectral Analyzer** is a multi-platform SwiftUI app (iOS 26.4 / macOS 26.4) for
-importing, analysing, and reporting spectral datasets. Files are persisted in SwiftData
-(`StoredDataset`) and synced via CloudKit. The Library section handles all file import
-and dataset management.
-
-**SPCKit** is a companion project (sibling folder `../../SPCKit/` relative to this file,
-i.e., at `/4_XcodeProjects/SPCKit/`) that is a complete SPC binary file engine: it parses
-Galactic/Thermo format, Shimadzu OLE2/CFB format, and writes both. It has non-destructive
-delta-store editing, vDSP transforms, expression parsing, and audit-log support. All types
-are Swift 6 strict-concurrency compliant (`nonisolated Sendable` value types, actors).
-
-**Goal:** Replace the read-only SPC import stack in the Analyzer with the full SPCKit engine,
-enabling Library users to open, edit, transform, combine, and save SPC files without leaving
-the app.
+> **CONTINUATION:** Implementation of Phases 12–24 (atmospheric cross-sections,
+> optical constants, USGS reflectance, EELS, SAXS, circular dichroism, microwave,
+> TGA, THz, universal coordinator, UI, testing, manifest) is in **CLAUDE2.md**
+> in this same directory. Read and execute it after completing Phase 11 here.
 
 ---
 
-## Target Settings (do not change)
+## CONCEPT EXPANSION
 
-- Bundle ID: com.zincoverde.SPFSpectralAnalyzer
-- Min deployment: iOS 26.4, macOS 26.4
-- Swift 6, strict concurrency: ENABLED
-- No @unchecked Sendable, no DispatchQueue, no completion handlers
-- Zero external dependencies
+This app is a **universal physics-informed spectral data analysis platform**.
+Its scope mirrors NIST's data-type organization across all major branches of
+spectroscopy and physical measurement — not limited to UV-SPF.
 
----
-
-## Source File Paths
-
-All paths below are relative to this CLAUDE.md file's directory
-(`SPF Spectral Analyzer/`).
-
-### SPCKit source location (read-only source — copy FROM here)
-```
-../../SPCKit/CompoundFileReader.swift
-../../SPCKit/EditSession.swift
-../../SPCKit/EditViews.swift
-../../SPCKit/ExpressionParser.swift
-../../SPCKit/HelpView.swift
-../../SPCKit/PointEditValidator.swift
-../../SPCKit/SPCDocumentStore.swift
-../../SPCKit/SPCFile.swift
-../../SPCKit/SPCFileWriter.swift
-../../SPCKit/SPCParser.swift
-../../SPCKit/SpectrumChartView.swift
-../../SPCKit/TransformEngine.swift
-```
-
-### Files to create (new — write these)
-```
-SPFSpectralAnalyzer/SPCKit/CompoundFileReader.swift   (copied from SPCKit)
-SPFSpectralAnalyzer/SPCKit/EditSession.swift          (copied from SPCKit)
-SPFSpectralAnalyzer/SPCKit/EditViews.swift            (copied from SPCKit)
-SPFSpectralAnalyzer/SPCKit/ExpressionParser.swift     (copied from SPCKit)
-SPFSpectralAnalyzer/SPCKit/SPCKitHelpView.swift       (copied + renamed)
-SPFSpectralAnalyzer/SPCKit/PointEditValidator.swift   (copied from SPCKit)
-SPFSpectralAnalyzer/SPCKit/SPCDocumentStore.swift     (copied from SPCKit)
-SPFSpectralAnalyzer/SPCKit/SPCFile.swift              (copied from SPCKit)
-SPFSpectralAnalyzer/SPCKit/SPCFileWriter.swift        (copied from SPCKit)
-SPFSpectralAnalyzer/SPCKit/SPCParser.swift            (copied from SPCKit)
-SPFSpectralAnalyzer/SPCKit/SpectrumChartView.swift    (copied from SPCKit)
-SPFSpectralAnalyzer/SPCKit/TransformEngine.swift      (copied from SPCKit)
-SPFSpectralAnalyzer/Library/SPCLibraryBridge.swift    (new — write from scratch)
-SPFSpectralAnalyzer/Library/SPCEditorSheet.swift      (new — write from scratch)
-SPFSpectralAnalyzer/Library/SPCLibraryExportView.swift (new — write from scratch)
-```
-
-### Files to modify (existing — edit precisely)
-```
-SPFSpectralAnalyzer/SPC/CompoundFile.swift
-SPFSpectralAnalyzer/SPC/SPCHeaderParser.swift
-SPFSpectralAnalyzer/SPC/ShimadzuSPCParser.swift
-SPFSpectralAnalyzer/SPC/GalacticSPCParser.swift
-SPFSpectralAnalyzer/Core/Workers/SpectrumParsingWorker.swift
-SPFSpectralAnalyzer/Core/Models/ImportModels.swift
-SPFSpectralAnalyzer/Core/ViewModels/DatasetViewModel.swift
-SPFSpectralAnalyzer/Core/Services/ValidationService.swift
-SPFSpectralAnalyzer/ContentView+Utilities.swift
-SPFSpectralAnalyzer/Storage/StoredDataset.swift
-SPFSpectralAnalyzer/UI/Sidebar/SidebarViews.swift
-SPFSpectralAnalyzer/ContentView.swift
-```
+**Design principles:**
+- Every PINN model is grounded in a named, published physics law
+- Every training dataset is freely and legally downloadable (no paywalled data)
+- Model count is driven entirely by data availability — not UI slot count
+- Feature vectors, targets, and physics equations are fully specified per modality
+- All code is Swift 6, strict concurrency, async/await, no DispatchQueue
 
 ---
 
-## PHASE 1 — Resolve Name Collisions and Copy SPCKit Files
+## COMPLETE MODALITY REGISTRY (25 PINNs)
 
-**Goal:** Copy the 12 SPCKit engine files into a new `SPCKit/` subfolder of the target.
-Before copying, rename conflicting types in the existing SDA files so they coexist cleanly.
+| # | Modality | PINN Physics Law | Primary Free Data Source | Records |
+|---|----------|-----------------|--------------------------|---------|
+| 1 | UV-Vis Absorption | Beer-Lambert A=εcl; COLIPA SPF | NIST WebBook SRD 69; SDBS; MPI-Mainz | >10 000 |
+| 2 | FTIR (Mid-IR) | Beer-Lambert A(ν̃)=Σcᵢεᵢ(ν̃) | NIST SRD 35 bulk; SDBS; RRUFF | >5 000 |
+| 3 | Near-Infrared (NIR) | Overtone νₙ≈n·ν₀(1−χₑ(n+1)) | Zenodo splib; Mendeley; NIST WebBook | >3 000 |
+| 4 | Raman | I∝(ν₀−νₘ)⁴·|∂α/∂Q|²·N | RRUFF (rruff.info/rruff.net); SDBS | >5 000 |
+| 5 | Mass Spec EI | Isotope binomial; α-cleavage | NIST WebBook; MoNA; HMDB | >100 000 |
+| 6 | MS/MS Tandem | CID fragmentation rules | MoNA 700K+; MassBank; GNPS | >700 000 |
+| 7 | ¹H NMR | Shoolery δ; Karplus J | nmrshiftdb2; SDBS; HMDB | >53 000 |
+| 8 | ¹³C NMR | HOSE code additive increments | nmrshiftdb2; SDBS; HMDB | >53 000 |
+| 9 | Fluorescence | Jablonski; Φ=k_r/(k_r+k_nr) | FPbase REST API; PhotochemCAD | >800 |
+| 10 | XRD Powder | Bragg nλ=2d·sinθ; Scherrer | COD 500K+ CIF; RRUFF; AMCSD | >500 000 |
+| 11 | XPS | Photoelectric BE=hν−KE−φ | NIST SRD 20 (33K records) | >33 000 |
+| 12 | Atomic Emission / OES | Rydberg; Boltzmann Iₖᵢ | NIST ASD (all elements, CSV) | >180 000 lines |
+| 13 | LIBS | Saha-Boltzmann; Stark broadening | NIST ASD + plasma physics | Synthesized |
+| 14 | GC Retention Index | Kovats RI = 100[n+(log tₓ−log tₙ)/Δ] | NIST WebBook GC-RI (SRD 1a) | >60 000 |
+| 15 | HPLC Retention | Martin-Synge LFER log k=Σaᵢδᵢ | HMDB; PredRet | >100 000 |
+| 16 | HITRAN Molecular Lines | Voigt profile; HITRAN S,γ,δ | HITRAN2024 (hitran.org, free reg.) | 61 molecules |
+| 17 | Atmospheric UV/Vis | σ(λ,T) cross-sections; J-values | MPI-Mainz Spectral Atlas | ~800 species |
+| 18 | USGS Reflectance | Kubelka-Munk F(R)=(1−R)²/2R | USGS splib07 (doi:10.5066/F7RR1WDJ) | >2 800 |
+| 19 | Optical Constants | Sellmeier n²=1+ΣBᵢλ²/(λ²−Cᵢ) | refractiveindex.info (GitHub) | >1 000 |
+| 20 | EELS | Core-loss ELNES; Kramers-Kronig | eelsdb.eu (ODbL, 290 spectra) | 290 |
+| 21 | SAXS / SANS | Guinier I(q)=I₀exp(−q²Rg²/3) | SASBDB (sasbdb.org, free) | >5 000 |
+| 22 | Circular Dichroism | Cotton effect Δε; Drude ORD | PCDDB (pcddb.cryst.bbk.ac.uk) | >1 800 |
+| 23 | Microwave / Rotational | Rigid rotor E_J=hBJ(J+1) | CDMS (cdms.astro.uni-koeln.de) | ~750 species |
+| 24 | Thermogravimetric (TGA) | Arrhenius ln(−dα/dT)=ln(A/β)−Ea/RT | NIST JANAF; Zenodo TGA datasets | >1 000 |
+| 25 | Terahertz (THz) | Drude σ₁(ω)=σ₀/(1+ω²τ²); Lorentz | Zenodo THz pharma datasets | >500 |
 
-### Step 1.1 — Rename `CompoundFileError` and `CompoundFile` in SDA's CompoundFile.swift
-
-In `SPFSpectralAnalyzer/SPC/CompoundFile.swift`, perform these renames throughout the
-entire file (use replace-all):
-
-| Old name | New name |
-|---|---|
-| `CompoundFileError` | `SDACompoundFileError` |
-| `CompoundFileDirectoryEntry` | `SDACompoundFileDirectoryEntry` |
-| `CompoundFile` | `SDACompoundFile` |
-
-After renaming, `SDACompoundFile` must still compile (all internal references updated).
-The class is `nonisolated final class SDACompoundFile`.
-
-### Step 1.2 — Fix ShimadzuSPCParser.swift to use SDACompoundFile
-
-In `SPFSpectralAnalyzer/SPC/ShimadzuSPCParser.swift`, find and replace:
-
-```swift
-// FIND:
-private let compound: CompoundFile
-
-// REPLACE WITH:
-private let compound: SDACompoundFile
-```
-
-```swift
-// FIND:
-self.compound = try CompoundFile(fileURL: fileURL)
-
-// REPLACE WITH:
-self.compound = try SDACompoundFile(fileURL: fileURL)
-```
-
-Also find any `CompoundFileDirectoryEntry` usages in ShimadzuSPCParser.swift and rename
-to `SDACompoundFileDirectoryEntry`.
-
-### Step 1.3 — Rename `SPCMainHeader` → `SDAMainHeader` in SPCHeaderParser.swift
-
-In `SPFSpectralAnalyzer/SPC/SPCHeaderParser.swift`, replace ALL occurrences of
-`SPCMainHeader` with `SDAMainHeader` (there are exactly 3: the struct definition, the
-return type annotation, and the return statement).
-
-### Step 1.4 — Propagate `SDAMainHeader` rename to all callers
-
-Perform replace-all for `SPCMainHeader` → `SDAMainHeader` in these files:
-
-- `SPFSpectralAnalyzer/SPC/ShimadzuSPCParser.swift`
-- `SPFSpectralAnalyzer/SPC/GalacticSPCParser.swift`
-- `SPFSpectralAnalyzer/Core/ViewModels/DatasetViewModel.swift`
-- `SPFSpectralAnalyzer/Core/Services/ValidationService.swift`
-- `SPFSpectralAnalyzer/ContentView+Utilities.swift`
-
-### Step 1.5 — Copy SPCKit engine files into SPCKit/ subfolder
-
-Create the directory `SPFSpectralAnalyzer/SPCKit/` and copy the following files verbatim
-(do not modify content during the copy):
-
-```bash
-cp ../../SPCKit/CompoundFileReader.swift  SPFSpectralAnalyzer/SPCKit/CompoundFileReader.swift
-cp ../../SPCKit/EditSession.swift         SPFSpectralAnalyzer/SPCKit/EditSession.swift
-cp ../../SPCKit/EditViews.swift           SPFSpectralAnalyzer/SPCKit/EditViews.swift
-cp ../../SPCKit/ExpressionParser.swift    SPFSpectralAnalyzer/SPCKit/ExpressionParser.swift
-cp ../../SPCKit/PointEditValidator.swift  SPFSpectralAnalyzer/SPCKit/PointEditValidator.swift
-cp ../../SPCKit/SPCDocumentStore.swift    SPFSpectralAnalyzer/SPCKit/SPCDocumentStore.swift
-cp ../../SPCKit/SPCFile.swift             SPFSpectralAnalyzer/SPCKit/SPCFile.swift
-cp ../../SPCKit/SPCFileWriter.swift       SPFSpectralAnalyzer/SPCKit/SPCFileWriter.swift
-cp ../../SPCKit/SPCParser.swift           SPFSpectralAnalyzer/SPCKit/SPCParser.swift
-cp ../../SPCKit/SpectrumChartView.swift   SPFSpectralAnalyzer/SPCKit/SpectrumChartView.swift
-cp ../../SPCKit/TransformEngine.swift     SPFSpectralAnalyzer/SPCKit/TransformEngine.swift
-```
-
-### Step 1.6 — Copy and rename HelpView to avoid collision with SDA's HelpView
-
-Copy `../../SPCKit/HelpView.swift` to `SPFSpectralAnalyzer/SPCKit/SPCKitHelpView.swift`.
-
-In the copied file, replace the struct name:
-```swift
-// FIND:
-struct HelpView: View {
-
-// REPLACE WITH:
-struct SPCKitHelpView: View {
-```
-
-Also update the file header comment at the top from `// HelpView.swift` to
-`// SPCKitHelpView.swift`.
-
-### Step 1.7 — Add UTType extension for SPC files to SPCDocumentStore.swift
-
-Verify that `SPFSpectralAnalyzer/SPCKit/SPCDocumentStore.swift` already contains:
-```swift
-nonisolated extension UTType {
-    public static let spcFile = UTType(exportedAs: "com.thermogalactic.spc", conformingTo: .data)
-}
-```
-If not, add it at the bottom of that file. This is needed for `.fileExporter` support.
-
-### Step 1.8 — Add UTType to Info.plist
-
-The app target's `Info.plist` (inside the `SPFSpectralAnalyzer` group) must declare the
-`com.thermogalactic.spc` UTType. Find the Info.plist and add inside the top-level
-`<dict>`:
-
-```xml
-<key>CFBundleDocumentTypes</key>
-<array>
-    <dict>
-        <key>CFBundleTypeName</key>
-        <string>SPC Spectral File</string>
-        <key>CFBundleTypeExtensions</key>
-        <array>
-            <string>spc</string>
-        </array>
-        <key>CFBundleTypeRole</key>
-        <string>Editor</string>
-        <key>LSHandlerRank</key>
-        <string>Owner</string>
-    </dict>
-</array>
-<key>UTExportedTypeDeclarations</key>
-<array>
-    <dict>
-        <key>UTTypeIdentifier</key>
-        <string>com.thermogalactic.spc</string>
-        <key>UTTypeDescription</key>
-        <string>Thermo Galactic SPC Spectral File</string>
-        <key>UTTypeConformsTo</key>
-        <array>
-            <string>public.data</string>
-        </array>
-        <key>UTTypeTagSpecification</key>
-        <dict>
-            <key>public.filename-extension</key>
-            <array>
-                <string>spc</string>
-            </array>
-        </dict>
-    </dict>
-</array>
-```
-
-### Step 1.9 — Phase 1 Build Verification
-
-After all Phase 1 edits, verify the project builds without errors or Swift 6 strict
-concurrency warnings. If there are residual `SPCMainHeader` or `CompoundFileError`
-ambiguity errors, apply the appropriate rename to the remaining file and rebuild.
+**Total: 25 modalities, >1.6 million freely available spectra/records.**
 
 ---
 
-## PHASE 2 — Replace the Parser Stack with SPCParser
+## ARCHITECTURE
 
-**Goal:** Route all SPC file imports through `SPCParser` (the SPCKit engine) instead of
-the separate `GalacticSPCParser` / `ShimadzuSPCParser` dispatch. Add an adapter that
-converts `SPCFile` → `ShimadzuSPCParseResult` so the existing downstream pipeline
-(`DatasetPersistenceService`, `StoredDataset`) remains unchanged.
+```
+LAYER 1 — Data Acquisition (one actor per source)
+  NISTWebBookSource  SDBSSource      RRUFFSource       CODSource
+  MoNASource         MassBankEUSource GNPSSource       HMDBSource
+  nmrshiftdb2Source  FPbaseSource    PhotochemCADSource NISTXPSSource
+  NISTASDSource      MPIMainzSource  HITRANSource      USGSSource
+  refractiveIndexSource  EELSDBSource  SASBDBSource   PCDDBSource
+  CDMSSource         ZenodoNIRSource  ZenodoTHzSource
+        |
+        v  ReferenceSpectrum (raw, per modality)
+LAYER 2 — Parsers
+  JCAMPDXParser (UV, IR, Raman, NMR, MS)    CIFParser (XRD)
+  RRUFFParser    MoNAJSONParser              NMRShiftDBParser
+  HITRANParser   USGSTXTParser               EELSDBParser
+  SASBDBParser   CDMSParser
+        |
+        v  structured ReferenceSpectrum
+LAYER 3 — PINN Synthesizers (one actor per modality)
+  BeerLambertSynthesizer (UV-Vis + FTIR + NIR)
+  RamanSynthesizer        MassSpecEISynthesizer   MassSpecMSMSSynthesizer
+  NMRProtonSynthesizer    NMRCarbonSynthesizer     FluorescenceSynthesizer
+  XRDSynthesizer          XPSSynthesizer           AtomicEmissionSynthesizer
+  LIBSSynthesizer         GCRetentionSynthesizer   HPLCSynthesizer
+  HITRANSynthesizer       AtmosphericUVVisSynthesizer  USGSSynthesizer
+  OpticalConstantsSynthesizer  EELSSynthesizer     SAXSSynthesizer
+  CDSynthesizer           MicrowaveSynthesizer     TGASynthesizer
+  THz Synthesizer
+        |
+        v  [TrainingRecord] (modality-tagged)
+LAYER 4 — Training Data Store (SwiftData)
+  StoredTrainingRecord    StoredReferenceSpectrum
+        |
+        v  curated dataset per modality
+LAYER 5 — CoreML Training Bridge (macOS only)
+  TrainingDataExporter -> CSV -> MLBoostedTreeRegressor / MLLogisticClassifier
+  -> .mlpackage  (one per modality)
+```
 
-### Step 2.1 — Add SPCFile adapter to ImportModels.swift
+---
 
-At the bottom of `SPFSpectralAnalyzer/Core/Models/ImportModels.swift`, append the
-following extension. Do not modify any existing code in that file:
+## FILE STRUCTURE
+
+All paths relative to `SPFSpectralAnalyzer/`:
+
+```
+Training/
+  Models/
+    SpectralModality.swift
+    ModalitySchemas.swift
+    TrainingRecord.swift
+    ReferenceSpectrum.swift
+    TrainingDataManifest.swift
+    StoredTrainingRecord.swift        <- SwiftData @Model
+    StoredReferenceSpectrum.swift     <- SwiftData @Model
+  Parsers/
+    JCAMPDXParser.swift               <- universal JCAMP
+    CIFParser.swift                   <- Crystallographic Information File
+    RRUFFParser.swift
+    MoNAJSONParser.swift
+    NMRShiftDBParser.swift
+    HITRANParser.swift
+    USGSTXTParser.swift
+    EELSDBParser.swift
+    SASBDBParser.swift
+    CDMSParser.swift
+  Sources/
+    TrainingDataSourceProtocol.swift
+    NISTWebBookSource.swift
+    SDBSSource.swift
+    RRUFFSource.swift
+    MoNASource.swift
+    MassBankEuropeSource.swift
+    GNPSSource.swift
+    HMDBSource.swift
+    nmrshiftdb2Source.swift
+    FPbaseSource.swift
+    PhotochemCADSource.swift
+    CODSource.swift
+    AMCSDSource.swift
+    NISTXPSSource.swift
+    NISTASDSource.swift
+    MPIMainzSource.swift
+    HITRANSource.swift
+    USGSSource.swift
+    refractiveIndexSource.swift
+    EELSDBSource.swift
+    SASBDBSource.swift
+    PCDDBSource.swift
+    CDMSSource.swift
+    ZenodoNIRSource.swift
+    ZenodoTHzSource.swift
+  Synthesis/
+    BeerLambertSynthesizer.swift      <- UV-Vis + FTIR + NIR
+    RamanSynthesizer.swift
+    MassSpecEISynthesizer.swift
+    MassSpecMSMSSynthesizer.swift
+    NMRProtonSynthesizer.swift
+    NMRCarbonSynthesizer.swift
+    FluorescenceSynthesizer.swift
+    XRDSynthesizer.swift
+    XPSSynthesizer.swift
+    AtomicEmissionSynthesizer.swift
+    LIBSSynthesizer.swift
+    GCRetentionSynthesizer.swift
+    HPLCSynthesizer.swift
+    HITRANSynthesizer.swift
+    AtmosphericUVVisSynthesizer.swift
+    USGSSynthesizer.swift
+    OpticalConstantsSynthesizer.swift
+    EELSSynthesizer.swift
+    SAXSSynthesizer.swift
+    CDSynthesizer.swift
+    MicrowaveSynthesizer.swift
+    TGASynthesizer.swift
+    THz Synthesizer.swift
+    SpectralNormalizer.swift
+    UVFilterLibrary.swift
+  Curation/
+    TrainingDataCoordinator.swift
+    TrainingDataExporter.swift
+    ManifestUpdateService.swift
+  UI/
+    TrainingDataDashboardView.swift
+    ModalityTrainingCardView.swift
+    ReferenceLibraryView.swift
+    TrainingRecordAnnotationView.swift
+```
+
+---
+
+## PHASE 0 — Foundation Types
+
+### 0.1 — SpectralModality.swift
+
+Create `Training/Models/SpectralModality.swift`:
 
 ```swift
-// MARK: - SPCKit Adapter
+import Foundation
 
-/// Converts a fully-parsed SPCFile (SPCKit) into the ShimadzuSPCParseResult
-/// format that SpectrumParsingWorker and DatasetPersistenceService expect.
-/// This is the bridge between the new SPCKit engine and the existing pipeline.
-enum SPCKitAdapter {
+/// Every distinct spectral technique with a trained PINN model.
+/// Raw value = stable string key used in CSV headers, CoreML model names,
+/// SwiftData storage, and GitHub manifest package IDs.
+enum SpectralModality: String, CaseIterable, Codable, Sendable, Identifiable {
+    case uvVis               = "uv_vis"
+    case ftir                = "ftir"
+    case nir                 = "nir"
+    case raman               = "raman"
+    case massSpecEI          = "mass_spec_ei"
+    case massSpecMSMS        = "mass_spec_msms"
+    case nmrProton           = "nmr_1h"
+    case nmrCarbon           = "nmr_13c"
+    case fluorescence        = "fluorescence"
+    case xrdPowder           = "xrd_powder"
+    case xps                 = "xps"
+    case eels                = "eels"
+    case atomicEmission      = "atomic_emission"
+    case libs                = "libs"
+    case gcRetention         = "gc_retention"
+    case hplcRetention       = "hplc_retention"
+    case hitranMolecular     = "hitran"
+    case atmosphericUVVis    = "atmospheric_uv_vis"
+    case usgsReflectance     = "usgs_reflectance"
+    case opticalConstants    = "optical_constants"
+    case saxs                = "saxs"
+    case circularDichroism   = "circular_dichroism"
+    case microwaveRotational = "microwave_rotational"
+    case thermogravimetric   = "tga"
+    case terahertz           = "thz"
 
-    /// Convert an SPCFile to a ShimadzuSPCParseResult.
-    /// - Parameters:
-    ///   - file: The parsed SPCFile from SPCKit.
-    ///   - url: The source URL, used for naming subfiles.
-    /// - Returns: A ShimadzuSPCParseResult compatible with the existing pipeline.
-    nonisolated static func toParseResult(
-        _ file: SPCFile,
-        url: URL
-    ) -> ShimadzuSPCParseResult {
-        let ffp = file.header.firstX
-        let flp = file.header.lastX
-        let baseName = url.deletingPathExtension().lastPathComponent
-        let subfileCount = file.subfiles.count
+    var id: String { rawValue }
 
-        let spectra: [ShimadzuSPCRawSpectrum] = file.subfiles.map { sub in
-            let xDoubles = sub.resolvedXPoints(ffp: ffp, flp: flp).map { Double($0) }
-            let yDoubles = sub.yPoints.map { Double($0) }
-            let name: String
-            if subfileCount == 1 {
-                name = baseName
-            } else {
-                let label = file.header.memo.trimmingCharacters(in: .whitespaces)
-                let sfName = label.isEmpty ? baseName : label
-                name = "\(sfName)_\(sub.id + 1)"
-            }
-            return ShimadzuSPCRawSpectrum(name: name, x: xDoubles, y: yDoubles)
+    var displayName: String {
+        switch self {
+        case .uvVis:               return "UV-Vis Absorption"
+        case .ftir:                return "FTIR"
+        case .nir:                 return "Near-Infrared (NIR)"
+        case .raman:               return "Raman Scattering"
+        case .massSpecEI:          return "Mass Spec (EI)"
+        case .massSpecMSMS:        return "MS/MS (Tandem)"
+        case .nmrProton:           return "¹H NMR"
+        case .nmrCarbon:           return "¹³C NMR"
+        case .fluorescence:        return "Fluorescence"
+        case .xrdPowder:           return "XRD Powder"
+        case .xps:                 return "X-ray Photoelectron (XPS)"
+        case .eels:                return "Electron Energy Loss (EELS)"
+        case .atomicEmission:      return "Atomic Emission (OES)"
+        case .libs:                return "LIBS"
+        case .gcRetention:         return "GC Retention Index"
+        case .hplcRetention:       return "HPLC Retention"
+        case .hitranMolecular:     return "HITRAN Molecular Lines"
+        case .atmosphericUVVis:    return "Atmospheric UV/Vis"
+        case .usgsReflectance:     return "USGS Reflectance"
+        case .opticalConstants:    return "Optical Constants (n, k)"
+        case .saxs:                return "SAXS / SANS"
+        case .circularDichroism:   return "Circular Dichroism"
+        case .microwaveRotational: return "Microwave / Rotational"
+        case .thermogravimetric:   return "Thermogravimetric (TGA)"
+        case .terahertz:           return "Terahertz (THz)"
         }
-
-        // Build a minimal SDAMainHeader from the SPCKit SPCMainHeader
-        // so metadata display in the Analyzer is populated.
-        let sdaHeader = SDAMainHeader(
-            fileTypeFlags: file.header.flags.rawValue,
-            spcVersion: file.header.version.rawValue,
-            experimentTypeCode: file.header.experimentType,
-            yExponent: Int8(bitPattern: file.header.yExponent),
-            pointCount: Int32(file.header.pointCount),
-            firstX: file.header.firstX,
-            lastX: file.header.lastX,
-            subfileCount: Int32(file.header.subfileCount),
-            xUnitsCode: file.header.xUnitsCode,
-            yUnitsCode: file.header.yUnitsCode,
-            zUnitsCode: file.header.zUnitsCode,
-            postingDisposition: 0,
-            compressedDate: SDACompressedDate(rawValue: Int32(bitPattern: file.header.compressedDate)),
-            resolutionText: file.header.resolutionDescription,
-            sourceInstrumentText: file.header.sourceInstrument,
-            peakPointNumber: file.header.peakPoint,
-            memo: file.header.memo,
-            customAxisCombined: file.header.customAxisLabels,
-            customAxisX: "",
-            customAxisY: "",
-            customAxisZ: "",
-            logBlockOffset: Int32(bitPattern: file.header.logOffset),
-            fileModificationFlag: Int32(bitPattern: file.header.modificationFlag),
-            processingCode: 0,
-            calibrationLevelPlusOne: 0,
-            subMethodInjectionNumber: 0,
-            concentrationFactor: file.header.concentrationFactor,
-            methodFile: file.header.methodFile,
-            zSubfileIncrement: file.header.zIncrement,
-            wPlaneCount: Int32(file.header.wPlaneCount),
-            wPlaneIncrement: file.header.wIncrement,
-            wAxisUnitsCode: file.header.wUnitsCode
-        )
-
-        let metadata = ShimadzuSPCMetadata(
-            fileName: url.lastPathComponent,
-            fileSizeBytes: 0,
-            directoryEntryNames: [],
-            dataSetNames: spectra.map(\.name),
-            headerInfoByteCount: 512,
-            mainHeader: sdaHeader
-        )
-
-        return ShimadzuSPCParseResult(
-            spectra: spectra,
-            skippedDataSets: [],
-            metadata: metadata,
-            headerInfoData: Data()
-        )
-    }
-}
-```
-
-> **Note:** The `SDACompressedDate` type was renamed from `SPCCompressedDate` in Phase 1.
-> If the project uses `SPCCompressedDate` still (because SPCHeaderParser.swift was the only
-> place renamed), update the initializer call above to use whichever name exists in the
-> compiled target.
-
-### Step 2.2 — Update SpectrumParsingWorker to use SPCParser
-
-In `SPFSpectralAnalyzer/Core/Workers/SpectrumParsingWorker.swift`, find the existing
-`do { ... }` block inside the `for url in urls` loop that dispatches to
-`GalacticSPCParser` or `ShimadzuSPCParser`. Replace that block entirely:
-
-```swift
-// FIND AND REPLACE the entire do-block beginning with:
-//   let result: ShimadzuSPCParseResult
-//   if let fileData = try? Data(contentsOf: url, options: .mappedIfSafe),
-//      GalacticSPCParser.canParse(fileData) {
-
-// REPLACE WITH:
-do {
-    let result: ShimadzuSPCParseResult
-    // Phase 2: Use SPCKit's unified SPCParser for all SPC file formats.
-    // SPCParser handles Galactic 0x4B, legacy LabCalc 0x4D, and Shimadzu OLE2/CFB
-    // by detecting the format from magic bytes — no separate dispatch needed.
-    let spcFile = try await SPCParser.parse(url: url)
-    result = SPCKitAdapter.toParseResult(spcFile, url: url)
-
-    let namedSpectra = result.spectra.enumerated().map { index, spectrum in
-        let name = ContentView.sampleDisplayName(
-            from: url,
-            spectrumName: spectrum.name,
-            index: index,
-            total: result.spectra.count
-        )
-        return RawSpectrumInput(name: name, x: spectrum.x, y: spectrum.y, fileName: url.lastPathComponent)
     }
 
-    fileRawSpectra = namedSpectra
-    loaded.append(contentsOf: namedSpectra)
-    if !result.skippedDataSets.isEmpty {
-        filesWithSkipped += 1
-        skippedTotal += result.skippedDataSets.count
-        let warning = "skipped \(result.skippedDataSets.count)"
-        fileWarnings.append(warning)
-        warnings.append("\(url.lastPathComponent): \(warning)")
+    var pinnPhysicsLaw: String {
+        switch self {
+        case .uvVis:               return "Beer-Lambert A(λ)=ε(λ)·c·l; COLIPA SPF"
+        case .ftir:                return "Beer-Lambert A(ν̃)=Σcᵢεᵢ(ν̃); functional group rules"
+        case .nir:                 return "Overtone νₙ≈n·ν₀(1−χₑ(n+1)); Beer-Lambert"
+        case .raman:               return "I_R ∝ (ν₀−νₘ)⁴|∂α/∂Q|²N; Stokes/Bose-Einstein"
+        case .massSpecEI:          return "Isotope binomial P(¹³C)=0.011n; fragmentation rules"
+        case .massSpecMSMS:        return "CID: α-cleavage, retro-Diels-Alder, McLafferty"
+        case .nmrProton:           return "Shoolery δ=0.23+Σσᵢ; Karplus J=Acos²φ−Bcosφ+C"
+        case .nmrCarbon:           return "HOSE code additive increments; Grant-Paul equation"
+        case .fluorescence:        return "Jablonski S₁→S₀; Stokes shift; Φ=k_r/(k_r+k_nr)"
+        case .xrdPowder:           return "Bragg nλ=2d·sinθ; Scherrer τ=Kλ/(β·cosθ)"
+        case .xps:                 return "Photoelectric BE=hν−KE−φ; Koopmans' theorem"
+        case .eels:                return "Core-loss onset=E_edge; ELNES; Kramers-Kronig"
+        case .atomicEmission:      return "Rydberg 1/λ=RZ²(1/n₁²−1/n₂²); Boltzmann I_ki"
+        case .libs:                return "Saha-Boltzmann; Stark broadening→nₑ; T from ratio"
+        case .gcRetention:         return "Kovats RI=100[n+(log tₓ−log tₙ)/Δlog t]"
+        case .hplcRetention:       return "Martin-Synge LFER: log k=c+eE+sS+aA+bB+lL"
+        case .hitranMolecular:     return "Voigt profile S(T)·f(ν−ν₀,γ_D,γ_L); HITRAN params"
+        case .atmosphericUVVis:    return "Beer-Lambert I=I₀exp(−σ(λ,T)·N·l); J-values"
+        case .usgsReflectance:     return "Kubelka-Munk F(R)=(1−R)²/2R; continuum removal"
+        case .opticalConstants:    return "Sellmeier n²=1+ΣBᵢλ²/(λ²−Cᵢ); Kramers-Kronig"
+        case .saxs:                return "Guinier I(q)=I₀exp(−q²Rg²/3); Porod I∝q⁻⁴"
+        case .circularDichroism:   return "Cotton effect Δε; Drude ORD; basis-spectrum decomp"
+        case .microwaveRotational: return "Rigid rotor E_J=hBJ(J+1); centrifugal distortion"
+        case .thermogravimetric:   return "Arrhenius; Coats-Redfern ln(−dα/dT)=ln(A/β)−Ea/RT"
+        case .terahertz:           return "Drude σ₁(ω)=σ₀/(1+ω²τ²); Lorentz oscillator THz"
+        }
     }
 
-    let fileData = try? Data(contentsOf: url)
-    let parsedResult = ParsedFileResult(
-        url: url,
-        rawSpectra: fileRawSpectra,
-        skippedDataSets: result.skippedDataSets,
-        warnings: fileWarnings,
-        metadata: result.metadata,
-        headerInfoData: result.headerInfoData,
-        fileData: fileData,
-        metadataJSON: nil
-    )
-    parsedFiles.append(parsedResult)
-    await MainActor.run {
-        DatasetViewModel.validateSPCHeaderConsistency(for: parsedResult)
+    /// Total feature vector size fed to the CoreML model.
+    var featureCount: Int {
+        switch self {
+        case .uvVis:               return 122
+        case .ftir:                return 371
+        case .nir:                 return 860
+        case .raman:               return 358
+        case .massSpecEI:          return 515
+        case .massSpecMSMS:        return 507
+        case .nmrProton:           return 245
+        case .nmrCarbon:           return 258
+        case .fluorescence:        return 307
+        case .xrdPowder:           return 862
+        case .xps:                 return 1212
+        case .eels:                return 612
+        case .atomicEmission:      return 714
+        case .libs:                return 716
+        case .gcRetention:         return 52
+        case .hplcRetention:       return 57
+        case .hitranMolecular:     return 406
+        case .atmosphericUVVis:    return 651
+        case .usgsReflectance:     return 1086
+        case .opticalConstants:    return 403
+        case .saxs:                return 208
+        case .circularDichroism:   return 128
+        case .microwaveRotational: return 212
+        case .thermogravimetric:   return 214
+        case .terahertz:           return 208
+        }
     }
 
-    let duration = Date().timeIntervalSince(fileStart)
-    let fileName = url.lastPathComponent
-    let spectraCount = namedSpectra.count
-    let skippedCount = result.skippedDataSets.count
-    await MainActor.run {
-        Instrumentation.log(
-            "File parsed",
-            area: .importParsing,
-            level: .info,
-            details: "file=\(fileName) spectra=\(spectraCount) skipped=\(skippedCount)",
-            duration: duration
-        )
+    var primaryTargetColumn: String {
+        switch self {
+        case .uvVis:               return "spf"
+        case .ftir:                return "compound_class"
+        case .nir:                 return "moisture_pct"
+        case .raman:               return "mineral_class"
+        case .massSpecEI:          return "molecular_weight"
+        case .massSpecMSMS:        return "compound_class"
+        case .nmrProton:           return "functional_group_vector"
+        case .nmrCarbon:           return "functional_group_vector"
+        case .fluorescence:        return "quantum_yield"
+        case .xrdPowder:           return "crystal_system"
+        case .xps:                 return "surface_carbon_pct"
+        case .eels:                return "element_present"
+        case .atomicEmission:      return "element_present"
+        case .libs:                return "plasma_temperature_K"
+        case .gcRetention:         return "kovats_ri"
+        case .hplcRetention:       return "retention_time_min"
+        case .hitranMolecular:     return "molecule_id"
+        case .atmosphericUVVis:    return "photolysis_J_value"
+        case .usgsReflectance:     return "mineral_class"
+        case .opticalConstants:    return "bandgap_eV"
+        case .saxs:                return "rg_nm"
+        case .circularDichroism:   return "alpha_helix_pct"
+        case .microwaveRotational: return "rotational_constant_B_GHz"
+        case .thermogravimetric:   return "decomp_temp_C"
+        case .terahertz:           return "compound_class"
+        }
     }
-} catch {
-    let duration = Date().timeIntervalSince(fileStart)
-    let fileName = url.lastPathComponent
-    let errorMessage = error.localizedDescription
-    await MainActor.run {
-        Instrumentation.log(
-            "File parse failed",
-            area: .importParsing,
-            level: .warning,
-            details: "file=\(fileName) error=\(errorMessage)",
-            duration: duration
-        )
-    }
-    failures.append("\(url.lastPathComponent): \(error)")
+
+    var modelPackageName: String { "\(rawValue)_pinn.mlpackage" }
 }
 ```
 
-> The outer `for url in urls` loop structure, the `accessGranted` / `defer` security scope
-> handling, and the `ParseBatchResult` return at the end remain unchanged.
+### 0.2 — ModalitySchemas.swift
 
-### Step 2.3 — Phase 2 Build Verification
-
-Build the project. The parse path now flows through `SPCParser`. Existing tests in
-`BasicTests.swift` should still pass. Fix any remaining type-name issues before continuing.
-
----
-
-## PHASE 3 — Library Editor (Three New Files + Sidebar Wiring)
-
-**Goal:** Add a full-featured SPC editor accessible from the Library sidebar context menu.
-Users can open any SPC dataset in the editor, apply transforms, undo/redo, and save as
-either Galactic or Shimadzu format.
-
-### Step 3.1 — Create SPCLibraryBridge.swift
-
-Create `SPFSpectralAnalyzer/Library/SPCLibraryBridge.swift` with the complete content:
+Create `Training/Models/ModalitySchemas.swift` — defines the canonical axis grid
+for each modality's spectral feature bins:
 
 ```swift
-// SPCLibraryBridge.swift
-// SPFSpectralAnalyzer
-//
-// @MainActor bridge between the Library's DatasetViewModel and SPCKit's
-// SPCDocumentStore. One SPCDocumentStore per open editor session.
-// All editor actions route through this bridge.
+import Foundation
 
-import SwiftUI
-import SwiftData
-import UniformTypeIdentifiers
+struct ModalityAxisSpec: Sendable {
+    let axisLabel: String
+    let axisUnit: String
+    let axisValues: [Double]        // one value per spectral bin
+    let featureNamePrefix: String   // e.g. "abs_" → columns abs_290, abs_291...
 
-// MARK: - SPCLibraryBridge
-
-@MainActor
-@Observable
-final class SPCLibraryBridge {
-
-    // MARK: - Public state
-
-    /// The active SPCDocumentStore for the currently open editor session.
-    /// Nil when no editor is open.
-    private(set) var activeStore: SPCDocumentStore?
-
-    /// The StoredDataset that is currently being edited.
-    private(set) var editingDataset: StoredDataset?
-
-    /// True while the SPC editor sheet is presented.
-    var isEditorPresented: Bool = false
-
-    /// True while a combine operation is running.
-    var isCombining: Bool = false
-
-    /// Error to present in an alert.
-    var presentedError: String?
-
-    // MARK: - Open for editing
-
-    /// Open a StoredDataset's raw SPC bytes in the full SPCKit editor.
-    /// The dataset must have non-nil `fileData` containing valid SPC bytes.
-    /// If the dataset has no fileData, an error is shown.
-    func openForEditing(_ dataset: StoredDataset) async {
-        guard let data = dataset.fileData else {
-            presentedError = "No file data available for \(dataset.fileName)."
-            return
-        }
-        do {
-            let spcFile = try SPCParser.parse(data: data)
-            let store = SPCDocumentStore()
-            store.loadParsed(spcFile)
-            store.documentName = dataset.fileName
-                .replacingOccurrences(of: ".spc", with: "", options: .caseInsensitive)
-            activeStore = store
-            editingDataset = dataset
-            isEditorPresented = true
-        } catch {
-            presentedError = "Cannot open \(dataset.fileName): \(error.localizedDescription)"
-        }
-    }
-
-    // MARK: - Combine multiple datasets into one SPC file
-
-    /// Create a new SPC file by merging subfiles from multiple StoredDatasets.
-    /// Each dataset contributes its subfiles (materialized X arrays for Y-only files).
-    /// The resulting SPCDocumentStore is opened in the editor.
-    func combineDatasets(_ datasets: [StoredDataset]) async {
-        guard datasets.count >= 2 else {
-            presentedError = "Select at least 2 datasets to combine."
-            return
-        }
-        isCombining = true
-        defer { isCombining = false }
-
-        // Parse the first dataset as the base document
-        guard let firstData = datasets.first?.fileData else {
-            presentedError = "First dataset has no file data."
-            return
-        }
-        do {
-            let baseFile = try SPCParser.parse(data: firstData)
-            let store = SPCDocumentStore()
-            store.loadParsed(baseFile)
-            store.documentName = "Combined"
-
-            // Import subfiles from the remaining datasets
-            for dataset in datasets.dropFirst() {
-                guard let data = dataset.fileData else { continue }
-                guard let url = dataset.sourcePath.map({ URL(fileURLWithPath: $0) }) else {
-                    // Write to a temp file so importSubfiles(from:) can load it
-                    let tempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(dataset.fileName)
-                    try data.write(to: tempURL)
-                    await store.importSubfiles(from: tempURL)
-                    try? FileManager.default.removeItem(at: tempURL)
-                    continue
-                }
-                await store.importSubfiles(from: url)
-            }
-
-            activeStore = store
-            editingDataset = nil      // No single source dataset for combined files
-            isEditorPresented = true
-        } catch {
-            presentedError = "Combine failed: \(error.localizedDescription)"
-        }
-    }
-
-    // MARK: - Save As (called by SPCEditorSheet after fileExporter completes)
-
-    /// Persist the saved SPC file as a new StoredDataset in SwiftData.
-    /// The original dataset is preserved; the edited version becomes a new entry.
-    func handleSaveAs(
-        data: Data,
-        format: SPCExportFormat,
-        suggestedName: String,
-        modelContext: ModelContext
-    ) {
-        let newDataset = StoredDataset()
-        newDataset.fileName = suggestedName
-        newDataset.fileData = data
-        newDataset.spcKitEdited = true
-        newDataset.spcFileFormat = format.rawValue
-        modelContext.insert(newDataset)
-        do {
-            try modelContext.save()
-        } catch {
-            presentedError = "Failed to save dataset: \(error.localizedDescription)"
-        }
-    }
-
-    // MARK: - Dismiss editor
-
-    func dismissEditor() {
-        isEditorPresented = false
-        activeStore = nil
-        editingDataset = nil
-    }
-
-    // MARK: - Helpers
-
-    /// Returns true if the given StoredDataset has SPC file bytes that can be opened.
-    static func canOpen(_ dataset: StoredDataset) -> Bool {
-        guard let data = dataset.fileData, data.count >= 256 else { return false }
-        // Galactic SPC: version byte at offset 1 is 0x4B or 0x4D
-        // Shimadzu OLE2: magic bytes at 0-7 are D0 CF 11 E0 A1 B1 1A E1
-        let versionByte = data[1]
-        if versionByte == 0x4B || versionByte == 0x4D { return true }
-        if data.count >= 8 {
-            let magic: [UInt8] = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]
-            return zip(magic, data.prefix(8)).allSatisfy { $0 == $1 }
-        }
-        return false
-    }
-}
-```
-
-### Step 3.2 — Create SPCEditorSheet.swift
-
-Create `SPFSpectralAnalyzer/Library/SPCEditorSheet.swift` with the complete content:
-
-```swift
-// SPCEditorSheet.swift
-// SPFSpectralAnalyzer
-//
-// Full-featured SPC editor presented as a sheet from the Library.
-// Wraps SPCKit's SPCDocumentStore + views inside a NavigationSplitView.
-// Supports Undo/Redo, Transform, and Save As (Galactic or Shimadzu CFB).
-
-import SwiftUI
-import SwiftData
-import UniformTypeIdentifiers
-
-// MARK: - SPCEditorSheet
-
-struct SPCEditorSheet: View {
-
-    @Bindable var bridge: SPCLibraryBridge
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        Group {
-            if let store = bridge.activeStore {
-                editorContent(store: store)
-            } else {
-                loadingView
-            }
-        }
-        // Format picker sheet (shown before fileExporter)
-        .sheet(isPresented: Binding(
-            get: { bridge.activeStore?.showExportFormatPicker ?? false },
-            set: { bridge.activeStore?.showExportFormatPicker = $0 }
-        )) {
-            if let store = bridge.activeStore {
-                SPCLibraryExportView(store: store)
-            }
-        }
-        // Transform panel sheet
-        .sheet(isPresented: Binding(
-            get: { bridge.activeStore?.showTransformPanel ?? false },
-            set: { bridge.activeStore?.showTransformPanel = $0 }
-        )) {
-            if let store = bridge.activeStore {
-                TransformPanel(store: store)
-                    .presentationDetents([.medium, .large])
-            }
-        }
-        // fileExporter for Save As
-        .fileExporter(
-            isPresented: Binding(
-                get: { bridge.activeStore?.isExporting ?? false },
-                set: { bridge.activeStore?.isExporting = $0 }
-            ),
-            document: bridge.activeStore?.exportDocument,
-            contentType: .spcFile,
-            defaultFilename: bridge.activeStore?.exportFilename ?? "spectrum.spc"
-        ) { result in
-            handleExportResult(result)
-        }
-        // Error alert from bridge
-        .alert("Error", isPresented: Binding(
-            get: { bridge.presentedError != nil },
-            set: { if !$0 { bridge.presentedError = nil } }
-        )) {
-            Button("OK", role: .cancel) { bridge.presentedError = nil }
-        } message: {
-            Text(bridge.presentedError ?? "")
-        }
-        // Error alert from store
-        .alert("Error", isPresented: Binding(
-            get: { bridge.activeStore?.presentedError != nil },
-            set: { if !$0 { bridge.activeStore?.presentedError = nil } }
-        )) {
-            Button("OK", role: .cancel) { bridge.activeStore?.presentedError = nil }
-        } message: {
-            Text(bridge.activeStore?.presentedError?.message ?? "")
-        }
-    }
-
-    // MARK: - Editor content
-
-    @ViewBuilder
-    private func editorContent(store: SPCDocumentStore) -> some View {
-        NavigationSplitView {
-            // Sidebar: subfile tree
-            SubfileTreeView(store: store)
-                .navigationTitle(bridge.editingDataset?.fileName ?? "SPC Editor")
-                #if os(iOS)
-                .navigationBarTitleDisplayMode(.inline)
-                #endif
-        } detail: {
-            // Detail: spectrum chart
-            SpectrumChartView(store: store)
-        }
-        .toolbar {
-            // Leading: close
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Done") {
-                    bridge.dismissEditor()
-                    dismiss()
-                }
-            }
-
-            // Undo
-            ToolbarItem(placement: .automatic) {
-                Button {
-                    Task { await store.undo() }
-                } label: {
-                    Label("Undo", systemImage: "arrow.uturn.backward")
-                }
-                .disabled(!store.canUndo)
-                .keyboardShortcut("z", modifiers: .command)
-            }
-
-            // Redo
-            ToolbarItem(placement: .automatic) {
-                Button {
-                    Task { await store.redo() }
-                } label: {
-                    Label("Redo", systemImage: "arrow.uturn.forward")
-                }
-                .disabled(!store.canRedo)
-                .keyboardShortcut("z", modifiers: [.command, .shift])
-            }
-
-            // Transform
-            ToolbarItem(placement: .automatic) {
-                Button {
-                    store.showTransformPanel = true
-                } label: {
-                    Label("Transform", systemImage: "function")
-                }
-                .disabled(store.isTransforming)
-            }
-
-            // Save As
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task { await store.requestExport() }
-                } label: {
-                    Label("Save As…", systemImage: "square.and.arrow.down")
-                }
-                .disabled(store.resolvedSubfiles.isEmpty)
-            }
-        }
-    }
-
-    // MARK: - Loading placeholder
-
-    private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-            Text("Opening SPC file…")
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    // MARK: - Export result handler
-
-    private func handleExportResult(_ result: Result<URL, Error>) {
-        guard let store = bridge.activeStore else { return }
-        switch result {
-        case .success(let url):
-            // Read the saved file data and add as a new StoredDataset
-            if let data = try? Data(contentsOf: url) {
-                bridge.handleSaveAs(
-                    data: data,
-                    format: store.selectedExportFormat,
-                    suggestedName: url.lastPathComponent,
-                    modelContext: modelContext
-                )
-            }
-            // Optionally reload in the store (to refresh audit log etc.)
-            Task { await store.handleExportResult(.success(url)) }
-
-        case .failure(let error):
-            bridge.presentedError = "Save failed: \(error.localizedDescription)"
+    static func make(for modality: SpectralModality) -> ModalityAxisSpec {
+        switch modality {
+        case .uvVis:
+            return .init(axisLabel: "Wavelength (nm)", axisUnit: "nm",
+                         axisValues: (290...400).map { Double($0) },
+                         featureNamePrefix: "abs_")
+        case .ftir:
+            return .init(axisLabel: "Wavenumber (cm⁻¹)", axisUnit: "cm-1",
+                         axisValues: stride(from: 400.0, through: 4000.0, by: 10.0).map { $0 },
+                         featureNamePrefix: "abs_")
+        case .nir:
+            return .init(axisLabel: "Wavelength (nm)", axisUnit: "nm",
+                         axisValues: stride(from: 800.0, through: 2498.0, by: 2.0).map { $0 },
+                         featureNamePrefix: "abs_")
+        case .raman:
+            return .init(axisLabel: "Raman Shift (cm⁻¹)", axisUnit: "cm-1",
+                         axisValues: stride(from: 100.0, through: 3590.0, by: 10.0).map { $0 },
+                         featureNamePrefix: "int_")
+        case .massSpecEI, .massSpecMSMS:
+            return .init(axisLabel: "m/z (Da)", axisUnit: "Da",
+                         axisValues: (1...500).map { Double($0) },
+                         featureNamePrefix: "mz_")
+        case .nmrProton:
+            return .init(axisLabel: "Chemical Shift ¹H (ppm)", axisUnit: "ppm",
+                         axisValues: stride(from: 0.0, through: 11.95, by: 0.05).map { $0 },
+                         featureNamePrefix: "d_")
+        case .nmrCarbon:
+            return .init(axisLabel: "¹³C Shift (ppm)", axisUnit: "ppm",
+                         axisValues: (0...249).map { Double($0) },
+                         featureNamePrefix: "c_")
+        case .fluorescence:
+            return .init(axisLabel: "Emission Wavelength (nm)", axisUnit: "nm",
+                         axisValues: stride(from: 300.0, through: 898.0, by: 2.0).map { $0 },
+                         featureNamePrefix: "em_")
+        case .xrdPowder:
+            return .init(axisLabel: "2θ (°)", axisUnit: "deg",
+                         axisValues: stride(from: 5.0, through: 89.95, by: 0.1).map { $0 },
+                         featureNamePrefix: "xrd_")
+        case .xps:
+            return .init(axisLabel: "Binding Energy (eV)", axisUnit: "eV",
+                         axisValues: (0...1199).map { Double($0) },
+                         featureNamePrefix: "be_")
+        case .eels:
+            return .init(axisLabel: "Energy Loss (eV)", axisUnit: "eV",
+                         axisValues: stride(from: 0.0, through: 2995.0, by: 5.0).map { $0 },
+                         featureNamePrefix: "el_")
+        case .atomicEmission, .libs:
+            return .init(axisLabel: "Wavelength (nm)", axisUnit: "nm",
+                         axisValues: (200...899).map { Double($0) },
+                         featureNamePrefix: "em_")
+        case .gcRetention, .hplcRetention:
+            return .init(axisLabel: "Molecular Descriptor", axisUnit: "mixed",
+                         axisValues: [],   // named columns, not axis bins
+                         featureNamePrefix: "md_")
+        case .hitranMolecular:
+            return .init(axisLabel: "Wavenumber (cm⁻¹)", axisUnit: "cm-1",
+                         axisValues: stride(from: 400.0, through: 4390.0, by: 10.0).map { $0 },
+                         featureNamePrefix: "k_")
+        case .atmosphericUVVis:
+            return .init(axisLabel: "Wavelength (nm)", axisUnit: "nm",
+                         axisValues: (150...799).map { Double($0) },
+                         featureNamePrefix: "sigma_")
+        case .usgsReflectance:
+            return .init(axisLabel: "Wavelength (nm)", axisUnit: "nm",
+                         axisValues: stride(from: 350.0, through: 2500.0, by: 2.0).map { $0 },
+                         featureNamePrefix: "refl_")
+        case .opticalConstants:
+            return .init(axisLabel: "Wavelength (nm)", axisUnit: "nm",
+                         axisValues: stride(from: 200.0, through: 5175.0, by: 25.0).map { $0 },
+                         featureNamePrefix: "wl_")
+        case .saxs:
+            let logBins = stride(from: -3.0, through: 0.0, by: 0.015165)
+                              .prefix(200).map { pow(10.0, $0) }
+            return .init(axisLabel: "q (Å⁻¹)", axisUnit: "1/angstrom",
+                         axisValues: Array(logBins),
+                         featureNamePrefix: "Iq_")
+        case .circularDichroism:
+            return .init(axisLabel: "Wavelength (nm)", axisUnit: "nm",
+                         axisValues: (180...299).map { Double($0) },
+                         featureNamePrefix: "cd_")
+        case .microwaveRotational:
+            return .init(axisLabel: "Frequency (GHz)", axisUnit: "GHz",
+                         axisValues: stride(from: 1.0, through: 996.0, by: 5.0).prefix(200).map { $0 },
+                         featureNamePrefix: "f_")
+        case .thermogravimetric:
+            return .init(axisLabel: "Temperature (°C)", axisUnit: "degC",
+                         axisValues: stride(from: 25.0, through: 1020.0, by: 5.0).prefix(200).map { $0 },
+                         featureNamePrefix: "tga_")
+        case .terahertz:
+            return .init(axisLabel: "THz Frequency (THz)", axisUnit: "THz",
+                         axisValues: stride(from: 0.1, through: 10.05, by: 0.05).prefix(200).map { $0 },
+                         featureNamePrefix: "thz_")
         }
     }
 }
 ```
 
-### Step 3.3 — Create SPCLibraryExportView.swift
-
-Create `SPFSpectralAnalyzer/Library/SPCLibraryExportView.swift` with the complete content:
+### 0.3 — TrainingRecord.swift (modality-aware)
 
 ```swift
-// SPCLibraryExportView.swift
-// SPFSpectralAnalyzer
-//
-// Format picker shown before the fileExporter Save As sheet.
-// Lets the user choose between Thermo Galactic binary and Shimadzu OLE2/CFB.
+import Foundation
 
-import SwiftUI
+struct TrainingRecord: Sendable, Codable, Identifiable {
+    var id: UUID = UUID()
+    var modality: SpectralModality
+    var sourceID: String
+    var createdAt: Date = Date()
+    var spectralValues: [Float]          // length = ModalityAxisSpec.axisValues.count
+    var derivedFeatures: [String: Double]
+    var primaryTarget: Double?
+    var labelJSON: String?               // JSON for categorical / multi-label targets
+    var isComputedLabel: Bool
+    var computationMethod: String?
 
-struct SPCLibraryExportView: View {
+    func featureDictionary() -> [String: Double] {
+        let spec = ModalityAxisSpec.make(for: modality)
+        var d: [String: Double] = [:]
+        for (i, axVal) in spec.axisValues.enumerated() where i < spectralValues.count {
+            let key: String
+            switch modality {
+            case .nmrProton:
+                key = "\(spec.featureNamePrefix)\(String(format: "%.2f", axVal).replacingOccurrences(of: ".", with: "p"))"
+            default:
+                key = "\(spec.featureNamePrefix)\(Int(axVal))"
+            }
+            d[key] = Double(spectralValues[i])
+        }
+        for (k, v) in derivedFeatures { d[k] = v }
+        if let t = primaryTarget { d[modality.primaryTargetColumn] = t }
+        return d
+    }
+}
+```
 
-    @Bindable var store: SPCDocumentStore
-    @Environment(\.dismiss) private var dismiss
+### 0.4–0.5 — SwiftData Models
 
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    ForEach(SPCExportFormat.allCases) { format in
-                        Button {
-                            store.selectedExportFormat = format
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(format.rawValue)
-                                        .foregroundStyle(.primary)
-                                    Text(format == .thermoGalactic
-                                         ? "Standard binary SPC (0x4B header). Compatible with GRAMS and most instruments."
-                                         : "OLE2 Compound Binary. Required for Shimadzu software compatibility.")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                if store.selectedExportFormat == format {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.accent)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                } header: {
-                    Text("Output Format")
-                } footer: {
-                    Text("The edited file will be saved as a new dataset in your Library. The original is preserved.")
+`StoredTrainingRecord` and `StoredReferenceSpectrum` from the original design
+remain unchanged, but add `var modality: String` to both `@Model` classes.
+Register both in the app's `ModelContainer` schema.
+
+---
+
+## PHASE 1 — Universal JCAMP-DX Parser
+
+JCAMP-DX is the shared format for UV-Vis (NIST, SDBS, MPI-Mainz), FTIR (NIST SRD 35,
+SDBS, RRUFF), Raman (SDBS), NMR (nmrshiftdb2, SDBS), and Mass Spec (NIST WebBook).
+
+Extend the existing `JCAMPDXParser` to:
+
+1. Detect modality from `##DATA TYPE` LDR:
+
+```swift
+nonisolated static func detectModality(from headers: [String: String]) -> SpectralModality? {
+    let dt = (headers["DATA TYPE"] ?? headers["DATATYPE"] ?? "").uppercased()
+    switch dt {
+    case let s where s.contains("NEAR INFRARED"):   return .nir
+    case let s where s.contains("INFRARED"):        return .ftir
+    case let s where s.contains("UV"):              return .uvVis
+    case let s where s.contains("RAMAN"):           return .raman
+    case let s where s.contains("NMR") && s.contains("1H"):  return .nmrProton
+    case let s where s.contains("NMR") && s.contains("13C"): return .nmrCarbon
+    case let s where s.contains("NMR"):             return .nmrProton  // default 1H
+    case let s where s.contains("MASS"):            return .massSpecEI
+    default:                                         return nil
+    }
+}
+```
+
+2. Detect NIST "Not found" pages: check first 512 bytes for `<html` or `not found`.
+
+3. Handle `##XUNITS= NANOMETERS` (UV-Vis) vs `##XUNITS= 1/CM` (IR/Raman) — convert
+   all x-axes to the canonical unit for the detected modality before returning.
+
+---
+
+## PHASE 2A — UV-Vis PINN (Original, Enhanced)
+
+**Data Sources:**
+- NIST Chemistry WebBook SRD 69:
+  `https://webbook.nist.gov/cgi/cbook.cgi?ID={CAS}&Type=UVVis-SPEC&Index=0&JCAMP=on`
+- SDBS UV-Vis: `https://sdbs.db.aist.go.jp/sdbs/cgi-bin/direct_frame_disp.cgi?sdbsno={ID}`
+- MPI-Mainz UV/Vis Spectral Atlas (atmospheric absorbers, free JCAMP-DX per compound):
+  `https://uv-vis-spectral-atlas-mainz.org/uvvis/` — >800 species of atmospheric relevance
+
+**PINN Physics:** Beer-Lambert A(λ) = Σᵢ cᵢ·εᵢ(λ)·l + COLIPA 2011 SPF.
+Full `BeerLambertSynthesizer` code is in the original Phase 2–3 from the
+previous CLAUDE.md iteration. This phase adds `MPIMainzSource` to fetch
+atmospheric UV absorbers (ozone, SO₂, NO₂, BrO, HCHO, etc.) as additional
+training reference spectra broadening formulation coverage.
+
+**Feature Vector (122):** `abs_290`…`abs_400` (111) + 7 spectral metrics + 4 aux.
+**Target:** `spf` (Double)
+
+---
+
+## PHASE 2B — FTIR PINN
+
+**Data Sources:**
+- NIST SRD 35 (5,228 gas-phase IR spectra, bulk JCAMP-DX, free):
+  `https://catalog.data.gov/dataset/nist-epa-gas-phase-infrared-database-jcamp-format-srd-35`
+  Download: concatenated `SRD35.jdx` or individual files by CAS number
+- NIST WebBook per-compound IR:
+  `https://webbook.nist.gov/cgi/cbook.cgi?ID={CAS}&Type=IR-SPEC&JCAMP=on`
+- SDBS IR: same hostname, `Type=IR`
+- RRUFF IR spectra: `https://rruff.info/{mineral}` → IR data tab
+
+**PINN Physics:**
+```
+A(ν̃) = Σᵢ cᵢ · εᵢ(ν̃) · l       Beer-Lambert in wavenumber space
+
+Characteristic functional group bands:
+  Carbonyl (C=O):    1680–1750 cm⁻¹  (ketone 1710–1720, ester 1730–1750, acid 1700–1725)
+  O-H stretch:       2500–3600 cm⁻¹  (alcohol broad, acid very broad)
+  N-H:               3200–3500 cm⁻¹  (primary amine 2 bands, secondary 1 band)
+  C≡N:               2200–2260 cm⁻¹  (sharp, strong for nitriles)
+  C=C aromatic:      1475–1600 cm⁻¹  (two bands, characteristic pattern)
+  C-H sp3:           2850–2960 cm⁻¹  (asymmetric + symmetric stretch)
+  C-H sp2/aromatic:  3000–3100 cm⁻¹
+  C-O-C ether:       1000–1250 cm⁻¹  (strong C-O stretch)
+  S=O sulfone:       1300–1350 and 1120–1160 cm⁻¹
+  P=O:               1250–1310 cm⁻¹
+  C-F:               1000–1400 cm⁻¹  (very strong)
+```
+
+**Feature Vector (371):**
+- `abs_400`…`abs_4000` (360 bins at 10 cm⁻¹)
+- `carbonyl_index` = A(1700)/A(1465) or 0 if denominator < 1e-6
+- `crystallinity_index` = A(1430)/A(1110) (polymers)
+- `aliphatic_index` = integral A(2850–2960 cm⁻¹) / 110
+- `aromatic_fraction` = integral A(1475–1600 cm⁻¹) / total
+- `amine_index` = integral A(3200–3500 cm⁻¹) / total
+- `hydroxyl_index` = integral A(2500–3600 cm⁻¹) / total
+- `carbonyl_position_cm1` = ν̃ at max A in 1680–1750 window
+- `fingerprint_entropy` = Shannon entropy of A(600–1500 cm⁻¹) distribution
+- `double_bond_region_integral` = integral A(1500–1700 cm⁻¹)
+- `total_integrated_abs` = sum × 10 cm⁻¹
+- `spectral_centroid_cm1` = Σ(ν̃·A)/ΣA
+
+**Target:** `compound_class` (string: "alcohol", "ketone", "ester", "amine",
+"amide", "ether", "alkane", "alkene", "aromatic", "carboxylic_acid", etc.)
+
+**FTIRSynthesizer actor (key methods):**
+
+```swift
+actor FTIRSynthesizer {
+    private var references: [String: [Float]] = [:]   // CAS -> 360-bin grid
+    private let grid = stride(from: 400.0, through: 4000.0, by: 10.0).map { $0 }
+
+    func loadReference(casNumber: String, rawWN: [Double], rawAbs: [Double]) {
+        if let g = SpectralNormalizer.resampleToGrid(x: rawWN, y: rawAbs, grid: grid) {
+            references[casNumber] = g
+        }
+    }
+
+    func synthesize(count: Int) async -> [TrainingRecord] {
+        var records: [TrainingRecord] = []
+        let keys = Array(references.keys)
+        guard keys.count >= 2 else { return [] }
+        for _ in 0..<count {
+            let nComp = Int.random(in: 1...min(4, keys.count))
+            let chosen = (0..<nComp).map { _ in keys.randomElement()! }
+            let conc = (0..<nComp).map { _ in Float.random(in: 0.001...0.05) }
+            var spectrum = [Float](repeating: 0, count: grid.count)
+            for (cas, c) in zip(chosen, conc) {
+                guard let ref = references[cas] else { continue }
+                for i in 0..<grid.count { spectrum[i] += ref[i] * c }
+            }
+            spectrum = spectrum.map { max(0, $0 + Float.random(in: -0.001...0.001)) }
+            let derived = deriveFTIRFeatures(spectrum)
+            records.append(TrainingRecord(
+                modality: .ftir, sourceID: "synth_beer_lambert_ftir",
+                spectralValues: spectrum, derivedFeatures: derived,
+                primaryTarget: nil, labelJSON: nil,
+                isComputedLabel: true, computationMethod: "BeerLambert_FTIR"))
+        }
+        return records
+    }
+
+    private func deriveFTIRFeatures(_ s: [Float]) -> [String: Double] {
+        let a = s.map { Double($0) }
+        var d: [String: Double] = [:]
+        func integral(_ lo: Double, _ hi: Double) -> Double {
+            zip(grid, a).filter { $0.0 >= lo && $0.0 <= hi }.map { $0.1 }.reduce(0, +) * 10
+        }
+        let carbWin = zip(grid, a).filter { $0.0 >= 1680 && $0.0 <= 1750 }.map { $0.1 }
+        let methylWin = zip(grid, a).filter { $0.0 >= 1430 && $0.0 <= 1470 }.map { $0.1 }
+        d["carbonyl_index"] = (methylWin.max() ?? 0) > 1e-6 ?
+            (carbWin.max() ?? 0) / methylWin.max()! : 0
+        d["aliphatic_index"] = integral(2850, 2960) / max(1e-9, a.reduce(0, +) * 10)
+        d["aromatic_fraction"] = integral(1475, 1600) / max(1e-9, a.reduce(0, +) * 10)
+        d["total_integrated_abs"] = a.reduce(0, +) * 10
+        return d
+    }
+}
+```
+
+---
+
+## PHASE 2C — NIR PINN
+
+**Data Sources:**
+- Zenodo NIR soil library: `https://zenodo.org/records/7586622`
+  (2,106 samples, 1350–2550 nm, NeoSpectra handheld)
+- Mendeley NIR soil: `https://data.mendeley.com/datasets/h8mht3jsbz/1`
+- ISP NIR Spectral Library (6049 spectra):
+  `https://ir-spectra.com/download/IS_NIR_Spectra.htm` (free download)
+- NIST WebBook near-IR: same URL pattern as FTIR; filter `##XUNITS= NANOMETERS`
+  and xrange 800–2500 nm
+
+**PINN Physics:**
+```
+Anharmonic oscillator overtone positions:
+  νₙ = n · ν₀ · (1 − χₑ(n+1))
+  χₑ = anharmonicity constant
+  C-H fundamental ν₀ ≈ 3000 cm⁻¹ (3333 nm):
+    1st overtone 2 × 3000 × (1 − 2χₑ)  ≈ 5800 cm⁻¹ → 1724 nm
+    2nd overtone ≈ 8600 cm⁻¹ → 1163 nm
+  O-H fundamental ν₀ ≈ 3500 cm⁻¹ (2857 nm):
+    1st overtone ≈ 6800 cm⁻¹ → 1471 nm
+    2nd overtone ≈ 10100 cm⁻¹ → 990 nm
+  N-H combination band ≈ 4800–5000 cm⁻¹ → 2000–2083 nm
+  C=O combination ≈ 5000–5300 cm⁻¹ → 1887–2000 nm
+```
+
+**Feature Vector (860):**
+- `abs_800`…`abs_2498` (850 bins at 2 nm)
+- `oh_1st_overtone` = integral 1400–1450 nm
+- `ch_1st_overtone` = integral 1650–1750 nm
+- `oh_combination` = integral 1900–2000 nm
+- `protein_band` = integral 2050–2200 nm
+- `starch_band` = integral 2200–2320 nm
+- `fat_band` = integral 2300–2350 nm
+- `moisture_ratio` = oh_1st_overtone / total_integral
+- `ch_oh_ratio` = ch_1st_overtone / max(oh_1st_overtone, 1e-9)
+- `spectral_variance` = variance of 850 bins
+- `total_integral` = sum of 850 bins × 2 nm
+
+**Target:** `moisture_pct`, `protein_pct`, `fat_pct` (from reference values in datasets)
+
+---
+
+## PHASE 3 — Raman PINN
+
+**Data Sources:**
+- RRUFF Project (primary source): `https://rruff.info/` and updated `https://rruff.net/`
+  Individual mineral: `https://rruff.info/{Mineral}/display=default/R{ID}`
+  File format: plain `.txt` with `X=` and `Y=` arrays
+- SDBS Raman section: filter for Raman spectrum type
+
+**RRUFF `.txt` format:**
+```
+##RRUFFID=R050058
+X= 147.54, 154.42, 161.58, ...   (Raman shift, cm⁻¹)
+Y= 7.8, 9.1, 12.4, ...           (intensity, arbitrary units)
+##END=
+```
+
+**PINN Physics:**
+```
+Raman scattering intensity:
+  I_R(νₘ) ∝ I₀ · (ν₀ − νₘ)⁴ · |∂α/∂Q|² · N · f(T)
+  Stokes shift: Δν̃ = νₘ (molecular vibration frequency, cm⁻¹)
+  Anti-Stokes correction: f(T) = [1 − exp(−hcνₘ/kT)]⁻¹  (Bose-Einstein)
+  Fluorescence background: polynomial baseline B(ν̃) = Σ aₙν̃ⁿ
+```
+
+**Feature Vector (358):**
+- `int_100`…`int_3500` (350 bins at 10 cm⁻¹, max-normalised)
+- `d_band` = integral 1300–1400 cm⁻¹ (carbon D band)
+- `g_band` = integral 1500–1620 cm⁻¹ (carbon G band)
+- `d_g_ratio` = d_band / max(g_band, 1e-9)
+- `fingerprint_integral` = integral 200–1200 cm⁻¹
+- `high_freq_integral` = integral 2700–3200 cm⁻¹
+- `peak_position_cm1` = wavenumber at global maximum
+- `background_slope` = linear slope of the baseline
+- `peak_fwhm_cm1` = FWHM of the strongest peak
+
+**Target:** `mineral_class` (categorical, RRUFF mineral name)
+
+```swift
+actor RamanSynthesizer {
+    private var mineralSpectra: [String: [Float]] = [:]
+    private let grid = stride(from: 100.0, through: 3590.0, by: 10.0).map { $0 }
+
+    func loadReference(mineral: String, shifts: [Double], intensities: [Double]) {
+        let maxI = intensities.max() ?? 1.0
+        let norm = intensities.map { $0 / max(maxI, 1e-9) }
+        if let g = SpectralNormalizer.resampleToGrid(x: shifts, y: norm, grid: grid) {
+            mineralSpectra[mineral] = g
+        }
+    }
+
+    func synthesize(count: Int) async -> [TrainingRecord] {
+        var records: [TrainingRecord] = []
+        let keys = Array(mineralSpectra.keys)
+        guard !keys.isEmpty else { return [] }
+        for _ in 0..<count {
+            let useMix = Double.random(in: 0...1) < 0.3
+            let n = useMix ? 2 : 1
+            let chosen = (0..<n).compactMap { _ in keys.randomElement() }
+            var spectrum = [Float](repeating: 0, count: grid.count)
+            let weights = (0..<n).map { _ in Float.random(in: 0.3...0.7) }
+            let wSum = weights.reduce(0, +)
+            for (mineral, w) in zip(chosen, weights) {
+                if let ref = mineralSpectra[mineral] {
+                    for i in 0..<grid.count { spectrum[i] += ref[i] * (w / wSum) }
                 }
             }
-            .navigationTitle("Save As SPC")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Save") {
-                        store.showExportFormatPicker = false
-                        Task { await store.prepareExport() }
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
-                }
+            // Bose-Einstein thermal correction at 298 K
+            let kTcm = 207.2  // kT in cm⁻¹ at 298 K (kT = 0.02585 eV = 207.2 cm⁻¹)
+            for i in 0..<grid.count {
+                let nu = grid[i]
+                let beCorr = Float(1.0 / (1.0 - exp(-nu / kTcm)))
+                spectrum[i] *= beCorr
+            }
+            // Add fluorescence background + shot noise
+            let bgSlope = Float.random(in: 0...0.0003)
+            spectrum = spectrum.enumerated().map { i, v in
+                max(0, v + bgSlope * Float(i) * 0.001 + Float.random(in: -0.01...0.01))
+            }
+            let derived = deriveRamanFeatures(spectrum)
+            records.append(TrainingRecord(
+                modality: .raman, sourceID: "rruff_synth_\(chosen.first ?? "?")",
+                spectralValues: spectrum, derivedFeatures: derived,
+                primaryTarget: nil,
+                labelJSON: try? String(data: JSONEncoder().encode(chosen.first ?? "unknown"),
+                                       encoding: .utf8),
+                isComputedLabel: true, computationMethod: "BoseEinstein_Raman"))
+        }
+        return records
+    }
+
+    private func deriveRamanFeatures(_ s: [Float]) -> [String: Double] {
+        let a = s.map { Double($0) }
+        func integral(_ lo: Double, _ hi: Double) -> Double {
+            zip(grid, a).filter { $0.0 >= lo && $0.0 <= hi }.map { $0.1 }.reduce(0, +) * 10
+        }
+        let peakIdx = s.enumerated().max(by: { $0.1 < $1.1 })!.0
+        return [
+            "d_band":            integral(1300, 1400),
+            "g_band":            integral(1500, 1620),
+            "d_g_ratio":         integral(1300, 1400) / max(integral(1500, 1620), 1e-9),
+            "fingerprint_integral": integral(200, 1200),
+            "high_freq_integral":   integral(2700, 3200),
+            "peak_position_cm1": grid[peakIdx],
+            "background_slope":  Double(s.last ?? 0) - Double(s.first ?? 0),
+        ]
+    }
+}
+```
+
+---
+
+## PHASE 4A — EI Mass Spectrometry PINN
+
+**Data Sources:**
+- NIST Chemistry WebBook free EI-MS (JCAMP-MS format):
+  `https://webbook.nist.gov/cgi/cbook.cgi?ID={CAS}&Type=Mass-Spec&JCAMP=on`
+- MassBank of North America (MoNA) — bulk JSON download:
+  `https://mona.fiehnlab.ucdavis.edu/rest/downloads`
+  Select "MoNA-export-EI-Spectra.json.gz" (free, no login)
+- HMDB MS: `https://hmdb.ca/system/downloads/current/hmdb_metabolites.zip`
+
+**PINN Physics:**
+```
+Isotope pattern (binomial approximation):
+  M+1 intensity (%) ≈ 1.1% × n_C + 0.36% × n_N + 0.015% × n_S + 0.012% × n_H
+  M+2 intensity (%) ≈ (1.1% × n_C)² / 200 + 4.25% × n_S + 0.2% × n_O
+  Chlorine: I(M+2)/I(M) ≈ 0.3249 per Cl atom
+  Bromine:  I(M+2)/I(M) ≈ 0.9732 per Br atom
+
+Nitrogen rule: M⁺ is odd → odd number of N atoms
+α-Cleavage: bond adjacent to heteroatom / π-system cleaves preferentially
+```
+
+**Feature Vector (515):**
+- `mz_1`…`mz_500` (500 bins, 1 Da, normalised to base peak = 1.0)
+- `molecular_ion_mz`, `base_peak_mz`, `base_peak_fragment` (= MW − base_peak_mz)
+- `m_plus_1_ratio`, `m_plus_2_ratio`
+- `even_electron` (1 if MW even, 0 if odd — N-rule indicator)
+- `num_peaks_above_5pct`, `high_mass_fragments`, `low_mass_fragments`
+- `mz_77_present`, `mz_91_present`, `mz_43_present`, `mz_57_present`, `mz_105_present`
+  (diagnostic ions for phenyl, tropylium, acetyl, tBu, benzoyl)
+- `ring_dbe` = (2C + 2 + N − H − X)/2 (degree of unsaturation)
+
+**Target:** `molecular_weight` (Double), `molecular_formula` (string), `compound_class`
+
+---
+
+## PHASE 4B — MS/MS Tandem PINN
+
+**Data Sources:**
+- MoNA MS/MS bulk JSON: `https://mona.fiehnlab.ucdavis.edu/rest/downloads`
+  "MoNA-export-All-Spectra.json.gz" (700K+ spectra) — includes ClassyFire class
+- MassBank Europe GitHub releases (versioned ZIP):
+  `https://github.com/MassBank/MassBank-data/releases/latest` → `.zip`
+  Contains individual `.txt` records with `PK$PEAK` arrays
+- GNPS spectral libraries:
+  `https://gnps.ucsd.edu/ProteoSAFe/libraries.jsp` → download individual libraries
+- HMDB MS/MS: `https://hmdb.ca/spectra/ms_ms/list` (metabolite MS/MS, free)
+
+**Feature Vector (507):** 500 m/z bins (1–500 Da) + `precursor_mz` +
+`collision_energy_ev` + `fragment_coverage` (% m/z space with signal) +
+`neutral_loss_18` (water loss), `neutral_loss_44` (CO₂ loss), `max_fragment_mz`,
+`num_fragments_above_5pct`
+
+**Target:** `compound_class` (ClassyFire level-2 class), `molecular_formula`
+
+---
+
+## PHASE 5A — ¹H NMR PINN
+
+**Data Sources:**
+- nmrshiftdb2 bulk download (SDF + NMReDATA, free, CC0):
+  `https://nmrshiftdb.nmr.uni-koeln.de/nmrshiftdb/` → Download → All spectra SDF
+  53,954 measured spectra, 44,909 structures
+- SDBS ¹H NMR: ~35,000 spectra at `https://sdbs.db.aist.go.jp/`
+- HMDB NMR 1D: `https://hmdb.ca/spectra/nmr_one_d/list`
+
+**PINN Physics:**
+```
+Shoolery's rules (¹H δ relative to TMS):
+  δ = δ_base + Σ σᵢ     (additive substituent contributions)
+  δ_base = 0.23 ppm for −CH₃
+  Example σ values:
+    =O  (carbonyl adjacent):  +1.20
+    −OH (alcohol):            +1.74
+    −Cl:                      +2.53
+    −Br:                      +2.33
+    −Ph (phenyl):             +1.85
+    −C=C- (vinyl):            +1.32
+    −COOH:                    +0.97
+    −NH₂:                     +0.53
+    −O− (ether):              +1.14
+    −NO₂:                     +3.36
+
+Karplus equation (vicinal ³J_HH coupling):
+  J = A·cos²(φ) − B·cos(φ) + C
+  Haasnoot parameters: A=10.4, B=1.5, C=0.2 Hz
+  φ = H−C−C−H dihedral angle
+```
+
+**Feature Vector (245):**
+- `d_0.00`…`d_11.95` (240 bins at 0.05 ppm: column names use underscore for dot)
+- `aromatic_proton_fraction` = integral 6.5–8.5 ppm / total
+- `aldehyde_present` = 1 if max peak > 9.0 ppm exceeds threshold
+- `oh_nh_present` = broad signal > 9.5 ppm
+- `methyl_count_est` = integral 0.8–1.0 ppm / 3H
+- `ch2_count_est` = integral 1.2–1.5 ppm / 2H
+
+**Target:** `functional_group_vector` (JSON array, 12 booleans)
+
+```swift
+actor NMRProtonSynthesizer {
+    private let shoolery: [String: Double] = [
+        "carbonyl": 1.20, "hydroxyl": 1.74, "chloro": 2.53,
+        "bromo": 2.33,    "phenyl": 1.85,   "vinyl": 1.32,
+        "carboxyl": 0.97, "amine": 0.53,    "ether": 1.14,
+        "nitro": 3.36,    "cyano": 1.05,    "fluorine": 1.55
+    ]
+    private let gridPPM = stride(from: 0.0, through: 11.95, by: 0.05).map { $0 }
+    private let lw = 0.05  // ppm Lorentzian FWHM
+
+    func synthesize(count: Int) async -> [TrainingRecord] {
+        var records: [TrainingRecord] = []
+        for _ in 0..<count {
+            var s = [Float](repeating: 0, count: gridPPM.count)
+            addPeak(&s, center: 0.90, area: 3.0)       // CH₃ backbone
+            addPeak(&s, center: 1.25, area: Float.random(in: 4...20))  // CH₂ chain
+
+            let groups = Array(shoolery.keys.shuffled().prefix(Int.random(in: 1...3)))
+            for g in groups {
+                let shift = 1.25 + (shoolery[g] ?? 0)
+                addPeak(&s, center: shift, area: Float.random(in: 1...3))
+            }
+            s = s.map { $0 + Float.random(in: 0...0.002) }
+
+            var derived: [String: Double] = [:]
+            let a = s.map { Double($0) }; let tot = a.reduce(0, +)
+            derived["aromatic_proton_fraction"] = tot > 0 ?
+                zip(gridPPM, a).filter { $0.0 >= 6.5 && $0.0 <= 8.5 }
+                               .map { $0.1 }.reduce(0, +) / tot : 0
+            derived["aldehyde_present"] = (zip(gridPPM, a)
+                .filter { $0.0 > 9.0 }.map { $0.1 }.max() ?? 0) > 0.05 ? 1 : 0
+
+            let lbl = try? String(data: JSONEncoder().encode(groups), encoding: .utf8)
+            records.append(TrainingRecord(
+                modality: .nmrProton, sourceID: "synth_shoolery",
+                spectralValues: s, derivedFeatures: derived,
+                primaryTarget: nil, labelJSON: lbl,
+                isComputedLabel: true, computationMethod: "Shoolery_Karplus"))
+        }
+        return records
+    }
+
+    private func addPeak(_ s: inout [Float], center: Double, area: Float) {
+        for (i, ppm) in gridPPM.enumerated() {
+            let dx = ppm - center
+            let lorentz = lw / (2 * .pi) / (dx*dx + (lw/2)*(lw/2))
+            s[i] += area * Float(lorentz * 0.05)
+        }
+    }
+}
+```
+
+---
+
+## PHASE 5B — ¹³C NMR PINN
+
+**Data Sources:** Same as Phase 5A (nmrshiftdb2, SDBS). Filter `##NUCLEUS= 13C`.
+
+**PINN Physics:**
+```
+Grant-Paul additive increments (¹³C shifts for alkyl carbons):
+  δ_C = δ_base + Σ Aᵢ·nᵢ
+  A_α = +9.1 ppm (per α carbon), A_β = +9.4, A_γ = −2.5, A_δ = +0.3
+
+Characteristic ¹³C regions:
+  Carbonyl C=O:   165–220 ppm (aldehyde 195–205, ketone 205–220, ester 165–180)
+  Aromatic C:     110–160 ppm
+  Alkene C:        100–150 ppm
+  Alkyne C:        60–90 ppm
+  O-bearing C:     50–90 ppm (alcohols, ethers, esters)
+  Aliphatic C:     0–50 ppm
+```
+
+**Feature Vector (258):** `c_0`…`c_249` (250 bins at 1 ppm) +
+`carbonyl_count_est`, `aromatic_fraction`, `alkene_fraction`,
+`oxygenated_fraction`, `aliphatic_fraction`, `unique_peaks_est`,
+`symmetry_index`, `total_integral`
+
+**Target:** `functional_group_vector`, `molecular_formula`
+
+---
+
+## PHASE 6 — Fluorescence PINN
+
+**Data Sources:**
+- FPbase REST API (no auth):
+  List: `https://www.fpbase.org/api/proteins/?fields=name,excitation_max,emission_max,quantum_yield`
+  Spectrum: `https://www.fpbase.org/api/spectra/{id}/` (returns JSON with wavelength + ex/em data)
+  GraphQL: `https://www.fpbase.org/graphql/`
+- PhotochemCAD (~250 fluorophore spectra, free download as tabular ASCII):
+  `https://omlc.org/spectra/PhotochemCAD/`
+
+**PINN Physics:**
+```
+Stokes shift (cm⁻¹):
+  Δν̃ = (1/λ_ex − 1/λ_em) × 10⁷   (λ in nm)
+
+Inner filter correction:
+  I_corr = I_obs × 10^((A_ex + A_em) / 2)
+
+Quantum yield:
+  Φ = k_r / (k_r + k_nr + k_ISC + k_ET)
+  k_r (radiative) ≈ 1/τ_rad ≈ 10⁸–10⁹ s⁻¹ for allowed transitions
+  Φ > 0.9 requires k_nr << k_r
+
+FRET efficiency (when donor–acceptor pair):
+  E = R₀⁶ / (R₀⁶ + r⁶)
+  R₀ (Förster radius) = 0.211 · (κ²·n⁻⁴·Φ_D·J)^(1/6) nm
+```
+
+**Feature Vector (307):**
+- `em_300`…`em_898` (300 bins at 2 nm, normalised max=1)
+- `excitation_nm` (1 scalar)
+- `peak_emission_nm`, `stokes_shift_cm`, `emission_fwhm_nm`
+- `emission_asymmetry` = (λ_em − λ_half_left)/(λ_half_right − λ_em)
+- `red_tail_fraction` = integral (λ_em + 30 nm to 900 nm) / total
+
+**Target:** `quantum_yield` (Double 0–1), `peak_emission_nm`, `stokes_shift_cm`
+
+---
+
+## PHASE 7 — XRD Powder PINN
+
+**Data Sources:**
+- Crystallography Open Database (COD, CC0):
+  `https://www.crystallography.net/cod/` — bulk archive ~7 GB as `.tgz`
+  Individual CIF: `https://www.crystallography.net/cod/{COD-ID}.cif`
+  REST API: `https://www.crystallography.net/cod/optimade/`
+- RRUFF XRD: `https://rruff.info/{mineral}` → XRD powder pattern tab
+- AMCSD: `https://rruff.geo.arizona.edu/AMS/amcsd.php`
+
+**PINN Physics:**
+```
+Bragg's law:     2θ = 2 · arcsin(nλ / 2d)   with λ = 1.5406 Å (Cu Kα₁)
+Scherrer eq:     β = Kλ / (τ·cosθ)           K = 0.9, β in radians
+Structure factor: |F(hkl)|² = |Σ fⱼ · exp(2πi(hxⱼ+kyⱼ+lzⱼ))|²
+Pseudo-Voigt:    PV(x) = η·L(x) + (1−η)·G(x),  η ≈ 0.5 (typical)
+```
+
+**Feature Vector (862):**
+- `xrd_50`…`xrd_890` (850 bins at 0.1° 2θ, 5–90°)
+- `peak_count`, `strongest_peak_2theta`, `d100_spacing_ang`,
+  `peak_width_fwhm_deg`, `background_level`, `pattern_complexity`,
+  `high_angle_fraction`, `low_angle_peaks`, `crystallinity_ratio`,
+  `unit_cell_vol_est_A3`, `amorphous_hump`, `peak_density_per100deg`
+
+**Target:** `crystal_system` (7 classes), `crystallite_size_nm`
+
+```swift
+actor XRDSynthesizer {
+    struct DiffractionPeak: Sendable {
+        let dSpacing: Double      // Å
+        let relIntensity: Double  // 0–100
+    }
+    private let lambda = 1.5406  // Cu Kα₁ Å
+    private let twoThetaGrid = stride(from: 5.0, through: 89.95, by: 0.1).map { $0 }
+
+    func synthesizePattern(peaks: [DiffractionPeak],
+                           crystalliteSize: Double = Double.random(in: 20...200),
+                           eta: Double = 0.5) -> [Float] {
+        var pattern = [Float](repeating: 0, count: twoThetaGrid.count)
+        for pk in peaks {
+            let sinT = lambda / (2.0 * pk.dSpacing)
+            guard sinT <= 1.0 else { continue }
+            let theta = asin(sinT)
+            let tt = 2.0 * theta * 180.0 / .pi
+            let betaRad = (0.9 * lambda) / (crystalliteSize * cos(theta))
+            let betaDeg = betaRad * 180.0 / .pi
+            let sigma = betaDeg / 2.355
+            for (i, t2) in twoThetaGrid.enumerated() {
+                let dx = t2 - tt
+                let gauss = exp(-(dx*dx) / (2*sigma*sigma))
+                let lorentz = 1.0 / (1.0 + (dx/(betaDeg/2.0))*(dx/(betaDeg/2.0)))
+                let pv = eta * lorentz + (1 - eta) * gauss
+                pattern[i] += Float(pk.relIntensity / 100.0 * pv)
             }
         }
-        .presentationDetents([.medium])
-    }
-}
-```
-
-### Step 3.4 — Add SPCLibraryBridge to ContentView
-
-In `SPFSpectralAnalyzer/ContentView.swift`, add the bridge as a `@State` property.
-Find the `struct ContentView: View {` declaration block and the existing `@State` property
-list. Add after the last `@State var` line near the top of the struct (before `var body`):
-
-```swift
-// FIND (the last @State property before body, likely around line 80-85 area):
-    @AppStorage("aiProviderPreference") var aiProviderPreferenceRawValue = AIProviderPreference.auto.rawValue
-
-// ADD THIS LINE AFTER IT:
-    @State var spcLibraryBridge = SPCLibraryBridge()
-```
-
-Then find the main `body: some View` return and locate the outermost `Group` or
-`NavigationSplitView`. Add the editor sheet modifier at the end of the view chain
-(before the final closing brace of `body`):
-
-```swift
-// At the bottom of the var body, before the final closing brace, add:
-        .sheet(isPresented: $spcLibraryBridge.isEditorPresented) {
-            SPCEditorSheet(bridge: spcLibraryBridge)
-                .environment(\.modelContext, modelContext)
+        for i in 0..<pattern.count {
+            pattern[i] += Float.random(in: 0.001...0.006)  // background
         }
-        .alert("SPC Error", isPresented: Binding(
-            get: { spcLibraryBridge.presentedError != nil },
-            set: { if !$0 { spcLibraryBridge.presentedError = nil } }
-        )) {
-            Button("OK", role: .cancel) { spcLibraryBridge.presentedError = nil }
-        } message: {
-            Text(spcLibraryBridge.presentedError ?? "")
-        }
-```
-
-> If ContentView already has a long chain of `.sheet` modifiers, add these new ones
-> at the end of that chain.
-
-### Step 3.5 — Add Context Menu to Library Sidebar
-
-In `SPFSpectralAnalyzer/UI/Sidebar/SidebarViews.swift`, find `spectrumRowMenuContent`
-(the function that populates the `Menu` for each row). If this function does not exist,
-find the `spectrumRow` or the `Menu { }` block inside `spectrumRowContent`.
-
-Add the following menu items at the **top** of the menu content (before any existing
-Delete / Remove items), inside the `Menu { }` label content function:
-
-```swift
-// ADD THESE ITEMS AT THE TOP OF spectrumRowMenuContent (or the nearest Menu label block):
-// Note: 'datasets' here refers to the array of StoredDataset objects the sidebar has access to.
-// You need to pass 'spcLibraryBridge' down to this view or use environment.
-// The simplest approach: make these items conditional on the parent ContentView's bridge.
-
-Button {
-    Task {
-        await spcLibraryBridge.openForEditing(/* the StoredDataset for this row */)
+        return pattern
     }
-} label: {
-    Label("Open in SPC Editor…", systemImage: "waveform.and.magnifyingglass")
-}
-```
-
-> **Implementation note:** The SidebarViews.swift is an extension on ContentView.
-> The bridge property `spcLibraryBridge` declared in Step 3.4 is available directly
-> since these are ContentView extensions. Find the `StoredDataset` for the sidebar row
-> by looking at how the row's `dataset` is identified — it may be a `StoredDataset`
-> reference in the closure or accessible via `datasets.first(where: { ... })`.
->
-> Look at how `spectrumRowMenuContent` receives its index or dataset reference.
-> The menu is generated per-dataset; thread the dataset reference through to the
-> `openForEditing` call.
-
-Add a second button for multi-dataset combine (shown when 2+ datasets are selected):
-
-```swift
-if datasets.filter({ selectedStoredDatasetIDs.contains($0.id) }).count >= 2 {
-    Divider()
-    Button {
-        let selected = datasets.filter { selectedStoredDatasetIDs.contains($0.id) }
-        Task { await spcLibraryBridge.combineDatasets(selected) }
-    } label: {
-        Label("Combine Selected into SPC…", systemImage: "arrow.triangle.merge")
-    }
-}
-```
-
-### Step 3.6 — Phase 3 Build Verification
-
-Build the project. Confirm:
-1. No ambiguous type errors
-2. The `SPCEditorSheet` and `SPCLibraryBridge` compile without warnings
-3. The `TransformPanel` from `EditViews.swift` is accessible (it's in the same target)
-4. The `SpectrumChartView` from `SPCKit/SpectrumChartView.swift` compiles without conflict
-   with the SDA chart views (they are different types)
-
----
-
-## PHASE 4 — StoredDataset Fields, Combine, and Export Enhancements
-
-**Goal:** Add audit-trail fields to `StoredDataset`, wire the export handler back into
-the Library dataset list, and add the iOS Data Management tab SPC editor entry point.
-
-### Step 4.1 — Add spcKitEdited and spcFileFormat to StoredDataset
-
-In `SPFSpectralAnalyzer/Storage/StoredDataset.swift`, find the existing property block
-(after `formulationType` and before any computed properties / methods). Add these two
-new stored properties:
-
-```swift
-// ADD after the existing 'formulationType: String?' property:
-
-    /// True when this dataset was saved from the SPCKit editor rather than imported directly.
-    var spcKitEdited: Bool = false
-
-    /// The output format used when saving via SPCKit ("Thermo Galactic SPC" or "Shimadzu (OLE2/CFB)").
-    /// Only set when spcKitEdited is true.
-    var spcFileFormat: String?
-```
-
-### Step 4.2 — Add sourcePath property if not present
-
-The `SPCLibraryBridge.combineDatasets` uses `dataset.sourcePath`. Verify that
-`StoredDataset` already has `var sourcePath: String?`. If it does not, add:
-
-```swift
-    var sourcePath: String?
-```
-
-(It likely already exists from the existing `DatasetPersistenceService`.)
-
-### Step 4.3 — Update iOSDataManagementView to show SPC editor entry point
-
-In `SPFSpectralAnalyzer/UI/Panels/iOS/iOSDataManagementView.swift`, find the dataset
-list row or context menu. Add the "Open in SPC Editor…" menu item wherever the iOS
-dataset action menu is shown, following the same pattern as Step 3.5.
-
-If `iOSDataManagementView` is an extension of `ContentView`, the `spcLibraryBridge`
-property from Step 3.4 is already accessible.
-
-### Step 4.4 — Instrument Library badge for edited datasets
-
-In `SPFSpectralAnalyzer/UI/Sidebar/SidebarViews.swift` (or wherever the Library
-sidebar row is rendered), find where dataset tags/badges are shown. Add a visual
-indicator for SPCKit-edited datasets:
-
-```swift
-// After (or near) where hdrsTag or other tags are shown for a StoredDataset:
-if let dataset = /* the StoredDataset for this row */,
-   dataset.spcKitEdited {
-    Text("SPC✏")
-        .font(.system(size: 7, weight: .bold, design: .rounded))
-        .padding(.horizontal, 3)
-        .padding(.vertical, 1)
-        .background(Color.blue.opacity(0.15))
-        .foregroundColor(.blue)
-        .cornerRadius(2)
-}
-```
-
-### Step 4.5 — Phase 4 Build Verification
-
-Build the project for both macOS and iOS targets. Confirm:
-1. `StoredDataset` compiles with the two new properties (SwiftData handles new optionals
-   automatically — no migration script needed for CloudKit-compatible optionals)
-2. `SPCLibraryBridge.handleSaveAs` can set `newDataset.spcKitEdited = true` without error
-3. The iOS data management view shows the SPC editor entry point
-
----
-
-## NEW TESTS TO ADD
-
-### Unit Test: SPCParser integration
-
-In `SPFSpectralAnalyzer/SPFSpectralAnalyzerTests/BasicTests.swift`, add:
-
-```swift
-// MARK: - SPCKit Parser Integration Tests
-
-func testSPCParserParsesGalacticFile() throws {
-    // Use any .spc fixture file in the test bundle, or create synthetic data.
-    // Minimal valid new-format SPC: 512-byte header with version 0x4B.
-    var headerBytes = [UInt8](repeating: 0, count: 512)
-    headerBytes[0] = 0x00  // flags: Y-only, 32-bit
-    headerBytes[1] = 0x4B  // new format
-    headerBytes[3] = 0x80  // yExponent: IEEE float
-    // pointCount = 4 at bytes 4-7 (little-endian)
-    headerBytes[4] = 4; headerBytes[5] = 0; headerBytes[6] = 0; headerBytes[7] = 0
-    // firstX = 400.0 as Double at bytes 8-15
-    let firstXBits = 400.0.bitPattern.littleEndian
-    withUnsafeBytes(of: firstXBits) { bytes in
-        for (i, b) in bytes.enumerated() { headerBytes[8 + i] = b }
-    }
-    // lastX = 700.0 as Double at bytes 16-23
-    let lastXBits = 700.0.bitPattern.littleEndian
-    withUnsafeBytes(of: lastXBits) { bytes in
-        for (i, b) in bytes.enumerated() { headerBytes[16 + i] = b }
-    }
-    // subfileCount = 1 at bytes 24-27
-    headerBytes[24] = 1
-
-    // One subfile header (32 bytes) + 4 IEEE floats for Y data
-    var subfileBytes = [UInt8](repeating: 0, count: 32)
-    subfileBytes[1] = 0x80  // yExponent: IEEE float
-
-    let yValues: [Float] = [1.0, 2.0, 3.0, 4.0]
-    var yBytes = [UInt8](repeating: 0, count: 16)
-    for (i, v) in yValues.enumerated() {
-        let bits = v.bitPattern.littleEndian
-        withUnsafeBytes(of: bits) { bytes in
-            for (j, b) in bytes.enumerated() { yBytes[i * 4 + j] = b }
-        }
-    }
-
-    let data = Data(headerBytes + subfileBytes + yBytes)
-    let file = try SPCParser.parse(data: data)
-
-    XCTAssertEqual(file.subfiles.count, 1)
-    XCTAssertEqual(file.subfiles[0].yPoints, yValues, accuracy: 1e-6)
-    XCTAssertEqual(file.header.firstX, 400.0, accuracy: 1e-6)
-    XCTAssertEqual(file.header.lastX, 700.0, accuracy: 1e-6)
-}
-
-func testSPCKitAdapterConvertsToParseResult() throws {
-    // Build a minimal SPCFile and verify the adapter produces valid ShimadzuSPCParseResult
-    var headerBytes = [UInt8](repeating: 0, count: 512)
-    headerBytes[1] = 0x4B
-    headerBytes[3] = 0x80
-    headerBytes[4] = 2   // 2 points
-    let firstX = 300.0.bitPattern.littleEndian
-    withUnsafeBytes(of: firstX) { bytes in headerBytes[8..<16] = ArraySlice(bytes) }
-    let lastX = 400.0.bitPattern.littleEndian
-    withUnsafeBytes(of: lastX) { bytes in headerBytes[16..<24] = ArraySlice(bytes) }
-    headerBytes[24] = 1
-
-    var subBytes = [UInt8](repeating: 0, count: 32)
-    subBytes[1] = 0x80
-    let yVals: [Float] = [0.5, 0.9]
-    var yBytes = [UInt8](repeating: 0, count: 8)
-    for (i, v) in yVals.enumerated() {
-        let bits = v.bitPattern.littleEndian
-        withUnsafeBytes(of: bits) { bytes in
-            for (j, b) in bytes.enumerated() { yBytes[i * 4 + j] = b }
-        }
-    }
-
-    let data = Data(headerBytes + subBytes + yBytes)
-    let file = try SPCParser.parse(data: data)
-    let url = URL(fileURLWithPath: "/tmp/test.spc")
-    let result = SPCKitAdapter.toParseResult(file, url: url)
-
-    XCTAssertFalse(result.spectra.isEmpty)
-    XCTAssertEqual(result.spectra[0].x.count, 2)
-    XCTAssertEqual(result.spectra[0].y[0], Double(yVals[0]), accuracy: 1e-5)
-}
-
-func testRoundTrip_parseEditWrite() async throws {
-    // Build minimal SPC → parse → scale Y by 2 → write → re-parse → verify
-    var headerBytes = [UInt8](repeating: 0, count: 512)
-    headerBytes[1] = 0x4B; headerBytes[3] = 0x80
-    headerBytes[4] = 3   // 3 points
-    let fx = 200.0.bitPattern.littleEndian
-    let lx = 400.0.bitPattern.littleEndian
-    withUnsafeBytes(of: fx) { bytes in headerBytes[8..<16] = ArraySlice(bytes) }
-    withUnsafeBytes(of: lx) { bytes in headerBytes[16..<24] = ArraySlice(bytes) }
-    headerBytes[24] = 1
-    var subBytes = [UInt8](repeating: 0, count: 32); subBytes[1] = 0x80
-    let yIn: [Float] = [1.0, 2.0, 3.0]
-    var yBytes = [UInt8](repeating: 0, count: 12)
-    for (i, v) in yIn.enumerated() {
-        let bits = v.bitPattern.littleEndian
-        withUnsafeBytes(of: bits) { bytes in
-            for (j, b) in bytes.enumerated() { yBytes[i * 4 + j] = b }
-        }
-    }
-    let data = Data(headerBytes + subBytes + yBytes)
-    let file = try SPCParser.parse(data: data)
-
-    let store = await SPCDocumentStore()
-    await MainActor.run { store.loadParsed(file) }
-    await store.apply(.scaleY(subfileIndices: [0], factor: 2.0))
-
-    let outData = try await SPCFileWriter.writeToData(session: store.editSession!)
-    let outFile = try SPCParser.parse(data: outData)
-
-    XCTAssertEqual(outFile.subfiles[0].yPoints.count, 3)
-    XCTAssertEqual(outFile.subfiles[0].yPoints[0], 2.0, accuracy: 1e-4)
-    XCTAssertEqual(outFile.subfiles[0].yPoints[1], 4.0, accuracy: 1e-4)
-    XCTAssertEqual(outFile.subfiles[0].yPoints[2], 6.0, accuracy: 1e-4)
 }
 ```
 
 ---
 
-## IMPLEMENTATION RULES FOR THE AGENT
+## PHASE 8 — Atomic Emission / OES PINN
 
-These rules apply throughout all phases:
+**Data Sources:**
+- NIST Atomic Spectra Database (ASD) — free, all elements:
+  Lines form (CSV output):
+  `https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra={El}&low_w=200&high_w=900&unit=1&format=2&line_out=0&en_unit=0&output=0&bibrefs=1&page_size=15&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&max_low_enrg=&show_av=2&max_upp_enrg=&tsb_value=0&min_str=&A_out=1&intens_out=on&allowed_out=1&forbid_out=1&no_spaces=1&submit=Retrieve+Data`
+  Replace `{El}` with element symbol. Returns observed wavelengths + A_ki + E_k.
 
-1. **Read before writing.** Before modifying any existing file, read its current content
-   to understand the exact structure. Do not assume structure from this CLAUDE.md alone.
+**PINN Physics:**
+```
+Boltzmann intensity (optically thin plasma):
+  I_ki = (hcA_ki·g_k·N) / (4π·U(T)) · exp(−E_k / kT)
+  U(T) = Σᵢ gᵢ · exp(−Eᵢ/kT)       (partition function)
 
-2. **Swift 6 strict concurrency.** Every new type must be either:
-   - A `nonisolated` value type with `Sendable` conformance, OR
-   - `@MainActor`-isolated, OR
-   - An `actor`
-   No `@unchecked Sendable`. No `DispatchQueue`. No completion handlers.
+Plasma temperature from two-line method:
+  T = (E₂ − E₁) / k · 1/[ln(I₁A₂g₂λ₁ / I₂A₁g₁λ₂)]
 
-3. **Zero external dependencies.** Import only: `SwiftUI`, `SwiftData`, `Foundation`,
-   `Charts`, `Accelerate`, `UniformTypeIdentifiers`, `Observation`, `os`. No SPM packages.
+Voigt profile broadening:
+  γ_D = (ν₀/c) · √(2kT·ln2 / m)    (Doppler half-width)
+  γ_L ≈ A_ki / (4π)                  (natural half-width)
+```
 
-4. **Build verification after each phase.** After completing each numbered phase, confirm
-   the project builds without errors before starting the next phase.
+**Feature Vector (714):**
+- `em_200`…`em_899` (700 bins at 1 nm)
+- `plasma_temperature_est_K`, `strongest_line_nm`, `element_count_est`,
+  `alkali_indicator`, `calcium_indicator`, `iron_indicator`,
+  `hydrogen_balmer_alpha`, `ionized_fraction_est`, `continuum_level`,
+  `total_integrated_emission`, `spectral_entropy`,
+  `peak_density_per100nm`, `line_background_ratio`, `strongest_line_intensity`
 
-5. **Do not modify SPCKit source files.** The files in `SPFSpectralAnalyzer/SPCKit/`
-   are copied verbatim from the sibling SPCKit project and should not be edited. All
-   integration code goes in `SPFSpectralAnalyzer/Library/` or in the existing modified files.
-
-6. **Preserve CloudKit compatibility.** All new `StoredDataset` properties must be
-   optional (`Bool = false`, `String?`) so CloudKit does not require a schema migration.
-
-7. **Apple UI/UX Design guidelines.** All new SwiftUI views must follow Apple HIG.
-   Use system-provided components: `NavigationSplitView`, `.sheet`, `.fileExporter`,
-   `Label`, system SF Symbols. Favor Liquid Glass aesthetic where available in iOS 26.4.
-
-8. **No AppKit or UIKit direct calls.** Use SwiftUI cross-platform APIs only.
-   Use `.fileExporter` not `NSSavePanel`. Use `.sheet` not `UIAlertController`.
-
-9. **Phase gate: name collision check.** After Phase 1 and before Phase 2, search the
-   target for duplicate type names: `SPCMainHeader`, `CompoundFileError`, `HelpView`.
-   Zero duplicates must remain before proceeding.
-
-10. **Instrumentation.** In `SpectrumParsingWorker.swift`, preserve the existing
-    `Instrumentation.log(...)` call pattern. The new SPCParser-based path must still
-    log parse success and failure with the same fields.
+**Target:** `element_present` (JSON multi-label), `plasma_temperature_K`
 
 ---
 
-## COMPLETION CHECKLIST
+## PHASE 9A — GC Retention Index PINN
 
-After all four phases and tests are implemented, verify every item:
+**Data Sources:**
+- NIST WebBook GC-RI (free subset via WebBook, bulk via SRD 1a):
+  Per-compound: `https://webbook.nist.gov/cgi/cbook.cgi?ID={CAS}&Type=RI&Mask=2000`
+  SRD 1a contains >60,000 Kovats RI values on standard non-polar columns
+- NIST AMDIS / NIST MS Search includes RI data free with registration
 
-- [ ] `SPFSpectralAnalyzer/SPCKit/` directory contains 12 `.swift` files
-- [ ] `SPFSpectralAnalyzer/Library/` directory contains 3 `.swift` files
-- [ ] Zero `SPCMainHeader` occurrences in SDA's original files (all renamed `SDAMainHeader`)
-- [ ] Zero `CompoundFileError` occurrences in SDA's original files (all renamed `SDACompoundFileError`)
-- [ ] Zero ambiguous `HelpView` — SDA uses `HelpView`, SPCKit uses `SPCKitHelpView`
-- [ ] `SpectrumParsingWorker` calls `await SPCParser.parse(url:)` (not `GalacticSPCParser`)
-- [ ] `SPCLibraryBridge` declared as `@State` in `ContentView`
-- [ ] `.sheet(isPresented: $spcLibraryBridge.isEditorPresented)` wired in `ContentView.body`
-- [ ] Library sidebar row has "Open in SPC Editor…" menu item
-- [ ] `StoredDataset` has `spcKitEdited: Bool = false` and `spcFileFormat: String?`
-- [ ] Info.plist declares `com.thermogalactic.spc` UTType
-- [ ] Project builds for macOS with zero errors, zero Swift 6 warnings
-- [ ] Project builds for iOS with zero errors, zero Swift 6 warnings
-- [ ] Three new unit tests pass in SPFSpectralAnalyzerTests
+**PINN Physics:**
+```
+Kovats Retention Index (isothermal):
+  I = 100n + 100 · [log t_R(x) − log t_R(n)] / [log t_R(n+1) − log t_R(n)]
+
+Abraham's LSER (log k prediction on non-polar column):
+  log k = c + eE + sS + aA + bB + lL
+  E = excess molar refraction, S = dipolarity/polarisability
+  A = H-bond acidity, B = H-bond basicity, L = log L¹⁶
+```
+
+**Feature Vector (52):** 50 molecular descriptors + `column_type` + `temperature_C`
+Descriptors: `mw`, `logp`, `tpsa`, `hbd`, `hba`, `rotatable_bonds`,
+`aromatic_rings`, `aliphatic_rings`, `sp3_fraction`, `molar_refractivity`,
+`carbon_count`, `nitrogen_count`, `oxygen_count`, `sulfur_count`,
+`halogen_count`, `double_bond_count`, `triple_bond_count`,
+`ring_count`, `complexity_score`, `mcgowan_volume`,
+Abraham: `E_excess`, `S_dipolar`, `A_hb_acidity`, `B_hb_basicity`,
+`L_hexadecane`, `V_mcgowan`, plus 24 molecular fingerprint bits (PubChem substructure).
+
+**Target:** `kovats_ri` (Double)
+
+---
+
+## PHASE 9B — HPLC Retention PINN
+
+**Data Sources:**
+- HMDB retention times (reversed-phase C18):
+  `https://hmdb.ca/spectra/c_ms/list` → includes LC method + RT
+- PredRet: `https://predret.org/` (free, thousands of HPLC RT values)
+- RepoRT Zenodo dataset: `https://zenodo.org/record/5143070` (HILIC + RP data)
+
+**Feature Vector (57):** Same 50 molecular descriptors + `mobile_phase_aq_pct`,
+`mobile_phase_org_type` (0=MeCN, 1=MeOH), `gradient_type` (0=isocratic, 1=gradient),
+`column_length_mm`, `flow_rate_ml_min`, `ph_aq_phase`, `ionic_strength_mM`
+
+**Target:** `retention_time_min` (Double)
+
+---
+
+## PHASE 10 — XPS PINN
+
+**Data Sources:**
+- NIST XPS Database SRD 20 (free, >33,000 records):
+  Online: `https://srdata.nist.gov/xps/`
+  REST API: `https://srdata.nist.gov/xps/api/`
+  Bulk: `https://catalog.data.gov/dataset/nist-x-ray-photoelectron-spectroscopy-database-srd-20`
+
+**PINN Physics:**
+```
+Photoelectric equation:
+  BE = hν − KE − φ_sp
+  hν = Al Kα = 1486.6 eV (or Mg Kα = 1253.6 eV)
+  φ_sp = spectrometer work function (~4.5 eV)
+
+Koopmans' theorem: BE ≈ −ε_i (Hartree-Fock orbital energy)
+Chemical shift (charge potential model):
+  ΔBE ≈ k·Δq + ΔV_M
+  Δq = change in atomic charge, ΔV_M = Madelung potential
+
+Scofield photoionisation cross-sections at 1486.6 eV (relative to C 1s = 1.00):
+  O 1s: 2.93,  N 1s: 1.80,  Si 2p: 0.87,  Fe 2p: 12.4
+  Al 2p: 0.54, Ti 2p: 7.9,  S 2p: 1.68,   F 1s: 4.43
+  Cl 2p: 2.28, Cu 2p: 21.1, Zn 2p: 22.0
+```
+
+**Feature Vector (1212):**
+- `be_0`…`be_1199` (1200 bins at 1 eV, 0–1199 eV)
+- `c1s_position`, `o1s_position`, `n1s_present`, `si2p_present`,
+  `carbon_oxygen_ratio`, `surface_carbon_pct`, `oxidized_carbon_pct`,
+  `c_sp2_pct`, `oxide_present`, `hydroxide_present`,
+  `shirley_bg_area`, `total_signal_area`
+
+**Target:** `surface_carbon_pct` (Double), plus multi-output JSON for
+`element_atomic_pct` dict and `oxidation_state` dict per element
+
+```swift
+actor XPSSynthesizer {
+    private let photonEnergy = 1486.6   // Al Kα eV
+    private let beGrid = (0..<1200).map { Double($0) }
+    private let coreLevelBE: [String: Double] = [
+        "C1s": 284.8, "O1s": 532.0, "N1s": 400.0, "Si2p": 99.5,
+        "Fe2p": 706.8, "Al2p": 72.8, "Ti2p": 453.8, "S2p": 164.0,
+        "F1s": 686.0, "Cl2p": 199.0, "Cu2p": 932.7, "Zn2p": 1021.8
+    ]
+    private let scofield: [String: Double] = [
+        "C1s": 1.00, "O1s": 2.93, "N1s": 1.80, "Si2p": 0.87,
+        "Fe2p": 12.4, "Al2p": 0.54, "Ti2p": 7.90, "S2p": 1.68
+    ]
+
+    func synthesizeSurface(elements: [(symbol: String, atomicPct: Double,
+                                       oxidationState: Int)]) -> [Float] {
+        var spectrum = [Float](repeating: 0, count: 1200)
+        for (el, pct, oxState) in elements {
+            let baseKey = "\(el)1s"
+            guard let baseBE = coreLevelBE[baseKey] ?? coreLevelBE["\(el)2p"] else { continue }
+            let shift = oxidationShift(element: el, state: oxState)
+            let be = baseBE + shift
+            let sf = scofield[baseKey] ?? scofield["\(el)2p"] ?? 1.0
+            let area = Float(pct * sf / 100.0)
+            let sigma = 0.9   // eV FWHM instrument
+            for i in 0..<1200 {
+                let dx = beGrid[i] - be
+                spectrum[i] += area * Float(exp(-(dx*dx)/(2*sigma*sigma))/(sigma*2.507))
+            }
+        }
+        return spectrum
+    }
+
+    private func oxidationShift(element: String, state: Int) -> Double {
+        let shifts: [String: [Int: Double]] = [
+            "C":  [1: 1.5, 2: 3.0, 3: 4.2, 4: 5.0],
+            "Fe": [2: 1.5, 3: 3.8],
+            "Ti": [2: 1.0, 3: 2.5, 4: 4.0],
+            "Si": [4: 3.9]
+        ]
+        return shifts[element]?[state] ?? 0.0
+    }
+}
+```
+
+---
+
+## PHASE 11 — HITRAN Molecular Lines PINN
+
+**Data Sources:**
+- HITRAN2024 (free, registration required):
+  `https://hitran.org/lbl/` — line-by-line parameters per molecule
+  `https://hitran.org/data/` — partition functions, supplementary
+  Format: HITRAN 160-character `.par` format
+  Contains: 61 molecules, 156 isotopologues, millions of transitions
+
+**PINN Physics:**
+```
+Absorption coefficient simulation:
+  k(ν, T, P) = Σ_lines S(T) · f_Voigt(ν − ν₀; γ_D(T), γ_L(T,P))
+
+Temperature-scaled line intensity:
+  S(T) = S(T₀) · Q(T₀)/Q(T) · exp(−hcE''/k·(1/T−1/T₀))
+                             · [1−exp(−hcν₀/kT)] / [1−exp(−hcν₀/kT₀)]
+  T₀ = 296 K (HITRAN reference temperature)
+
+Doppler half-width (Gaussian):
+  γ_D(T) = (ν₀/c) · √(2kT ln2 / m_molecular)
+
+Lorentzian half-width (pressure):
+  γ_L(T,P) = (T₀/T)^n_air · (γ_air·P_air + γ_self·P_self)
+
+Voigt profile: numerical convolution via Faddeeva function approximation
+  V(ν; γ_D, γ_L) = Re[w(z)]/√π·γ_D   where z = (ν + iγ_L)/γ_D
+```
+
+**Feature Vector (406):**
+- Simulated k(ν) at 400 wavenumber bins (10 cm⁻¹ spacing, 400–4390 cm⁻¹)
+- 6 simulation condition features:
+  `temperature_K`, `pressure_atm`, `pathlength_m`,
+  `concentration_ppmv`, `molecule_id`, `isotopologue_id`
+
+**Target:** `molecule_id` (int), `temperature_K` (Double)
+
+**HITRANParser — 160-character fixed-width `.par` format:**
+```swift
+enum HITRANParser {
+    struct Line: Sendable {
+        let moleculeID: Int        // chars 1-2
+        let isotopeID: Int         // char 3
+        let wavenumber: Double     // chars 4-15  (cm⁻¹)
+        let intensity: Double      // chars 16-25 (cm⁻¹/mol·cm⁻²)
+        let einsteinA: Double      // chars 26-35
+        let airHalfWidth: Double   // chars 36-40 (cm⁻¹/atm)
+        let selfHalfWidth: Double  // chars 41-45
+        let lowerEnergy: Double    // chars 46-55 (cm⁻¹)
+        let tempExponent: Double   // chars 56-59
+        let airPressureShift: Double // chars 60-67
+    }
+
+    nonisolated static func parse(data: Data) throws -> [Line] {
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw ParserError.invalidEncoding
+        }
+        return text.components(separatedBy: "\n").compactMap { parseLine($0) }
+    }
+
+    private nonisolated static func parseLine(_ raw: String) -> Line? {
+        guard raw.count >= 100 else { return nil }
+        func substr(_ a: Int, _ b: Int) -> String {
+            let si = raw.index(raw.startIndex, offsetBy: a)
+            let ei = raw.index(raw.startIndex, offsetBy: min(b, raw.count))
+            return String(raw[si..<ei]).trimmingCharacters(in: .whitespaces)
+        }
+        guard let mol = Int(substr(0, 2)),
+              let iso = Int(substr(2, 3)),
+              let nu  = Double(substr(3, 15)),
+              let s   = Double(substr(15, 25)) else { return nil }
+        let a    = Double(substr(25, 35)) ?? 0
+        let gAir = Double(substr(35, 40)) ?? 0
+        let gSelf = Double(substr(40, 45)) ?? 0
+        let eLow = Double(substr(45, 55)) ?? 0
+        let n    = Double(substr(55, 59)) ?? 0.75
+        let d    = Double(substr(59, 67)) ?? 0
+        return Line(moleculeID: mol, isotopeID: iso, wavenumber: nu,
+                    intensity: s, einsteinA: a, airHalfWidth: gAir,
+                    selfHalfWidth: gSelf, lowerEnergy: eLow,
+                    tempExponent: n, airPressureShift: d)
+    }
+}
+```
+
+---
+
+## Build Checklist — Part 1 (Phases 0–11)
+
+Verify each item compiles and passes a unit assertion before moving to CLAUDE2.md:
+
+- [ ] `SpectralModality` — all 25 cases compile, `featureCount` non-zero for each
+- [ ] `ModalityAxisSpec.make(for:)` — correct axis length for every case
+- [ ] `TrainingRecord.featureDictionary()` — column count equals modality.featureCount
+- [ ] `StoredTrainingRecord` and `StoredReferenceSpectrum` have `modality: String` field
+- [ ] `JCAMPDXParser.detectModality(from:)` — non-nil for UV/IR/Raman/NMR/MS headers
+- [ ] `FTIRSynthesizer.synthesize(count:)` — `spectralValues.count == 360`
+- [ ] `RamanSynthesizer` — Bose-Einstein correction applied, no negative values
+- [ ] `NMRProtonSynthesizer.addPeak` — Lorentzian peaks placed on 240-bin grid
+- [ ] `XRDSynthesizer.synthesizePattern` — pseudo-Voigt peaks at correct Bragg 2θ
+- [ ] `XPSSynthesizer.synthesizeSurface` — Gaussian peaks at correct core-level BEs
+- [ ] `HITRANParser.parse(data:)` — first-line molecule ID parsed correctly
+- [ ] ModelContainer schema — both new @Model types registered
+- [ ] Project builds without errors or warnings (`⌘B`)
+
+---
+
+**→ Continue with CLAUDE2.md for Phases 12–24**

@@ -50,30 +50,8 @@ final class UVVisPINNModel: @unchecked Sendable, PINNDomainModel {
     func loadModel() async throws {
         status = .loading
 
-        let fm = FileManager.default
-
-        // 1. App Support
-        let appSupportURL = PINNModelRegistry.modelDirectory
-            .appendingPathComponent("\(Self.modelName).mlmodelc")
-        if fm.fileExists(atPath: appSupportURL.path) {
-            try loadFromURL(appSupportURL)
-            return
-        }
-
-        // 2. iCloud
-        if let iCloudDir = PINNModelRegistry.iCloudModelDirectory {
-            let iCloudURL = iCloudDir.appendingPathComponent("\(Self.modelName).mlmodelc")
-            if fm.fileExists(atPath: iCloudURL.path) {
-                try loadFromURL(iCloudURL)
-                return
-            }
-            // Trigger download if available
-            try? fm.startDownloadingUbiquitousItem(at: iCloudURL)
-        }
-
-        // 3. Bundle fallback
-        if let bundleURL = Bundle.main.url(forResource: Self.modelName, withExtension: "mlmodelc") {
-            try loadFromURL(bundleURL)
+        if let url = PINNModelRegistry.resolveModelURL(named: Self.modelName) {
+            try loadFromURL(url)
             return
         }
 

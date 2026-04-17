@@ -31,6 +31,14 @@ extension ContentView {
             onCompletion: datasets.handleImport(result:)
         )
         #endif
+        // Re-parse file picker — shown when a dataset has no stored source data
+        .fileImporter(
+            isPresented: $datasets.showReparseFilePicker,
+            allowedContentTypes: [UTType(filenameExtension: "spc") ?? .data],
+            allowsMultipleSelection: false
+        ) { result in
+            datasets.handleReparseFileImport(result: result, storedDatasets: storedDatasets)
+        }
         .sheet(isPresented: $datasets.showPermanentDeleteSheet) {
             permanentDeleteSheet
         }
@@ -884,9 +892,7 @@ extension ContentView {
                       systemImage: "arrow.uturn.up")
             }
             Button {
-                for id in affectedIDs {
-                    datasets.reparseDataset(id, storedDatasets: storedDatasets)
-                }
+                datasets.reparseDatasets(Array(affectedIDs), storedDatasets: storedDatasets)
             } label: {
                 Label(affectedCount > 1 ? "Re-parse \(affectedCount) from Source" : "Re-parse from Source",
                       systemImage: "arrow.triangle.2.circlepath")

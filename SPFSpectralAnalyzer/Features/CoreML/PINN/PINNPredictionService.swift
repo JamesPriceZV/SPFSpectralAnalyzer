@@ -32,9 +32,44 @@ final class PINNPredictionService {
     private init() {}
 
     /// Register and load all PINN domain models. Call at app startup.
+    /// After initial load, retries iCloud downloads for models still showing `.notTrained`.
     func loadModels() async {
         registry.registerAllDomainModels()
         await registry.loadAllModels()
+
+        // If some models are still not trained, they may be syncing from iCloud.
+        // Retry up to 10 times (every 3 seconds) to pick up freshly downloaded models.
+        let notTrainedCount = registry.models.values.filter { $0.status == .notTrained }.count
+        if notTrainedCount > 0, PINNModelRegistry.iCloudModelDirectory != nil {
+            await retryiCloudModels(maxAttempts: 10, interval: 3)
+        }
+    }
+
+    /// Retry loading models that are `.notTrained` in case iCloud files are still downloading.
+    private func retryiCloudModels(maxAttempts: Int, interval: TimeInterval) async {
+        for attempt in 1...maxAttempts {
+            try? await Task.sleep(for: .seconds(interval))
+
+            // Only retry models that are still not trained
+            let pendingDomains = registry.models.filter { $0.value.status == .notTrained }.map(\.key)
+            guard !pendingDomains.isEmpty else { return }
+
+            for domain in pendingDomains {
+                if let model = registry.models[domain] {
+                    try? await model.loadModel()
+                }
+            }
+            registry.loadVersion += 1
+
+            let remaining = registry.models.values.filter { $0.status == .notTrained }.count
+            if remaining == 0 { return }
+
+            Instrumentation.log(
+                "PINN iCloud retry \(attempt)/\(maxAttempts)",
+                area: .mlTraining, level: .info,
+                details: "\(remaining) models still pending"
+            )
+        }
     }
 
     // MARK: - Prediction

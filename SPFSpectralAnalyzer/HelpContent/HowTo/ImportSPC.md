@@ -62,12 +62,13 @@ All SPC files are parsed by the unified SPCParser engine, which automatically de
 ## Re-parsing Stored Datasets
 If a dataset was imported with an older parser version that had bugs, the stored spectra may contain stale or incorrect data. To refresh without deleting and re-importing:
 
-1. Right-click the dataset in the Import panel.
-2. Select **Re-parse from Source**.
+1. Right-click one or more datasets in the Import panel.
+2. Select **Re-parse from Source** (or **Re-parse N from Source** for multiple).
 3. The app re-parses the cached file bytes with the current parser, replaces the stored spectra, and updates metadata.
 4. Load the dataset again to see the corrected data.
 
-This requires that the original file data was stored at import time (the ``fileData`` field on ``StoredDataset``). If the source data is not available, re-import from the original file.
+### Missing Source Data
+If the original file data was not stored at import time, or was lost during a sync issue, the app will automatically present a **file browser dialog** so you can locate the original SPC file on disk. The selected file's data is stored in the dataset for future re-parses, so you only need to browse once per affected dataset. You can also select multiple datasets — they will all be re-parsed from the same source file.
 
 ## Troubleshooting
 - If a file fails to import, verify it is a valid SPC file and not zero length.

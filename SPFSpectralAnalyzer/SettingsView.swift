@@ -203,6 +203,7 @@ struct SettingsView: View {
     @AppStorage(M365Config.StorageKeys.exportConfigJSON) private var m365ExportConfigJSON = ""
 
     var m365AuthManager: MSALAuthManager
+    var isSheet: Bool = false
     @State private var draftM365ClientId = M365Config.defaultClientId
     @State private var draftM365TenantId = M365Config.defaultTenantId
     @State private var draftGroundingConfig = EnterpriseGroundingConfig.default
@@ -2125,11 +2126,13 @@ struct SettingsView: View {
                 Toggle("File Logs", isOn: $draftInstrumentationOutputFile)
                 Toggle("OSLog", isOn: $draftInstrumentationOutputOSLog)
 
-                #if os(macOS)
                 Button("Open Diagnostics Console") {
+                    #if os(macOS)
                     openWindow(id: "diagnostics-console")
+                    #else
+                    showDiagnosticsConsole = true
+                    #endif
                 }
-                #endif
             }
 
             Section("Instrumentation Detail Level") {
@@ -3122,6 +3125,13 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .toolbar {
+            if isSheet {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
         .navigationDestination(for: SettingsTab.self) { tab in
             Form {
                 settingsFormContent

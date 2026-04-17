@@ -48,7 +48,8 @@ final class PINNModelRegistry {
     /// Domain model status changes are invisible to observation (they're
     /// reference types, not @Observable), so the sidebar must read this
     /// counter to detect when model readiness has changed.
-    private(set) var loadVersion = 0
+    /// Writable from PINNPredictionService for iCloud retry updates.
+    var loadVersion = 0
 
     /// Domains that have ready models.
     var availableDomains: [PINNDomain] {
@@ -79,6 +80,40 @@ final class PINNModelRegistry {
             .appendingPathComponent("PINN", isDirectory: true)
     }
 
+    // MARK: - Model File Resolution
+
+    /// Find the best available model file URL for a given model name.
+    /// Checks `.mlmodelc` then `.mlpackage` in App Support, iCloud, and Bundle.
+    /// If nothing is found, triggers an iCloud download attempt and returns nil.
+    static func resolveModelURL(named modelName: String) -> URL? {
+        let fm = FileManager.default
+
+        for ext in ["mlmodelc", "mlpackage"] {
+            // App Support
+            let appSupport = modelDirectory.appendingPathComponent("\(modelName).\(ext)")
+            if fm.fileExists(atPath: appSupport.path) { return appSupport }
+
+            // iCloud
+            if let iCloud = iCloudModelDirectory {
+                let iCloudURL = iCloud.appendingPathComponent("\(modelName).\(ext)")
+                if fm.fileExists(atPath: iCloudURL.path) { return iCloudURL }
+            }
+
+            // Bundle
+            if let bundle = Bundle.main.url(forResource: modelName, withExtension: ext) {
+                return bundle
+            }
+        }
+
+        // Trigger iCloud download for .mlmodelc if available
+        if let iCloud = iCloudModelDirectory {
+            let iCloudURL = iCloud.appendingPathComponent("\(modelName).mlmodelc")
+            try? fm.startDownloadingUbiquitousItem(at: iCloudURL)
+        }
+
+        return nil
+    }
+
     // MARK: - Registration & Loading
 
     /// Register a domain model implementation.
@@ -99,6 +134,18 @@ final class PINNModelRegistry {
         register(ChromatographyPINNModel())
         register(NIRPINNModel())
         register(AtomicEmissionPINNModel())
+        register(XPSPINNModel())
+        register(LIBSPINNModel())
+        register(HITRANPINNModel())
+        register(AtmosphericUVVisPINNModel())
+        register(USGSReflectancePINNModel())
+        register(OpticalConstantsPINNModel())
+        register(EELSPINNModel())
+        register(SAXSPINNModel())
+        register(CircularDichroismPINNModel())
+        register(MicrowaveRotationalPINNModel())
+        register(TGAPINNModel())
+        register(TerahertzPINNModel())
     }
 
     /// Load all registered domain models.

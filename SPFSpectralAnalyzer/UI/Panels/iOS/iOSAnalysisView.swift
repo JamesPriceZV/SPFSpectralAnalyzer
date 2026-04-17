@@ -496,11 +496,22 @@ struct iOSAnalysisView: View {
                     }
                 }
             } else {
-                ContentUnavailableView(
-                    "No Spectra Loaded",
-                    systemImage: "waveform.path.ecg",
-                    description: Text("Load datasets from the Data Management tab.")
-                )
+                VStack(spacing: 12) {
+                    ContentUnavailableView(
+                        "No Spectra Loaded",
+                        systemImage: "waveform.path.ecg",
+                        description: Text("Select datasets in the Library tab, then load them here.")
+                    )
+                    if !datasets.selectedStoredDatasetIDs.isEmpty {
+                        Button {
+                            datasets.loadStoredDatasetSelection(append: false, storedDatasets: storedDatasets)
+                        } label: {
+                            Label("Load \(datasets.selectedStoredDatasetIDs.count) Selected Dataset\(datasets.selectedStoredDatasetIDs.count == 1 ? "" : "s")", systemImage: "arrow.down.doc")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                    }
+                }
                 .frame(minHeight: 200)
             }
         }

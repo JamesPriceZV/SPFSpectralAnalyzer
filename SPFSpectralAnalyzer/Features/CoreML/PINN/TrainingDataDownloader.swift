@@ -85,7 +85,7 @@ final class TrainingDataDownloader {
     /// Creates the directory if it doesn't exist.
     static func downloadDirectory(for domain: PINNDomain) -> URL {
         let base = PINNTrainingManager.trainingDataDirectory
-        let domainFolder = domain.rawValue.replacingOccurrences(of: " ", with: "_")
+        let domainFolder = domain.scriptBaseName
         let dir = base.appendingPathComponent(domainFolder, isDirectory: true)
             .appendingPathComponent("Downloads", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -210,6 +210,25 @@ final class TrainingDataDownloader {
             if downloadedSize == 0 {
                 sourceStatuses[sourceName] = .failed("Empty response (0 bytes)")
                 return
+            }
+
+            // Reject NIST WebBook "Spectrum not found" JCAMP responses.
+            // These return HTTP 200 with a small valid JCAMP body like:
+            //   ##TITLE=Spectrum not found.\n##END=
+            if downloadedSize < 200 {
+                let smallData = try? Data(contentsOf: fileURL)
+                let smallText = smallData.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+                let lower = smallText.lowercased()
+                if lower.contains("spectrum not found") || lower.contains("not available")
+                    || lower.contains("no data") {
+                    sourceStatuses[sourceName] = .failed("No spectrum available for this compound")
+                    Instrumentation.log(
+                        "NIST returned 'Spectrum not found' for \(domain.displayName)",
+                        area: .mlTraining, level: .info,
+                        details: "source=\(sourceName) content=\(smallText.prefix(120))"
+                    )
+                    return
+                }
             }
 
             // Read first 512 bytes for format sniffing (avoids loading entire file into memory)
