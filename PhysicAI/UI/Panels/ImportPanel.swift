@@ -45,12 +45,20 @@ extension ContentView {
                         .font(.title3)
                         .bold()
                     Spacer()
+                    #if os(macOS)
+                    Button("Browse Files") {
+                        browseForSPCFiles()
+                    }
+                    .accessibilityIdentifier("browseFilesButton")
+                    .buttonStyle(.glassProminent)
+                    #else
                     Button("Browse Files") {
                         datasets.appendOnImport = false
                         datasets.showImporter = true
                     }
                     .accessibilityIdentifier("browseFilesButton")
                     .buttonStyle(.glassProminent)
+                    #endif
                 }
 
                 RoundedRectangle(cornerRadius: 14)
@@ -75,18 +83,8 @@ extension ContentView {
                             var spcURLs: [URL] = []
                             for provider in providers {
                                 guard provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) else { continue }
-                                if let item = try? await provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier),
-                                   let data = item as? Data,
-                                   let path = String(data: data, encoding: .utf8)?
-                                       .trimmingCharacters(in: .whitespacesAndNewlines) {
-                                    // Handle both file:// URLs and raw file paths (spaces break URL(string:))
-                                    let url: URL?
-                                    if path.hasPrefix("file://") {
-                                        url = URL(string: path)
-                                    } else {
-                                        url = URL(fileURLWithPath: path)
-                                    }
-                                    if let url = url, url.pathExtension.lowercased() == "spc" {
+                                if let url = await Self.extractFileURL(from: provider) {
+                                    if url.pathExtension.lowercased() == "spc" {
                                         spcURLs.append(url)
                                     }
                                 }
@@ -1166,6 +1164,79 @@ extension ContentView {
         .padding(.top, 8)
         .padding(.bottom, 2)
         .padding(.horizontal, 4)
+    }
+
+    // MARK: - Browse Files (NSOpenPanel fallback for macOS)
+
+    #if os(macOS)
+    /// Opens NSOpenPanel directly — more reliable than .fileImporter when
+    /// the exported UTType (com.thermogalactic.spc) hasn't been registered
+    /// yet by the system (e.g. first launch after project rename).
+    private func browseForSPCFiles() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = true
+        panel.allowedContentTypes = [
+            UTType(filenameExtension: "spc") ?? .data
+        ]
+        panel.title = "Select SPC Spectral Files"
+        panel.message = "Choose one or more .spc files to import."
+
+        guard panel.runModal() == .OK else { return }
+        let urls = panel.urls
+        guard !urls.isEmpty else { return }
+
+        datasets.appendOnImport = false
+        Task { @MainActor in
+            await datasets.loadSpectra(from: urls, append: false)
+        }
+    }
+    #endif
+
+    // MARK: - Drop URL Extraction
+
+    /// Extracts a file URL from an NSItemProvider, handling all possible
+    /// return types (Data, NSURL, NSString) across macOS versions.
+    @MainActor
+    private static func extractFileURL(from provider: NSItemProvider) async -> URL? {
+        // Modern approach: use loadTransferable if available
+        // Fallback: loadItem with multiple type handling
+        let identifier = UTType.fileURL.identifier
+        guard let item = try? await provider.loadItem(forTypeIdentifier: identifier) else {
+            return nil
+        }
+
+        // macOS may return any of these types for file URL drops
+        if let url = item as? URL {
+            return url
+        }
+        if let nsURL = item as? NSURL {
+            return nsURL as URL
+        }
+        if let data = item as? Data,
+           let path = String(data: data, encoding: .utf8)?
+               .trimmingCharacters(in: .whitespacesAndNewlines) {
+            // Percent-decode file:// URLs to handle paths with spaces
+            if path.hasPrefix("file://") {
+                if let url = URL(string: path) {
+                    return url
+                }
+                // If URL(string:) fails (e.g. spaces not encoded), try stripping prefix
+                let filePath = String(path.dropFirst("file://".count))
+                    .removingPercentEncoding ?? String(path.dropFirst("file://".count))
+                return URL(fileURLWithPath: filePath)
+            }
+            return URL(fileURLWithPath: path)
+        }
+        if let str = item as? String {
+            let trimmed = str.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.hasPrefix("file://") {
+                return URL(string: trimmed) ?? URL(fileURLWithPath: String(trimmed.dropFirst("file://".count)))
+            }
+            return URL(fileURLWithPath: trimmed)
+        }
+        return nil
     }
 
 }

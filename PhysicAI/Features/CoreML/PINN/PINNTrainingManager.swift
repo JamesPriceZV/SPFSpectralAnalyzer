@@ -290,9 +290,9 @@ final class PINNTrainingManager {
         activeDomain = domain
         conversionSkipped = false
 
-        // Build a minimal Python script that converts the .pt to .mlpackage.
-        // The script auto-detects input_dim from the state dict's first weight tensor,
-        // so no featureCount mapping is needed on the Swift side.
+        // Build a Python conversion script that includes the full PINN architecture
+        // (ModifiedMLP, FourierFeatureEncoding, AdaptiveTanh, etc.) so the state dict
+        // can be loaded into the correct model structure before CoreML conversion.
         let script = """
         import sys, os
         try:
@@ -312,46 +312,229 @@ final class PINNTrainingManager {
         pt_path = sys.argv[1]
         output_base = sys.argv[2]
 
-        # Load state dict and auto-detect architecture
-        state = torch.load(pt_path, map_location="cpu", weights_only=True)
-        weight_keys = sorted([k for k in state.keys() if "weight" in k and state[k].dim() == 2])
-        print(f"Loaded state dict with {len(state)} keys, {len(weight_keys)} weight layers", flush=True)
+        # ---- Architecture classes (must match training scripts exactly) ----
 
-        if not weight_keys:
-            print("ERROR: No 2D weight tensors found in state dict", flush=True)
-            sys.exit(1)
+        class AdaptiveTanh(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.a = nn.Parameter(torch.ones(1))
+            def forward(self, x):
+                return torch.tanh(self.a * x)
 
-        # Infer input_dim from first weight layer's shape[1]
-        input_dim = state[weight_keys[0]].shape[1]
-        print(f"Auto-detected input_dim={input_dim}", flush=True)
+        class AdaptiveGELU(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.a = nn.Parameter(torch.ones(1))
+            def forward(self, x):
+                return nn.functional.gelu(self.a * x)
 
-        # Reconstruct feedforward model matching state dict layer shapes
-        layers = []
-        prev_dim = input_dim
-        for k in weight_keys:
-            w = state[k]
-            out_dim = w.shape[0]
-            layers.append(nn.Linear(prev_dim, out_dim))
-            prev_dim = out_dim
+        def make_activation(name='adaptive_tanh'):
+            if name == 'adaptive_tanh': return AdaptiveTanh()
+            elif name == 'adaptive_gelu': return AdaptiveGELU()
+            elif name == 'tanh': return nn.Tanh()
+            elif name == 'gelu': return nn.GELU()
+            else: return nn.Tanh()
 
-        # Build sequential with Tanh activations between linear layers
-        seq_layers = []
-        for i, layer in enumerate(layers):
-            seq_layers.append(layer)
-            if i < len(layers) - 1:
-                seq_layers.append(nn.Tanh())
-        model = nn.Sequential(*seq_layers)
+        class FourierFeatureEncoding(nn.Module):
+            def __init__(self, input_dim, num_frequencies=64, sigma=10.0):
+                super().__init__()
+                B = torch.randn(input_dim, num_frequencies) * sigma
+                self.register_buffer('B', B)
+                self.output_dim = 2 * num_frequencies
+            def forward(self, x):
+                proj = x @ self.B
+                return torch.cat([torch.sin(proj), torch.cos(proj)], dim=-1)
 
-        # Load weights
+        class ModifiedMLP(nn.Module):
+            def __init__(self, input_dim, hidden_dims, fourier=None, activation='adaptive_tanh'):
+                super().__init__()
+                self.fourier = fourier
+                enc_dim = fourier.output_dim if fourier is not None else input_dim
+                self.encoder_U = nn.Linear(enc_dim, hidden_dims[0])
+                self.encoder_V = nn.Linear(enc_dim, hidden_dims[0])
+                self.gate_projs = nn.ModuleList()
+                self.layers = nn.ModuleList()
+                self.activations = nn.ModuleList()
+                for i in range(len(hidden_dims) - 1):
+                    out_dim = hidden_dims[i + 1]
+                    self.layers.append(nn.Linear(hidden_dims[i], out_dim))
+                    self.activations.append(make_activation(activation))
+                    if out_dim != hidden_dims[0]:
+                        self.gate_projs.append(nn.Linear(hidden_dims[0], out_dim, bias=False))
+                    else:
+                        self.gate_projs.append(nn.Identity())
+                self.output_layer = nn.Linear(hidden_dims[-1], 1)
+                self.first_activation = make_activation(activation)
+            def forward(self, x):
+                if self.fourier is not None:
+                    x = self.fourier(x)
+                U = self.first_activation(self.encoder_U(x))
+                V = self.first_activation(self.encoder_V(x))
+                h = U
+                for i, (layer, act) in enumerate(zip(self.layers, self.activations)):
+                    h_new = act(layer(h))
+                    Ug = self.gate_projs[i](U)
+                    Vg = self.gate_projs[i](V)
+                    h_new = h_new * Ug + (1 - h_new) * Vg
+                    if h_new.shape[-1] == h.shape[-1]:
+                        h_new = h_new + h
+                    h = h_new
+                return self.output_layer(h)
+
+        # ---- Load state dict and detect architecture ----
+
+        state = torch.load(pt_path, map_location="cpu", weights_only=False)
+        print(f"Loaded state dict with {len(state)} keys", flush=True)
+        all_keys = sorted(state.keys())
+        print(f"Keys: {all_keys[:20]}{'...' if len(all_keys) > 20 else ''}", flush=True)
+
+        has_encoder_U = any(k.startswith("encoder_U") for k in state)
+        has_fourier = "fourier.B" in state
+        has_net = any(k.startswith("net.") for k in state)
+        has_trunk = any(k.startswith("trunk.") for k in state)
+
+        if has_encoder_U:
+            # ModifiedMLP architecture
+            print("Detected ModifiedMLP architecture", flush=True)
+
+            # Infer hidden_dims from layer weights
+            hidden_dims = []
+            enc_out = state["encoder_U.weight"].shape[0]
+            hidden_dims.append(enc_out)
+
+            layer_idx = 0
+            while f"layers.{layer_idx}.weight" in state:
+                w = state[f"layers.{layer_idx}.weight"]
+                hidden_dims.append(w.shape[0])
+                layer_idx += 1
+
+            # Detect activation type from state dict keys
+            has_adaptive = any("activations" in k and ".a" in k for k in state)
+            act_name = 'adaptive_tanh' if has_adaptive else 'tanh'
+
+            # Detect Fourier encoding
+            if has_fourier:
+                B = state["fourier.B"]
+                raw_input_dim = B.shape[0]
+                num_freq = B.shape[1]
+                fourier = FourierFeatureEncoding(raw_input_dim, num_freq)
+                fourier.B.copy_(B)
+                input_dim = raw_input_dim
+                print(f"Fourier: input_dim={raw_input_dim}, num_freq={num_freq}", flush=True)
+            else:
+                fourier = None
+                input_dim = state["encoder_U.weight"].shape[1]
+                print(f"No Fourier encoding, input_dim={input_dim}", flush=True)
+
+            print(f"hidden_dims={hidden_dims}, activation={act_name}", flush=True)
+            model = ModifiedMLP(input_dim, hidden_dims, fourier=fourier, activation=act_name)
+
+        elif has_net or has_trunk:
+            # Sequential-based architecture (domain-specific PINN class)
+            prefix = "trunk." if has_trunk else "net."
+            print(f"Detected Sequential architecture (prefix='{prefix}')", flush=True)
+
+            # Collect linear layer dimensions in order
+            layer_idx = 0
+            dims = []
+            while f"{prefix}{layer_idx}.weight" in state:
+                w = state[f"{prefix}{layer_idx}.weight"]
+                if layer_idx == 0:
+                    dims.append(w.shape[1])
+                dims.append(w.shape[0])
+                layer_idx += 2  # skip activation modules between linear layers
+
+            # Detect activation type
+            has_adaptive = any(".a" in k for k in state if prefix in k)
+            act_name = 'adaptive_tanh' if has_adaptive else 'tanh'
+
+            # Build Sequential model
+            if has_fourier:
+                B = state["fourier.B"]
+                raw_input_dim = B.shape[0]
+                num_freq = B.shape[1]
+                fourier = FourierFeatureEncoding(raw_input_dim, num_freq)
+                fourier.B.copy_(B)
+                enc_dim = 2 * num_freq
+                input_dim = raw_input_dim
+                # Replace first layer input dim
+                if dims:
+                    dims[0] = enc_dim
+                print(f"Fourier: raw_input={raw_input_dim}, enc_dim={enc_dim}", flush=True)
+            else:
+                fourier = None
+                input_dim = dims[0] if dims else 1
+
+            seq_layers = []
+            for i in range(len(dims) - 1):
+                seq_layers.append(nn.Linear(dims[i], dims[i + 1]))
+                if i < len(dims) - 2:
+                    seq_layers.append(make_activation(act_name))
+
+            class SeqPINN(nn.Module):
+                def __init__(self, fourier_enc, sequential):
+                    super().__init__()
+                    self.fourier = fourier_enc
+                    if has_trunk:
+                        self.trunk = sequential
+                        self.heads = nn.ModuleList()
+                        # Check for multi-head
+                        head_idx = 0
+                        while f"heads.{head_idx}.weight" in state:
+                            w = state[f"heads.{head_idx}.weight"]
+                            self.heads.append(nn.Linear(w.shape[1], w.shape[0]))
+                            head_idx += 1
+                    else:
+                        self.net = sequential
+                def forward(self, x):
+                    if self.fourier is not None:
+                        x = self.fourier(x)
+                    if hasattr(self, 'trunk'):
+                        features = self.trunk(x)
+                        if len(self.heads) > 0:
+                            return torch.cat([h(features) for h in self.heads], dim=-1)
+                        return features
+                    return self.net(x)
+
+            model = SeqPINN(fourier, nn.Sequential(*seq_layers))
+            print(f"dims={dims}, activation={act_name}", flush=True)
+
+        else:
+            # Fallback: reconstruct from any 2D weight tensors
+            print("Fallback: generic weight reconstruction", flush=True)
+            weight_keys = sorted([k for k in state if "weight" in k and state[k].dim() == 2])
+            if not weight_keys:
+                print("ERROR: No 2D weight tensors found", flush=True)
+                sys.exit(1)
+            input_dim = state[weight_keys[0]].shape[1]
+            layers = []
+            for k in weight_keys:
+                w = state[k]
+                layers.append(nn.Linear(w.shape[1], w.shape[0]))
+            seq = []
+            for i, l in enumerate(layers):
+                seq.append(l)
+                if i < len(layers) - 1:
+                    seq.append(nn.Tanh())
+            model = nn.Sequential(*seq)
+
+        # ---- Load weights ----
         try:
-            model.load_state_dict(state, strict=False)
-            print("Loaded weights (strict=False)", flush=True)
+            model.load_state_dict(state, strict=True)
+            print("Loaded weights (strict=True)", flush=True)
         except Exception as e:
-            print(f"WARNING: Partial weight load: {e}", flush=True)
+            print(f"strict=True failed ({e}), trying strict=False", flush=True)
+            try:
+                model.load_state_dict(state, strict=False)
+                print("Loaded weights (strict=False)", flush=True)
+            except Exception as e2:
+                print(f"WARNING: Weight load issue: {e2}", flush=True)
 
+        # ---- Convert to CoreML ----
         model.eval()
         example = torch.randn(1, input_dim)
-        traced = torch.jit.trace(model, example)
+        with torch.no_grad():
+            traced = torch.jit.trace(model, example)
 
         mlmodel = ct.convert(
             traced,

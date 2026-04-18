@@ -14,7 +14,7 @@ extension ContentView {
         view
             .fileImporter(
                 isPresented: $datasets.showImporter,
-                allowedContentTypes: [.spcFile],
+                allowedContentTypes: [UTType(filenameExtension: "spc") ?? .data],
                 allowsMultipleSelection: true,
                 onCompletion: datasets.handleImport(result:)
             )

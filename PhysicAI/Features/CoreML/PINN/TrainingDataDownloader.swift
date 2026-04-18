@@ -95,7 +95,12 @@ final class TrainingDataDownloader {
         domainSourceStatuses[domain]?[sourceName] = status
     }
 
+    /// Minimum file size (in bytes) to consider a download successful.
+    /// Files below this threshold are treated as failed downloads (error pages, empty responses).
+    private static let minimumViableFileSize: Int64 = 100
+
     /// Checks whether a source already has downloaded data files in the domain folder.
+    /// Only considers files with at least `minimumViableFileSize` bytes as valid downloads.
     static func isSourceDownloaded(_ source: PINNDomain.TrainingDataSource, for domain: PINNDomain) -> Bool {
         let files = downloadedFiles(for: domain)
         let safeName = source.name
@@ -104,8 +109,10 @@ final class TrainingDataDownloader {
             .replacingOccurrences(of: "—", with: "-")
         return files.contains { file in
             let name = file.lastPathComponent
-            // Match by safe source name prefix, exclude landing pages
-            return name.contains(safeName) && !name.contains("LANDING_PAGE")
+            guard name.contains(safeName) && !name.contains("LANDING_PAGE") else { return false }
+            // Verify file has non-trivial content (rejects zero-byte and tiny error responses)
+            let size = Int64((try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+            return size >= minimumViableFileSize
         }
     }
 
@@ -242,20 +249,23 @@ final class TrainingDataDownloader {
                 return
             }
 
-            // Reject NIST WebBook "Spectrum not found" JCAMP responses.
-            // These return HTTP 200 with a small valid JCAMP body like:
-            //   ##TITLE=Spectrum not found.\n##END=
-            if downloadedSize < 200 {
+            // Reject very small files that are almost certainly error/placeholder responses.
+            // Valid spectral data files are always > 100 bytes.
+            if downloadedSize < Self.minimumViableFileSize {
                 let smallData = try? Data(contentsOf: fileURL)
                 let smallText = smallData.flatMap { String(data: $0, encoding: .utf8) } ?? ""
                 let lower = smallText.lowercased()
-                if lower.contains("spectrum not found") || lower.contains("not available")
-                    || lower.contains("no data") {
-                    setSourceStatus(.failed("No spectrum available for this compound"), for: sourceName, in: domain)
+                let isErrorContent = lower.contains("spectrum not found")
+                    || lower.contains("not available") || lower.contains("no data")
+                    || lower.contains("error") || lower.contains("not found")
+                    || lower.contains("forbidden") || lower.contains("access denied")
+                    || lower.isEmpty
+                if isErrorContent {
+                    setSourceStatus(.failed("Server error (\(downloadedSize) bytes)"), for: sourceName, in: domain)
                     Instrumentation.log(
-                        "NIST returned 'Spectrum not found' for \(domain.displayName)",
+                        "Rejected tiny download for \(domain.displayName)",
                         area: .mlTraining, level: .info,
-                        details: "source=\(sourceName) content=\(smallText.prefix(120))"
+                        details: "source=\(sourceName) size=\(downloadedSize) content=\(smallText.prefix(120))"
                     )
                     return
                 }
@@ -311,20 +321,39 @@ final class TrainingDataDownloader {
                 return
             }
 
-            // Check for HTML (landing pages)
+            // Check for HTML (landing pages), XML error pages, and other non-data responses
             let contentType = (httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
-            let isHTML = contentType.contains("text/html")
+            let isHTML = contentType.contains("text/html") || contentType.contains("application/xhtml")
             let lowerPrefix = rawPrefix.lowercased()
             let looksLikeHTML = lowerPrefix.hasPrefix("<!doctype") || lowerPrefix.hasPrefix("<html")
                 || lowerPrefix.hasPrefix("<!") || lowerPrefix.contains("<head>")
+                || lowerPrefix.contains("<body")
 
-            if isHTML || looksLikeHTML {
+            // Detect XML error responses (API errors, CAPTCHA, login redirects)
+            let looksLikeXMLError = lowerPrefix.hasPrefix("<?xml")
+                && (lowerPrefix.contains("<error") || lowerPrefix.contains("captcha")
+                    || lowerPrefix.contains("login") || lowerPrefix.contains("denied"))
+
+            // Detect common server-side error/redirect content
+            let looksLikeErrorContent = lowerPrefix.contains("access denied")
+                || lowerPrefix.contains("please enable javascript")
+                || lowerPrefix.contains("cloudflare") || lowerPrefix.contains("captcha")
+                || lowerPrefix.contains("robot") || lowerPrefix.contains("bot detection")
+
+            if isHTML || looksLikeHTML || looksLikeXMLError || looksLikeErrorContent {
                 let safeName = sourceName.replacingOccurrences(of: " ", with: "_")
                     .replacingOccurrences(of: "/", with: "_")
                 let htmlURL = destDir.appendingPathComponent("\(safeName)_LANDING_PAGE.html")
                 try? FileManager.default.removeItem(at: htmlURL)
                 try? FileManager.default.moveItem(at: fileURL, to: htmlURL)
-                setSourceStatus(.failed("HTML page"), for: sourceName, in: domain)
+                let reason = looksLikeXMLError ? "XML error page" :
+                    looksLikeErrorContent ? "Bot detection/access denied" : "HTML page"
+                setSourceStatus(.failed(reason), for: sourceName, in: domain)
+                Instrumentation.log(
+                    "Rejected non-data response for \(domain.displayName)",
+                    area: .mlTraining, level: .info,
+                    details: "source=\(sourceName) reason=\(reason) contentType=\(contentType) prefix=\(rawPrefix.prefix(80))"
+                )
                 return
             }
 
@@ -422,15 +451,33 @@ final class TrainingDataDownloader {
             )
 
             var totalSize: Int64 = 0
+            var failedFiles = 0
             for file in files {
                 let (fileURL, response) = try await downloadWithProgress(url: file.url, sourceName: sourceName, domain: domain)
                 defer { try? FileManager.default.removeItem(at: fileURL) }
-                guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { continue }
+                guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+                    failedFiles += 1
+                    continue
+                }
+                let dlSize = Int64((try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+                guard dlSize >= Self.minimumViableFileSize else {
+                    Instrumentation.log(
+                        "Figshare file too small: \(file.name) (\(dlSize) bytes)",
+                        area: .mlTraining, level: .info,
+                        details: "source=\(sourceName) article=\(articleID)"
+                    )
+                    failedFiles += 1
+                    continue
+                }
                 let destURL = destDir.appendingPathComponent(file.name)
                 try? FileManager.default.removeItem(at: destURL)
                 try FileManager.default.moveItem(at: fileURL, to: destURL)
-                let size = Int64((try? destURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-                totalSize += size
+                totalSize += dlSize
+            }
+            
+            if totalSize == 0 && failedFiles == files.count {
+                setSourceStatus(.failed("All files failed to download"), for: sourceName, in: domain)
+                return
             }
 
             setSourceStatus(.completed(fileSize: totalSize), for: sourceName, in: domain)
@@ -449,14 +496,30 @@ final class TrainingDataDownloader {
     func downloadAllSources(for domain: PINNDomain) async {
         let sources = domain.trainingDataSourcesWithURLs.filter { $0.url != nil && !$0.isLicensed }
 
-        // Initialize per-source statuses scoped to this domain
+        // Initialize per-source statuses scoped to this domain.
+        // Only treat sources as completed if files have meaningful size.
         for source in sources {
             if Self.isSourceDownloaded(source, for: domain) {
+                let safeName = source.name.replacingOccurrences(of: " ", with: "_")
                 let size = Self.downloadedFiles(for: domain)
-                    .filter { $0.lastPathComponent.contains(source.name.replacingOccurrences(of: " ", with: "_")) }
+                    .filter { $0.lastPathComponent.contains(safeName) }
                     .reduce(Int64(0)) { $0 + Int64((try? $1.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
                 setSourceStatus(.completed(fileSize: size), for: source.name, in: domain)
             } else {
+                // Clean up any zero-byte or tiny files from previous failed downloads
+                let safeName = source.name
+                    .replacingOccurrences(of: " ", with: "_")
+                    .replacingOccurrences(of: "/", with: "_")
+                    .replacingOccurrences(of: "—", with: "-")
+                let staleFiles = Self.downloadedFiles(for: domain)
+                    .filter { $0.lastPathComponent.contains(safeName) && !$0.lastPathComponent.contains("LANDING_PAGE") }
+                    .filter {
+                        let sz = Int64((try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
+                        return sz < Self.minimumViableFileSize
+                    }
+                for stale in staleFiles {
+                    try? FileManager.default.removeItem(at: stale)
+                }
                 setSourceStatus(.pending, for: source.name, in: domain)
             }
         }
