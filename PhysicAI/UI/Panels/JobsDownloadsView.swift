@@ -9,8 +9,11 @@ struct JobsDownloadsView: View {
     @State private var mlService = MLTrainingService.shared
     @State private var pinnService = PINNPredictionService.shared
 
-    /// Per-domain training managers, created on demand.
-    @State private var trainingManagers: [PINNDomain: PINNTrainingManager] = [:]
+    /// Per-domain training managers (shared across views via PINNTrainingManager.managers).
+    /// Reading this triggers re-renders when training status changes.
+    private var trainingManagers: [PINNDomain: PINNTrainingManager] {
+        PINNTrainingManager.managers
+    }
 
     @Environment(\.modelContext) private var modelContext
 
@@ -545,15 +548,8 @@ struct JobsDownloadsView: View {
 
     #if os(macOS)
     private func startTraining(for domain: PINNDomain) async {
-        // Get or create a training manager for this domain
-        let manager: PINNTrainingManager
-        if let existing = trainingManagers[domain] {
-            manager = existing
-        } else {
-            let newManager = PINNTrainingManager()
-            trainingManagers[domain] = newManager
-            manager = newManager
-        }
+        // Get or create a shared training manager for this domain
+        let manager = PINNTrainingManager.manager(for: domain)
 
         // Install scripts
         _ = PINNScriptInstaller.installAllScripts()

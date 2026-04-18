@@ -32,6 +32,10 @@ struct PINNDomainDetailPane: View {
     // Script installation
     @State private var scriptInstallStatus: String?
 
+    // Cached training data file stats (computed async to avoid blocking main thread)
+    @State private var downloadedFileCount: Int = 0
+    @State private var downloadedFileSize: Int64 = 0
+
     // Physics constraint selections (persisted per domain as JSON)
     @AppStorage("pinnConstraintsJSON") private var constraintsJSON = "{}"
     @State private var constraintToggles: [String: Bool] = [:]
@@ -65,6 +69,31 @@ struct PINNDomainDetailPane: View {
             epochs = defaultEpochs
             learningRate = defaultLR
             loadConstraintToggles()
+        }
+        .task(id: domain.id) {
+            // Get directory URL on the main actor, then enumerate files off-thread
+            let dir = TrainingDataDownloader.downloadDirectory(for: domain)
+            let (count, size) = await Task.detached {
+                let fm = FileManager.default
+                guard let enumerator = fm.enumerator(
+                    at: dir,
+                    includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
+                    options: [.skipsHiddenFiles]
+                ) else { return (0, Int64(0)) }
+                var c = 0
+                var s: Int64 = 0
+                while let obj = enumerator.nextObject() {
+                    guard let url = obj as? URL else { continue }
+                    let vals = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+                    if vals?.isRegularFile == true {
+                        c += 1
+                        s += Int64(vals?.fileSize ?? 0)
+                    }
+                }
+                return (c, s)
+            }.value
+            downloadedFileCount = count
+            downloadedFileSize = size
         }
     }
 
@@ -511,8 +540,8 @@ struct PINNDomainDetailPane: View {
     // MARK: - Step 1: Get Training Data
 
     private var getTrainingDataSection: some View {
-        let downloadedCount = TrainingDataDownloader.downloadedFiles(for: domain).count
-        let downloadedSize = TrainingDataDownloader.downloadedSize(for: domain)
+        let downloadedCount = downloadedFileCount
+        let downloadedSize = downloadedFileSize
 
         return GroupBox {
             VStack(alignment: .leading, spacing: 10) {
@@ -568,7 +597,25 @@ struct PINNDomainDetailPane: View {
                 // Primary action: Download
                 HStack(spacing: 12) {
                     Button {
-                        Task { await trainingDataDownloader.downloadAllSources(for: domain) }
+                        Task {
+                            await trainingDataDownloader.downloadAllSources(for: domain)
+                            // Refresh cached file stats after download
+                            let dir = TrainingDataDownloader.downloadDirectory(for: domain)
+                            let (c, s) = await Task.detached {
+                                let fm = FileManager.default
+                                guard let en = fm.enumerator(at: dir, includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey], options: [.skipsHiddenFiles])
+                                else { return (0, Int64(0)) }
+                                var count = 0; var size: Int64 = 0
+                                while let obj = en.nextObject() {
+                                    guard let url = obj as? URL else { continue }
+                                    let v = try? url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+                                    if v?.isRegularFile == true { count += 1; size += Int64(v?.fileSize ?? 0) }
+                                }
+                                return (count, size)
+                            }.value
+                            downloadedFileCount = c
+                            downloadedFileSize = s
+                        }
                     } label: {
                         Label(downloadedCount > 0 ? "Re-Download All Free Sources" : "Download All Free Sources", systemImage: "arrow.down.circle")
                     }

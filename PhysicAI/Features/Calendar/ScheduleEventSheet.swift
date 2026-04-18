@@ -114,7 +114,8 @@ struct ScheduleEventSheet: View {
                     didSave = true
                     resultMessage = "Event saved to Calendar."
                     // Auto-dismiss after brief delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(1))
                         dismiss()
                     }
                 } else {

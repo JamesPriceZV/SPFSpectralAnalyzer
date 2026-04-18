@@ -2,10 +2,22 @@
 import UIKit
 import Vision
 import CoreImage
+import Metal
 
 /// Analyzes photographs of PMMA plates or sunscreen samples using Vision framework
 /// to extract color properties that may correlate with UV absorption characteristics.
 enum VisionColorAnalyzer {
+
+    // Shared Metal-backed context — compiled once, reused for all analyses
+    private static let sharedContext: CIContext = {
+        if let device = MTLCreateSystemDefaultDevice() {
+            return CIContext(mtlDevice: device, options: [
+                .workingColorSpace: NSNull(),
+                .useSoftwareRenderer: false
+            ])
+        }
+        return CIContext()
+    }()
 
     /// Analyzes a captured image for color distribution and dominant color properties.
     static func analyze(image: UIImage) async -> ColorAnalysisResult {
@@ -15,7 +27,7 @@ enum VisionColorAnalyzer {
 
         // Use CIImage for pixel-level analysis
         let ciImage = CIImage(cgImage: cgImage)
-        let context = CIContext()
+        let context = Self.sharedContext
 
         // Sample center region (40% of image) to focus on the sample area
         let width = CGFloat(cgImage.width)

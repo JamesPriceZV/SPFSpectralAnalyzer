@@ -28,8 +28,11 @@ public final class StoredDataset {
     var importedAt: Date = Date()
     var lastSyncedAt: Date?
     var fileHash: String?
+    @Attribute(.externalStorage)
     var fileData: Data?
+    @Attribute(.externalStorage)
     var metadataJSON: Data?
+    @Attribute(.externalStorage)
     var headerInfoData: Data?
     var skippedDataJSON: Data?
     var warningsJSON: Data?

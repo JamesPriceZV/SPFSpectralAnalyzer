@@ -3,6 +3,9 @@ import SwiftUI
 struct TrainingDataDashboardView: View {
     @Environment(TrainingDataCoordinator.self) private var coordinator
 
+    /// Access the model registry to show trained/ready status per modality.
+    private let pinnService = PINNPredictionService.shared
+
     private let columns = [
         GridItem(.adaptive(minimum: 280, maximum: 380), spacing: 16)
     ]
@@ -18,12 +21,16 @@ struct TrainingDataDashboardView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
+                // Read loadVersion to trigger re-renders when model status changes
+                let _ = pinnService.registry.loadVersion
+
                 LazyVGrid(columns: columns, spacing: 16) {
                     Section {
                         ForEach(classicalModalities) { modality in
                             ModalityTrainingCardView(
                                 modality: modality,
-                                status: coordinator.modalityStatus[modality] ?? .idle
+                                status: coordinator.modalityStatus[modality] ?? .idle,
+                                modelStatus: modelStatus(for: modality)
                             )
                         }
                     } header: {
@@ -37,7 +44,8 @@ struct TrainingDataDashboardView: View {
                         ForEach(quantumModalities) { modality in
                             ModalityTrainingCardView(
                                 modality: modality,
-                                status: coordinator.modalityStatus[modality] ?? .idle
+                                status: coordinator.modalityStatus[modality] ?? .idle,
+                                modelStatus: modelStatus(for: modality)
                             )
                         }
                     } header: {
@@ -74,11 +82,52 @@ struct TrainingDataDashboardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 8)
     }
+
+    // MARK: - Model Status Mapping
+
+    private func modelStatus(for modality: SpectralModality) -> PINNModelStatus {
+        guard let domain = Self.pinnDomain(for: modality) else { return .notTrained }
+        return pinnService.registry.models[domain]?.status ?? .notTrained
+    }
+
+    /// Maps a SpectralModality to its corresponding PINNDomain for model registry lookup.
+    private static func pinnDomain(for modality: SpectralModality) -> PINNDomain? {
+        switch modality {
+        case .uvVis:               return .uvVis
+        case .ftir:                return .ftir
+        case .nir:                 return .nir
+        case .raman:               return .raman
+        case .massSpecEI:          return .massSpec
+        case .massSpecMSMS:        return .massSpec
+        case .nmrProton:           return .nmr
+        case .nmrCarbon:           return .nmr
+        case .fluorescence:        return .fluorescence
+        case .xrdPowder:           return .xrd
+        case .xps:                 return .xps
+        case .eels:                return .eels
+        case .atomicEmission:      return .atomicEmission
+        case .libs:                return .libs
+        case .gcRetention:         return .chromatography
+        case .hplcRetention:       return .chromatography
+        case .hitranMolecular:     return .hitran
+        case .atmosphericUVVis:    return .atmosphericUVVis
+        case .usgsReflectance:     return .usgsReflectance
+        case .opticalConstants:    return .opticalConstants
+        case .saxs:                return .saxs
+        case .circularDichroism:   return .circularDichroism
+        case .microwaveRotational: return .microwaveRotational
+        case .thermogravimetric:   return .thermogravimetric
+        case .terahertz:           return .terahertz
+        case .dftQuantumChem, .mossbauer, .quantumDotPL, .augerElectron, .neutronDiffraction:
+            return nil
+        }
+    }
 }
 
 struct ModalityTrainingCardView: View {
     let modality: SpectralModality
     let status: TrainingDataCoordinator.ModalityStatus
+    var modelStatus: PINNModelStatus = .notTrained
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -87,6 +136,7 @@ struct ModalityTrainingCardView: View {
                     .font(.title2)
                     .foregroundStyle(statusColor)
                 Spacer()
+                modelStatusBadge
                 statusBadge
             }
 
@@ -145,6 +195,24 @@ struct ModalityTrainingCardView: View {
         case .error:
             Text("Error").font(.caption2).padding(.horizontal, 8).padding(.vertical, 3)
                 .background(.red.opacity(0.2), in: Capsule())
+        }
+    }
+
+    @ViewBuilder
+    private var modelStatusBadge: some View {
+        switch modelStatus {
+        case .ready:
+            Image(systemName: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.green)
+        case .loading:
+            ProgressView().controlSize(.mini)
+        case .error:
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.red)
+        case .notTrained:
+            EmptyView()
         }
     }
 

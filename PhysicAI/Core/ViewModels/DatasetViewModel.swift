@@ -33,6 +33,7 @@ final class DatasetViewModel {
     var showImporter = false
     var appendOnImport = false
     var showStoredDatasetPicker = false
+    var importProgress = ImportProgress()
 
     // MARK: - Re-parse File Browser
 
@@ -204,15 +205,15 @@ final class DatasetViewModel {
         cacheRebuildTask?.cancel()
         cacheRebuildTask = Task { @MainActor [weak self] in
             let syncActive = UserDefaults.standard.bool(forKey: "icloudSyncInProgress")
-            let delay: UInt64 = syncActive ? 2_000_000_000 : 50_000_000 // 2s during sync, 50ms otherwise
+            let delay: UInt64 = syncActive ? 500_000_000 : 50_000_000 // 500ms during sync, 50ms otherwise
             try? await Task.sleep(nanoseconds: delay)
             guard !Task.isCancelled, let self else { return }
 
-            // Re-check sync state after the delay. If still syncing, retry up to
-            // 3 times then proceed anyway — the ObjCExceptionCatcher in buildSearchRecord
+            // Re-check sync state after the delay. If still syncing, retry once
+            // then proceed anyway — the ObjCExceptionCatcher in buildSearchRecord
             // protects against NSExceptions from faulted objects.
             let stillSyncing = UserDefaults.standard.bool(forKey: "icloudSyncInProgress")
-            if stillSyncing && self.cacheRebuildSyncRetries < 3 {
+            if stillSyncing && self.cacheRebuildSyncRetries < 1 {
                 self.cacheRebuildSyncRetries += 1
                 self.debouncedUpdateSearchableTextCache(from: storedDatasets)
                 return
@@ -230,12 +231,12 @@ final class DatasetViewModel {
         archivedCacheRebuildTask?.cancel()
         archivedCacheRebuildTask = Task { @MainActor [weak self] in
             let syncActive = UserDefaults.standard.bool(forKey: "icloudSyncInProgress")
-            let delay: UInt64 = syncActive ? 2_000_000_000 : 50_000_000
+            let delay: UInt64 = syncActive ? 500_000_000 : 50_000_000
             try? await Task.sleep(nanoseconds: delay)
             guard !Task.isCancelled, let self else { return }
 
             let stillSyncing = UserDefaults.standard.bool(forKey: "icloudSyncInProgress")
-            if stillSyncing && self.archivedCacheRebuildSyncRetries < 3 {
+            if stillSyncing && self.archivedCacheRebuildSyncRetries < 1 {
                 self.archivedCacheRebuildSyncRetries += 1
                 self.debouncedUpdateArchivedSearchableTextCache(from: archivedDatasets)
                 return
@@ -548,7 +549,14 @@ final class DatasetViewModel {
         let started = Date()
         Instrumentation.log("Import started", area: .importParsing, level: .info, details: "files=\(urls.count) append=\(append)")
 
-        let parseResult = await SpectrumParsingWorker.shared.parse(urls: urls)
+        importProgress.stage = .parsing(parsed: 0, total: urls.count, currentFile: "")
+
+        let progress = importProgress
+        let parseResult = await SpectrumParsingWorker.shared.parse(urls: urls) { parsed, total, file in
+            await MainActor.run {
+                progress.stage = .parsing(parsed: parsed, total: total, currentFile: file)
+            }
+        }
 
         let loaded = parseResult.loaded
         let failures = parseResult.failures
@@ -558,6 +566,8 @@ final class DatasetViewModel {
         let parsedFiles = parseResult.parsedFiles
 
         await MainActor.run {
+            importProgress.stage = .validating(valid: 0, invalid: 0, total: loaded.count)
+
             var validSpectra: [ShimadzuSpectrum] = []
             var parsedInvalidItems: [InvalidSpectrumItem] = []
             var invalidCounts: [String: Int] = [:]
@@ -586,6 +596,8 @@ final class DatasetViewModel {
                 .sorted(by: { $0.key < $1.key })
                 .map { "\($0.key): flagged \($0.value) invalid spectra" }
             let combinedWarnings = warnings + invalidWarnings
+
+            importProgress.stage = .persisting(stored: 0, duplicates: 0, total: parsedFiles.count)
 
             let wasEmpty = analysis.spectra.isEmpty
             updateActiveMetadata(from: parsedFiles, append: append)
@@ -695,6 +707,21 @@ final class DatasetViewModel {
             dataVersion += 1
 
             let duration = Date().timeIntervalSince(started)
+
+            let duplicateCount = duplicateFiles.count
+            let invalidCount = parsedInvalidItems.count
+            if failures.isEmpty {
+                importProgress.stage = .completed(
+                    spectra: validSpectra.count,
+                    datasets: fileNameToDatasetID.count,
+                    duplicates: duplicateCount,
+                    invalid: invalidCount,
+                    duration: duration
+                )
+            } else {
+                importProgress.stage = .failed(failures.joined(separator: "\n"))
+            }
+
             Instrumentation.log(
                 "Import completed",
                 area: .importParsing,

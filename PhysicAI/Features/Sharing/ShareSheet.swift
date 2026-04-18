@@ -34,7 +34,7 @@ struct ShareSheet: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         // Delay to allow the view to be placed in the hierarchy
-        DispatchQueue.main.async {
+        Task { @MainActor in
             let picker = NSSharingServicePicker(items: items)
             picker.show(relativeTo: view.bounds, of: view, preferredEdge: .minY)
         }

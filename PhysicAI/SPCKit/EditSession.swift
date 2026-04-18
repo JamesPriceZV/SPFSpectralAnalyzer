@@ -278,11 +278,35 @@ public actor EditSession {
     private var removedIndices: Set<Int> = []
     private var subfileOrder: [Int]? = nil  // nil = original order
 
-    /// Completed actions in chronological order. Used for undo and audit log.
-    private var undoStack: [EditAction] = []
+    /// Full state snapshot for O(1) undo/redo.
+    private struct SessionSnapshot {
+        let deltas: [Int: SubfileDelta]
+        let pendingMemo: String?
+        let pendingAxisLabels: [EditAxis: String]
+        let pendingExperimentType: UInt8?
+        let pendingAxisUnits: [EditAxis: UInt8]
+        let pendingZUnits: UInt8?
+        let pendingResolution: String?
+        let pendingSourceInstrument: String?
+        let pendingMethodFile: String?
+        let pendingZIncrement: Float?
+        let pendingConcentrationFactor: Float?
+        let pendingSubfileZ: [Int: (zStart: Float, zEnd: Float)]
+        let pendingSubfileNames: [Int: String]
+        let addedSubfiles: [Subfile]
+        let removedIndices: Set<Int>
+        let subfileOrder: [Int]?
+        let action: EditAction
+    }
 
-    /// Actions removed by undo, available for redo.
-    private var redoStack: [EditAction] = []
+    /// Snapshot stack for O(1) undo.
+    private var undoSnapshots: [SessionSnapshot] = []
+
+    /// Snapshot stack for O(1) redo.
+    private var redoSnapshots: [SessionSnapshot] = []
+
+    /// Action history for audit log.
+    private var actionHistory: [EditAction] = []
 
     // MARK: Init
 
@@ -298,6 +322,47 @@ public actor EditSession {
         } else {
             self.sourceFileType = .yOnly
         }
+    }
+
+    private func captureSnapshot(action: EditAction) -> SessionSnapshot {
+        SessionSnapshot(
+            deltas: deltas,
+            pendingMemo: pendingMemo,
+            pendingAxisLabels: pendingAxisLabels,
+            pendingExperimentType: pendingExperimentType,
+            pendingAxisUnits: pendingAxisUnits,
+            pendingZUnits: pendingZUnits,
+            pendingResolution: pendingResolution,
+            pendingSourceInstrument: pendingSourceInstrument,
+            pendingMethodFile: pendingMethodFile,
+            pendingZIncrement: pendingZIncrement,
+            pendingConcentrationFactor: pendingConcentrationFactor,
+            pendingSubfileZ: pendingSubfileZ,
+            pendingSubfileNames: pendingSubfileNames,
+            addedSubfiles: addedSubfiles,
+            removedIndices: removedIndices,
+            subfileOrder: subfileOrder,
+            action: action
+        )
+    }
+
+    private func restoreSnapshot(_ snapshot: SessionSnapshot) {
+        deltas = snapshot.deltas
+        pendingMemo = snapshot.pendingMemo
+        pendingAxisLabels = snapshot.pendingAxisLabels
+        pendingExperimentType = snapshot.pendingExperimentType
+        pendingAxisUnits = snapshot.pendingAxisUnits
+        pendingZUnits = snapshot.pendingZUnits
+        pendingResolution = snapshot.pendingResolution
+        pendingSourceInstrument = snapshot.pendingSourceInstrument
+        pendingMethodFile = snapshot.pendingMethodFile
+        pendingZIncrement = snapshot.pendingZIncrement
+        pendingConcentrationFactor = snapshot.pendingConcentrationFactor
+        pendingSubfileZ = snapshot.pendingSubfileZ
+        pendingSubfileNames = snapshot.pendingSubfileNames
+        addedSubfiles = snapshot.addedSubfiles
+        removedIndices = snapshot.removedIndices
+        subfileOrder = snapshot.subfileOrder
     }
 
     // MARK: Dirty state
@@ -318,12 +383,14 @@ public actor EditSession {
 
     // MARK: Apply
 
-    /// Apply an edit action. Pushes onto the undo stack and clears redo stack.
+    /// Apply an edit action. Snapshots state before applying for O(1) undo.
     public func apply(_ action: EditAction) async throws {
+        let snapshot = captureSnapshot(action: action)
+        undoSnapshots.append(snapshot)
+        redoSnapshots.removeAll()
         let result = try await TransformEngine.shared.execute(action, on: self)
         applyResult(result)
-        undoStack.append(action)
-        redoStack.removeAll()
+        actionHistory.append(action)
     }
 
     private func applyResult(_ result: TransformResult) {
@@ -363,47 +430,24 @@ public actor EditSession {
 
     // MARK: Undo / Redo
 
-    public var canUndo: Bool { !undoStack.isEmpty }
-    public var canRedo: Bool { !redoStack.isEmpty }
+    public var canUndo: Bool { !undoSnapshots.isEmpty }
+    public var canRedo: Bool { !redoSnapshots.isEmpty }
 
-    /// Reverts the most recent action by replaying all remaining actions from scratch.
+    /// Reverts the most recent action by restoring the pre-action snapshot. O(1).
     public func undo() async throws {
-        guard !undoStack.isEmpty else { return }
-        let undone = undoStack.removeLast()
-        redoStack.append(undone)
-        try await replayFromScratch()
+        guard let snapshot = undoSnapshots.popLast() else { return }
+        // Save current state for redo
+        redoSnapshots.append(captureSnapshot(action: snapshot.action))
+        restoreSnapshot(snapshot)
+        if !actionHistory.isEmpty { actionHistory.removeLast() }
     }
 
     public func redo() async throws {
-        guard !redoStack.isEmpty else { return }
-        let action = redoStack.removeLast()
-        try await apply(action)
-        // apply() pushed onto undoStack already; redo stack already popped
-        undoStack.append(undoStack.removeLast()) // keep stack consistent
-    }
-
-    private func replayFromScratch() async throws {
-        deltas.removeAll()
-        pendingMemo = nil
-        pendingAxisLabels.removeAll()
-        pendingExperimentType = nil
-        pendingAxisUnits.removeAll()
-        pendingZUnits = nil
-        pendingResolution = nil
-        pendingSourceInstrument = nil
-        pendingMethodFile = nil
-        pendingZIncrement = nil
-        pendingConcentrationFactor = nil
-        pendingSubfileZ.removeAll()
-        pendingSubfileNames.removeAll()
-        addedSubfiles.removeAll()
-        removedIndices.removeAll()
-        subfileOrder = nil
-        let actionsToReplay = undoStack
-        undoStack.removeAll()
-        for action in actionsToReplay {
-            try await apply(action)
-        }
+        guard let snapshot = redoSnapshots.popLast() else { return }
+        // Save current state for undo
+        undoSnapshots.append(captureSnapshot(action: snapshot.action))
+        restoreSnapshot(snapshot)
+        actionHistory.append(snapshot.action)
     }
 
     // MARK: Resolving data for views and the writer
@@ -546,7 +590,7 @@ public actor EditSession {
 
     /// Audit log entries: original entries plus one per applied action.
     public func resolvedAuditLog() -> [AuditLogEntry] {
-        source.auditLog + undoStack.map { AuditLogEntry(text: $0.auditDescription) }
+        source.auditLog + actionHistory.map { AuditLogEntry(text: $0.auditDescription) }
     }
 
     // MARK: Private helpers

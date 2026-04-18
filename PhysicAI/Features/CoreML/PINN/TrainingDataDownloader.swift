@@ -232,7 +232,20 @@ final class TrainingDataDownloader {
         let sourceName = source.name
 
         do {
-            let (fileURL, response) = try await downloadWithProgress(url: url, sourceName: sourceName, domain: domain)
+            var (fileURL, response) = try await downloadWithProgress(url: url, sourceName: sourceName, domain: domain)
+
+            // Retry once on rate-limit responses (HTTP 429 Too Many Requests, 419)
+            if let httpResp = response as? HTTPURLResponse,
+               [429, 419].contains(httpResp.statusCode) {
+                try? FileManager.default.removeItem(at: fileURL)
+                Instrumentation.log(
+                    "Rate-limited (HTTP \(httpResp.statusCode)) — retrying after 3s",
+                    area: .mlTraining, level: .info,
+                    details: "source=\(sourceName) domain=\(domain.displayName)"
+                )
+                try await Task.sleep(nanoseconds: 3_000_000_000)
+                (fileURL, response) = try await downloadWithProgress(url: url, sourceName: sourceName, domain: domain)
+            }
             defer { try? FileManager.default.removeItem(at: fileURL) }
 
             guard let httpResponse = response as? HTTPURLResponse,
@@ -341,6 +354,28 @@ final class TrainingDataDownloader {
                 || lowerPrefix.contains("robot") || lowerPrefix.contains("bot detection")
 
             if isHTML || looksLikeHTML || looksLikeXMLError || looksLikeErrorContent {
+                // Special case: NIST ASD wraps tab-delimited spectral data in HTML <pre> tags.
+                // The data is valid but the HTML wrapper triggers our rejection logic.
+                if url.host?.contains("physics.nist.gov") == true,
+                   let fullText = try? String(contentsOf: fileURL, encoding: .utf8),
+                   let extracted = Self.extractNISTASDData(from: fullText) {
+                    let asdSafeName = sourceName
+                        .replacingOccurrences(of: " ", with: "_")
+                        .replacingOccurrences(of: "/", with: "_")
+                        .replacingOccurrences(of: "—", with: "-")
+                    let tsvURL = destDir.appendingPathComponent("\(asdSafeName).tsv")
+                    try? FileManager.default.removeItem(at: tsvURL)
+                    try extracted.write(to: tsvURL, atomically: true, encoding: .utf8)
+                    let savedSize = Int64(extracted.utf8.count)
+                    setSourceStatus(.completed(fileSize: savedSize), for: sourceName, in: domain)
+                    Instrumentation.log(
+                        "Extracted NIST ASD data for \(domain.displayName)",
+                        area: .mlTraining, level: .info,
+                        details: "source=\(sourceName) size=\(savedSize)"
+                    )
+                    return
+                }
+
                 let safeName = sourceName.replacingOccurrences(of: " ", with: "_")
                     .replacingOccurrences(of: "/", with: "_")
                 let htmlURL = destDir.appendingPathComponent("\(safeName)_LANDING_PAGE.html")
@@ -731,6 +766,30 @@ final class TrainingDataDownloader {
             case .zip:     return "ZIP"
             }
         }
+    }
+
+    /// Extracts tab-delimited spectral data from NIST ASD HTML-wrapped responses.
+    /// NIST ASD returns `format=3` (tab-delimited) data but wraps it in HTML `<pre>` tags.
+    /// Returns the cleaned text if valid ASD data is found, nil otherwise.
+    private static func extractNISTASDData(from text: String) -> String? {
+        // Strip all HTML tags
+        let stripped = text.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        let lines = stripped.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        // Verify it contains ASD-like tabular data (pipe-delimited or tab-delimited with numeric wavelengths)
+        let hasHeader = lines.contains {
+            $0.lowercased().contains("obs_wl") || $0.lowercased().contains("ritz_wl")
+            || $0.lowercased().contains("observed") || $0.lowercased().contains("wavelength")
+        }
+        let dataLineCount = lines.filter { line in
+            let parts = line.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
+            guard parts.count >= 3 else { return false }
+            let firstNumeric = parts.first?.filter { $0.isNumber || $0 == "." } ?? ""
+            return Double(firstNumeric) != nil
+        }.count
+        guard hasHeader || dataLineCount >= 3 else { return nil }
+        return lines.joined(separator: "\n")
     }
 
     /// Detects the data format from the first bytes of downloaded content.

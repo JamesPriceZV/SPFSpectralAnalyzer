@@ -8,7 +8,7 @@ import CoreData
 import CryptoKit
 
 struct ContentView: View {
-    @EnvironmentObject var dataStoreController: DataStoreController
+    @Environment(DataStoreController.self) var dataStoreController
     @State var analysis = AnalysisViewModel()
     @State var datasets: DatasetViewModel
 
@@ -202,7 +202,7 @@ struct ContentView: View {
             // Wire DatasetViewModel dependencies
             datasets.modelContext = modelContext
             datasets.dataStoreController = dataStoreController
-            datasets.onImportComplete = { appMode = .analysis }
+            datasets.onImportComplete = nil
             datasets.onSpectraLoaded = { [self] in updateAIEstimate() }
 
             // One-time migration: the old default adjustment factor of 20.0 produced
@@ -268,12 +268,14 @@ struct ContentView: View {
         }
         .onReceive(
             NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)
-                .debounce(for: .seconds(2), scheduler: RunLoop.main)
+                .debounce(for: .seconds(3), scheduler: RunLoop.main)
         ) { _ in
-            // Re-fetch after CloudKit sync delivers remote changes
+            // Re-fetch after CloudKit sync delivers remote changes.
+            // Use debounced cache rebuilds to avoid blocking the main thread
+            // with heavy SearchableTextCache iterations during rapid sync.
             refreshAllData()
-            datasets.updateSearchableTextCache(from: storedDatasets)
-            datasets.updateArchivedSearchableTextCache(from: archivedDatasets)
+            datasets.debouncedUpdateSearchableTextCache(from: storedDatasets)
+            datasets.debouncedUpdateArchivedSearchableTextCache(from: archivedDatasets)
             datasets.updateInstrumentCache(from: instruments)
         }
         .confirmationDialog("Save AI Analysis?", isPresented: $aiVM.showSavePrompt, titleVisibility: .visible) {

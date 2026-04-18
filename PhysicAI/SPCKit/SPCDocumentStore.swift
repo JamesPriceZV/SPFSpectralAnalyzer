@@ -94,35 +94,58 @@ public final class SPCDocumentStore {
     public func apply(_ action: EditAction) async {
         guard let session = editSession else { return }
         isTransforming = true
-        defer { isTransforming = false }
+        await Task.yield()   // forces a RunLoop tick; SwiftUI renders spinner here
         do {
             try await session.apply(action)
             await refreshResolvedState()
         } catch {
             presentedError = IdentifiableError(error)
         }
+        isTransforming = false
+    }
+
+    /// Apply multiple EditActions as a single batch (one refreshResolvedState at the end).
+    public func applyBatch(_ actions: [EditAction]) async {
+        guard !actions.isEmpty, let session = editSession else { return }
+        isTransforming = true
+        await Task.yield()
+        do {
+            for action in actions {
+                try await session.apply(action)
+            }
+            await refreshResolvedState()
+        } catch {
+            presentedError = IdentifiableError(error)
+        }
+        isTransforming = false
     }
 
     // MARK: - Undo / Redo
 
     public func undo() async {
         guard let session = editSession else { return }
+        isTransforming = true
+        await Task.yield()
         do {
             try await session.undo()
             await refreshResolvedState()
         } catch {
             presentedError = IdentifiableError(error)
         }
+        isTransforming = false
     }
 
     public func redo() async {
         guard let session = editSession else { return }
+        isTransforming = true
+        await Task.yield()
         do {
             try await session.redo()
             await refreshResolvedState()
         } catch {
             presentedError = IdentifiableError(error)
         }
+        isTransforming = false
     }
 
     // MARK: - Export (Save As)

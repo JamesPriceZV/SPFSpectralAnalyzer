@@ -89,9 +89,14 @@ private actor CloudAvailabilityMonitor {
                         controller.updateSyncState(phase: .completed, message: "iCloud available", progress: 1.0)
                     }
                     await controller.enableCloudSyncAndFullSync()
-                    attempt = 0
-                    delaySeconds = 5
-                    continue
+                    // Only reset backoff if the switch actually succeeded
+                    let didSwitch = await MainActor.run { controller.storeMode == "cloudKit" }
+                    if didSwitch {
+                        attempt = 0
+                        delaySeconds = 5
+                        continue   // success — monitor idles naturally
+                    }
+                    // failure — fall through to sleep + exponential backoff
                 } else {
                     let currentDelaySeconds = delaySeconds
                     await MainActor.run {
@@ -142,17 +147,17 @@ private actor FileCleanupWorker {
     }
 }
 
-@MainActor
-final class DataStoreController: ObservableObject {
-    @Published private(set) var container: ModelContainer
-    @Published private(set) var containerID = UUID()
-    @Published private(set) var syncState = CloudSyncState()
-    @Published private(set) var storeMode: String
-    @Published private(set) var cloudSyncEnabled: Bool
-    @Published private(set) var cloudKitUnavailable: Bool
-    @Published private(set) var cloudKitUnavailableMessage: String
-    @Published private(set) var syncHistory: [CloudSyncHistoryEntry] = []
-    @Published private(set) var queuedActionMessage: String? = nil
+@MainActor @Observable
+final class DataStoreController {
+    private(set) var container: ModelContainer
+    private(set) var containerID = UUID()
+    private(set) var syncState = CloudSyncState()
+    private(set) var storeMode: String
+    private(set) var cloudSyncEnabled: Bool
+    private(set) var cloudKitUnavailable: Bool
+    private(set) var cloudKitUnavailableMessage: String
+    private(set) var syncHistory: [CloudSyncHistoryEntry] = []
+    private(set) var queuedActionMessage: String? = nil
     private var availabilityTask: Task<Void, Never>?
     private var lastStatusSignature: String?
     private var lastStatusUpdate: Date?
@@ -864,7 +869,7 @@ final class DataStoreController: ObservableObject {
 
     private static let cloudKitContainerIdentifier = "iCloud.com.zincoverde.PhysicAI"
     private static let storeFilename = "PhysicAI.store"
-    private static let schemaInitQueue = DispatchQueue(label: "CloudKitSchemaInitGuard")
+    private static let schemaInitLockInternal = NSLock()
     private static var initializedSchemaStores = Set<String>()
 
     private enum StoreKind: String {
@@ -890,13 +895,13 @@ final class DataStoreController: ObservableObject {
     }
 
     private static func shouldInitializeSchema(for storePath: String) -> Bool {
-        schemaInitQueue.sync {
-            if initializedSchemaStores.contains(storePath) {
-                return false
-            }
-            initializedSchemaStores.insert(storePath)
-            return true
+        schemaInitLockInternal.lock()
+        defer { schemaInitLockInternal.unlock() }
+        if initializedSchemaStores.contains(storePath) {
+            return false
         }
+        initializedSchemaStores.insert(storePath)
+        return true
     }
 
     private static func makeContainer(schema: Schema, useCloudSync: Bool, storeURL: URL? = nil) throws -> ModelContainer {
@@ -949,7 +954,10 @@ final class DataStoreController: ObservableObject {
             )
         }
         #endif
-        let container = try ModelContainer(for: schema, configurations: [configuration])
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [configuration]
+        )
         let makeDuration = CFAbsoluteTimeGetCurrent() - makeStart
         Instrumentation.log(
             "ModelContainer creation complete",

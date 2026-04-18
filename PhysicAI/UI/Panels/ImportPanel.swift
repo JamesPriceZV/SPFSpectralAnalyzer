@@ -46,13 +46,13 @@ extension ContentView {
                         .bold()
                     Spacer()
                     #if os(macOS)
-                    Button("Browse Files") {
+                    Button("Add to Library") {
                         browseForSPCFiles()
                     }
                     .accessibilityIdentifier("browseFilesButton")
                     .buttonStyle(.glassProminent)
                     #else
-                    Button("Browse Files") {
+                    Button("Add to Library") {
                         datasets.appendOnImport = false
                         datasets.showImporter = true
                     }
@@ -61,39 +61,30 @@ extension ContentView {
                     #endif
                 }
 
-                RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [6, 6]))
-                    .foregroundColor(dropTargeted ? .accentColor : .secondary.opacity(0.4))
-                    .frame(height: 72)
-                    .overlay(
-                        HStack(spacing: 10) {
-                            Image(systemName: dropTargeted ? "arrow.down.doc.fill" : "waveform.path.ecg")
-                                .font(.system(size: 22))
-                                .foregroundColor(dropTargeted ? .accentColor : .secondary)
-                            Text(dropTargeted ? "Release to import" : "Drop .spc files here or use Browse")
-                                .font(.caption)
-                                .foregroundColor(dropTargeted ? .accentColor : .secondary)
-                        }
-                        .allowsHitTesting(false)
-                    )
-                    .contentShape(Rectangle())
-                    .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
-                        let ds = datasets
-                        Task { @MainActor in
-                            var spcURLs: [URL] = []
-                            for provider in providers {
-                                guard provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) else { continue }
-                                if let url = await Self.extractFileURL(from: provider) {
-                                    if url.pathExtension.lowercased() == "spc" {
-                                        spcURLs.append(url)
-                                    }
+                ImportProgressDashboard(
+                    progress: datasets.importProgress,
+                    datasetCount: storedDatasets.count,
+                    spectrumCount: analysis.spectra.count,
+                    dropTargeted: dropTargeted
+                )
+                .contentShape(Rectangle())
+                .onDrop(of: [.fileURL], isTargeted: $dropTargeted) { providers in
+                    let ds = datasets
+                    Task { @MainActor in
+                        var spcURLs: [URL] = []
+                        for provider in providers {
+                            guard provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) else { continue }
+                            if let url = await Self.extractFileURL(from: provider) {
+                                if url.pathExtension.lowercased() == "spc" {
+                                    spcURLs.append(url)
                                 }
                             }
-                            guard !spcURLs.isEmpty else { return }
-                            await ds.loadSpectra(from: spcURLs, append: false)
                         }
-                        return true
+                        guard !spcURLs.isEmpty else { return }
+                        await ds.loadSpectra(from: spcURLs, append: false)
                     }
+                    return true
+                }
             }
             .padding(.horizontal, 12)
             .padding(.top, 12)

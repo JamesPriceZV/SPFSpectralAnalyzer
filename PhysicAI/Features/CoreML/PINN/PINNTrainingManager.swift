@@ -52,6 +52,20 @@ final class PINNTrainingManager {
         }
     }
 
+    // MARK: - Shared Per-Domain Managers
+
+    /// Shared per-domain training managers, created on demand.
+    /// Ensures training status is visible across all views (Jobs & Downloads, ML Training sidebar).
+    static var managers: [PINNDomain: PINNTrainingManager] = [:]
+
+    /// Returns the shared training manager for a domain, creating one if needed.
+    static func manager(for domain: PINNDomain) -> PINNTrainingManager {
+        if let existing = managers[domain] { return existing }
+        let new = PINNTrainingManager()
+        managers[domain] = new
+        return new
+    }
+
     // MARK: - State
 
     var status: TrainingStatus = .idle
@@ -388,6 +402,16 @@ final class PINNTrainingManager {
         all_keys = sorted(state.keys())
         print(f"Keys: {all_keys[:20]}{'...' if len(all_keys) > 20 else ''}", flush=True)
 
+        # Strip wrapper class prefix from state dict keys.
+        # Training scripts wrap ModifiedMLP in domain-specific classes (e.g. RamanPINN)
+        # that nest it under "mlp." or "ensemble.backbone." prefix.
+        for _pfx in ["ensemble.backbone.", "mlp.", "ensemble."]:
+            if any(k.startswith(_pfx) for k in state):
+                state = {(k[len(_pfx):] if k.startswith(_pfx) else k): v
+                         for k, v in state.items()}
+                print(f"Stripped wrapper prefix '{_pfx}' from state dict keys", flush=True)
+                break
+
         has_encoder_U = any(k.startswith("encoder_U") for k in state)
         has_fourier = "fourier.B" in state
         has_net = any(k.startswith("net.") for k in state)
@@ -533,26 +557,39 @@ final class PINNTrainingManager {
         # ---- Convert to CoreML ----
         model.eval()
         example = torch.randn(1, input_dim)
-        with torch.no_grad():
-            traced = torch.jit.trace(model, example)
 
-        mlmodel = ct.convert(
-            traced,
-            inputs=[ct.TensorType(name="input", shape=(1, input_dim))],
-            minimum_deployment_target=ct.target.macOS13,
-        )
+        try:
+            with torch.no_grad():
+                traced = torch.jit.trace(model, example)
+
+            mlmodel = ct.convert(
+                traced,
+                inputs=[ct.TensorType(name="input", shape=(1, input_dim))],
+                convert_to="mlprogram",
+                minimum_deployment_target=ct.target.macOS15,
+            )
+        except Exception as e:
+            print(f"ERROR: CoreML conversion failed: {e}", flush=True)
+            print(f"PyTorch model remains at {pt_path}", flush=True)
+            sys.exit(2)
 
         package_path = output_base + ".mlpackage"
         mlmodel.save(package_path)
         print(f"Saved .mlpackage at {package_path}", flush=True)
 
         # Try to compile
+        import subprocess
         compiled_path = output_base + ".mlmodelc"
-        exit_code = os.system(f'/usr/bin/xcrun coremlcompiler compile "{package_path}" "{os.path.dirname(output_base)}"')
+        compile_cmd = ['/usr/bin/xcrun', 'coremlcompiler', 'compile', package_path, os.path.dirname(output_base)]
+        result = subprocess.run(compile_cmd, capture_output=True, text=True, timeout=300)
         if os.path.exists(compiled_path):
             print(f"Compiled to {compiled_path}", flush=True)
         else:
-            print(f"Compilation skipped (exit {exit_code}), .mlpackage is still usable", flush=True)
+            print(f"Compilation failed (exit {result.returncode}), .mlpackage is still usable", flush=True)
+            if result.stdout:
+                print(f"coremlcompiler stdout: {result.stdout[:1000]}", flush=True)
+            if result.stderr:
+                print(f"coremlcompiler stderr: {result.stderr[:1000]}", flush=True)
         """
 
         // Resolve Python path using the same logic as train()
@@ -609,7 +646,11 @@ final class PINNTrainingManager {
             )
 
             if process.terminationStatus != 0 {
-                status = .failed("Conversion failed (exit \(process.terminationStatus)). Check Diagnostics Console.")
+                let errorExcerpt = lastTrainingLog
+                    .components(separatedBy: .newlines)
+                    .filter { $0.hasPrefix("ERROR:") }
+                    .last ?? "exit code \(process.terminationStatus)"
+                status = .failed("Conversion failed: \(errorExcerpt). Full log in Diagnostics Console.")
                 activeDomain = nil
                 return
             }

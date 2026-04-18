@@ -117,6 +117,58 @@ enum SpectralProcessingService {
         return result
     }
 
+    @MainActor static func processParallel(
+        spectra: [ShimadzuSpectrum],
+        smoothingMethod: SmoothingMethod,
+        smoothingWindow: Int,
+        sgWindow: Int, sgOrder: Int,
+        baselineMethod: BaselineMethod,
+        normalizationMethod: NormalizationMethod
+    ) async -> [ShimadzuSpectrum] {
+        guard !spectra.isEmpty else { return [] }
+        let needsProcessing = smoothingMethod != .none || baselineMethod != .none || normalizationMethod != .none
+        guard needsProcessing else { return [] }
+
+        let sm = smoothingMethod, sw = smoothingWindow
+        let sgW = sgWindow, sgO = sgOrder
+        let bm = baselineMethod, nm = normalizationMethod
+
+        // Capture data on caller's actor before crossing into TaskGroup
+        let snapshots = spectra.map { (name: $0.name, x: $0.x, y: $0.y) }
+
+        let processed = await withTaskGroup(
+            of: (index: Int, name: String, x: [Double], y: [Double]).self
+        ) { group in
+            for (i, snap) in snapshots.enumerated() {
+                group.addTask(priority: .userInitiated) {
+                    var y = snap.y
+                    switch sm {
+                    case .movingAverage:
+                        y = SpectraProcessing.movingAverage(y: y, window: sw)
+                    case .savitzkyGolay:
+                        let order = min(sgO, sgW - 1)
+                        y = SpectraProcessing.savitzkyGolay(y: y, window: sgW, polynomialOrder: order)
+                    case .none:
+                        break
+                    }
+                    if bm != .none {
+                        y = SpectraProcessing.applyBaseline(y: y, x: snap.x, method: bm)
+                    }
+                    if nm != .none {
+                        y = SpectraProcessing.applyNormalization(y: y, x: snap.x, method: nm)
+                    }
+                    return (index: i, name: snap.name, x: snap.x, y: y)
+                }
+            }
+            var results = [(index: Int, name: String, x: [Double], y: [Double])]()
+            results.reserveCapacity(snapshots.count)
+            for await item in group { results.append(item) }
+            return results.sorted { $0.index < $1.index }
+        }
+        // Create MainActor-isolated ShimadzuSpectrum objects back on MainActor
+        return processed.map { ShimadzuSpectrum(name: $0.name, x: $0.x, y: $0.y) }
+    }
+
     static func detectPeaks(
         spectrum: ShimadzuSpectrum,
         minHeight: Double,

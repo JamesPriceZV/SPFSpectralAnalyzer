@@ -46,6 +46,25 @@ final class SPFPredictionService {
         loadModelIfAvailable()
     }
 
+    // MARK: - Thermal-Aware Compute Units
+
+    /// Returns preferred compute units based on the device's current thermal state.
+    /// Under heavy thermal load, restricts to CPU-only to reduce heat generation.
+    private func preferredComputeUnits() -> MLComputeUnits {
+        switch ProcessInfo.processInfo.thermalState {
+        case .serious, .critical:
+            return .cpuOnly
+        default:
+            return .all
+        }
+    }
+
+    /// Invalidate the cached model so it will be reloaded with updated thermal preferences.
+    func invalidateModel() {
+        model = nil
+        loadModelIfAvailable()
+    }
+
     // MARK: - Model Loading
 
     /// Attempts to load a compiled CoreML model.
@@ -60,7 +79,7 @@ final class SPFPredictionService {
         if FileManager.default.fileExists(atPath: userModelURL.path) {
             do {
                 let config = MLModelConfiguration()
-                config.computeUnits = .all
+                config.computeUnits = preferredComputeUnits()
                 model = try MLModel(contentsOf: userModelURL, configuration: config)
                 loadConformalResiduals()
                 status = .ready
@@ -79,7 +98,7 @@ final class SPFPredictionService {
             if fm.fileExists(atPath: iCloudModelURL.path) {
                 do {
                     let config = MLModelConfiguration()
-                    config.computeUnits = .all
+                    config.computeUnits = preferredComputeUnits()
                     model = try MLModel(contentsOf: iCloudModelURL, configuration: config)
                     loadConformalResiduals()
                     status = .ready
@@ -112,7 +131,7 @@ final class SPFPredictionService {
                                            withExtension: SPFModelSchema.modelExtension) {
             do {
                 let config = MLModelConfiguration()
-                config.computeUnits = .all
+                config.computeUnits = preferredComputeUnits()
                 model = try MLModel(contentsOf: bundleURL, configuration: config)
                 loadConformalResiduals()
                 status = .ready
@@ -144,7 +163,7 @@ final class SPFPredictionService {
                    FileManager.default.fileExists(atPath: iCloudModelURL.path) {
                     do {
                         let config = MLModelConfiguration()
-                        config.computeUnits = .all
+                        config.computeUnits = preferredComputeUnits()
                         self.model = try MLModel(contentsOf: iCloudModelURL, configuration: config)
                         self.loadConformalResiduals()
                         self.status = .ready

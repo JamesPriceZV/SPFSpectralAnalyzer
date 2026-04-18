@@ -108,18 +108,23 @@ nonisolated struct SpectraProcessing {
         let half = win / 2
 
         let coefficients = savitzkyGolayCoefficients(window: win, order: order)
-        if coefficients.isEmpty { return y }
+        guard !coefficients.isEmpty else { return y }
 
-        var result = Array(repeating: 0.0, count: y.count)
-        for i in 0..<y.count {
-            var acc = 0.0
-            for j in -half...half {
-                let idx = min(max(i + j, 0), y.count - 1)
-                let c = coefficients[j + half]
-                acc += c * y[idx]
-            }
-            result[i] = acc
-        }
+        let n = y.count
+        let sumCount = n - win + 1
+        guard sumCount > 0 else { return y }
+
+        // vDSP_convD reverses the kernel — pre-reverse SG coefficients for correct output
+        var kernel = coefficients.reversed().map { $0 }
+        var convolved = Array(repeating: 0.0, count: sumCount)
+        vDSP_convD(y, 1, &kernel, 1, &convolved, 1,
+                   vDSP_Length(sumCount), vDSP_Length(win))
+
+        // Reconstruct full-length array with edge clamping
+        var result = Array(repeating: 0.0, count: n)
+        for i in 0..<sumCount { result[i + half] = convolved[i] }
+        for i in 0..<half { result[i] = result[half] }
+        for i in (n - half)..<n { result[i] = result[n - half - 1] }
         return result
     }
 

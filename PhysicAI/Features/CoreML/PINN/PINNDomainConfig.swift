@@ -841,9 +841,9 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
         case .fluorescence:
             return [
                 TrainingDataSource(
-                    name: "FPbase — Fluorescent Proteins (CSV)",
-                    description: "1,000+ fluorescent protein spectra, direct CSV download",
-                    url: URL(string: "https://www.fpbase.org/api/proteins/?format=csv"),
+                    name: "FPbase — Fluorescent Proteins (JSON)",
+                    description: "1,000+ fluorescent protein spectra, JSON API",
+                    url: URL(string: "https://www.fpbase.org/api/proteins/?format=json"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
@@ -853,9 +853,9 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
                     isLicensed: false
                 ),
                 TrainingDataSource(
-                    name: "FPbase — Fluorescent Protein Spectra (CSV)",
-                    description: "1,000+ excitation/emission spectra, direct CSV download",
-                    url: URL(string: "https://www.fpbase.org/api/spectra/?format=csv"),
+                    name: "FPbase — Fluorescent Protein Spectra (JSON)",
+                    description: "1,000+ excitation/emission spectra, JSON API",
+                    url: URL(string: "https://www.fpbase.org/api/spectra/?format=json"),
                     isLicensed: false
                 ),
                 TrainingDataSource(
@@ -1085,7 +1085,7 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             return [
                 TrainingDataSource(
                     name: "NIST XPS Database SRD 20",
-                    description: "33,000+ XPS records — browse srdata.nist.gov/xps",
+                    description: "33,000+ XPS records — browse srdata.nist.gov/xps, no bulk download API",
                     url: nil,
                     isLicensed: false
                 )
@@ -1093,9 +1093,33 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
         case .libs:
             return [
                 TrainingDataSource(
-                    name: "NIST ASD — LIBS Elements",
-                    description: "Uses same NIST ASD data as Atomic Emission with plasma parameters",
-                    url: nil,
+                    name: "NIST ASD — Fe I+II Lines (LIBS)",
+                    description: "Iron neutral + ionized lines for LIBS plasma analysis",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Fe+I;Fe+II&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — Ca I+II Lines (LIBS)",
+                    description: "Calcium neutral + ionized lines for LIBS plasma analysis",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Ca+I;Ca+II&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — Al I+II Lines (LIBS)",
+                    description: "Aluminium neutral + ionized lines for LIBS plasma analysis",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Al+I;Al+II&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — Mg I+II Lines (LIBS)",
+                    description: "Magnesium neutral + ionized lines for LIBS plasma analysis",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Mg+I;Mg+II&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
+                    isLicensed: false
+                ),
+                TrainingDataSource(
+                    name: "NIST ASD — Si I+II Lines (LIBS)",
+                    description: "Silicon neutral + ionized lines for LIBS plasma analysis",
+                    url: URL(string: "https://physics.nist.gov/cgi-bin/ASD/lines1.pl?spectra=Si+I;Si+II&limits_type=0&low_w=200&upp_w=900&unit=1&de=0&format=3&line_out=0&remove_js=on&no_js=on&en_unit=0&output=0&bibrefs=1&show_obs_wl=1&show_calc_wl=1&unc_out=1&order_out=0&show_av=2&intens_out=on&allowed_out=1&forbid_out=1&conf_out=on&term_out=on&enrg_out=on&J_out=on&submit=Retrieve+Data"),
                     isLicensed: false
                 )
             ]
@@ -1103,7 +1127,7 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             return [
                 TrainingDataSource(
                     name: "HITRAN2024 Line-by-Line",
-                    description: "61 molecules, registration required — hitran.org",
+                    description: "61 molecules — free registration required at hitran.org before download",
                     url: nil,
                     isLicensed: false
                 )
@@ -1112,7 +1136,7 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             return [
                 TrainingDataSource(
                     name: "MPI-Mainz UV/Vis Spectral Atlas",
-                    description: "~800 atmospheric species, free JCAMP-DX",
+                    description: "~800 atmospheric species — browse spectral-atlas-mainz.org, manual JCAMP-DX download",
                     url: nil,
                     isLicensed: false
                 )
@@ -1121,7 +1145,7 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             return [
                 TrainingDataSource(
                     name: "USGS Spectral Library splib07",
-                    description: "2,800+ spectra, free download",
+                    description: "2,800+ spectra — download from sciencebase.gov (doi:10.5066/F7RR1WDJ)",
                     url: nil,
                     isLicensed: false
                 )
@@ -1139,7 +1163,7 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             return [
                 TrainingDataSource(
                     name: "EELS Database (eelsdb.eu)",
-                    description: "290 spectra, ODbL license",
+                    description: "290 spectra, ODbL license — individual download via eelsdb.eu",
                     url: nil,
                     isLicensed: false
                 )
@@ -1148,7 +1172,7 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             return [
                 TrainingDataSource(
                     name: "SASBDB (sasbdb.org)",
-                    description: "5,000+ SAXS/SANS profiles, free",
+                    description: "5,000+ SAXS/SANS profiles — individual download via sasbdb.org",
                     url: nil,
                     isLicensed: false
                 )
@@ -1157,7 +1181,7 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             return [
                 TrainingDataSource(
                     name: "PCDDB (pcddb.cryst.bbk.ac.uk)",
-                    description: "1,800+ CD spectra, free",
+                    description: "1,800+ CD spectra — registration required at pcddb.cryst.bbk.ac.uk",
                     url: nil,
                     isLicensed: false
                 )
@@ -1166,7 +1190,7 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             return [
                 TrainingDataSource(
                     name: "CDMS (cdms.astro.uni-koeln.de)",
-                    description: "~750 species, free catalog",
+                    description: "~750 species — individual catalog entries at cdms.astro.uni-koeln.de",
                     url: nil,
                     isLicensed: false
                 )
@@ -1175,7 +1199,7 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             return [
                 TrainingDataSource(
                     name: "NIST JANAF Thermochemical Tables",
-                    description: "Thermodynamic data — manual download",
+                    description: "Thermodynamic data — browse janaf.nist.gov, no bulk download",
                     url: nil,
                     isLicensed: false
                 )
@@ -1184,7 +1208,7 @@ enum PINNDomain: String, CaseIterable, Identifiable, Codable, Sendable {
             return [
                 TrainingDataSource(
                     name: "Zenodo THz Pharma Datasets",
-                    description: "500+ THz spectra — search Zenodo",
+                    description: "500+ THz spectra — search zenodo.org for THz pharmaceutical datasets",
                     url: nil,
                     isLicensed: false
                 )

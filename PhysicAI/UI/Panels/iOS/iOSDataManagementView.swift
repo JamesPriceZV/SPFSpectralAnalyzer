@@ -15,7 +15,7 @@ struct iOSDataManagementView: View {
     var instruments: [StoredInstrument]
     @Bindable var spcLibraryBridge: SPCLibraryBridge
 
-    @EnvironmentObject var dataStoreController: DataStoreController
+    @Environment(DataStoreController.self) var dataStoreController
 
     @AppStorage("spfCalculationMethod") private var spfCalculationMethodRawValue = SPFCalculationMethod.colipa.rawValue
 

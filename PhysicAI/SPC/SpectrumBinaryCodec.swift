@@ -2,29 +2,18 @@ import Foundation
 
 enum SpectrumBinaryCodec {
     static nonisolated func encodeDoubles(_ values: [Double]) -> Data {
-        var data = Data()
-        data.reserveCapacity(values.count * 8)
-        for value in values {
-            var bits = value.bitPattern.littleEndian
-            withUnsafeBytes(of: &bits) { buffer in
-                data.append(contentsOf: buffer)
-            }
+        values.withUnsafeBytes { buffer in
+            Data(bytes: buffer.baseAddress!, count: buffer.count)
         }
-        return data
     }
 
     static nonisolated func decodeDoubles(from data: Data) -> [Double] {
-        guard !data.isEmpty else { return [] }
-        let count = data.count / 8
-        var values: [Double] = []
-        values.reserveCapacity(count)
-        data.withUnsafeBytes { rawPtr in
-            for i in 0..<count {
-                let offset = i * 8
-                let bits = rawPtr.load(fromByteOffset: offset, as: UInt64.self).littleEndian
-                values.append(Double(bitPattern: bits))
-            }
+        guard !data.isEmpty, data.count % MemoryLayout<Double>.stride == 0 else {
+            return []
         }
-        return values
+        return data.withUnsafeBytes { rawBuffer in
+            let typedBuffer = rawBuffer.bindMemory(to: Double.self)
+            return Array(typedBuffer)
+        }
     }
 }

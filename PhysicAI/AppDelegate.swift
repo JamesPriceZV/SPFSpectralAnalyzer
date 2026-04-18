@@ -32,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         CloudKitSyncMonitor.shared.configure()
 
         // Open the main window at maximum (zoomed) size by default.
-        DispatchQueue.main.async {
+        Task { @MainActor in
             if let window = NSApplication.shared.windows.first(where: { $0.isVisible }) {
                 window.zoom(nil)
             }

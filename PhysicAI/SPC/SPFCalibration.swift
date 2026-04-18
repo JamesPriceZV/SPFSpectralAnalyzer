@@ -1,4 +1,5 @@
 import Foundation
+import Accelerate
 
 struct CalibrationSample: Sendable {
     let name: String
@@ -168,19 +169,15 @@ nonisolated struct SPFCalibration {
 
     /// Cosine similarity between two absorbance curves.
     /// Returns a value in [0, 1] where 1 = identical spectral shape.
+    /// Uses cblas_ddot for SIMD-vectorized dot product.
     private static func cosineSimilarity(_ a: [Double], _ b: [Double]) -> Double {
         guard a.count == b.count, !a.isEmpty else { return 0 }
-        var dotProduct = 0.0
-        var normA = 0.0
-        var normB = 0.0
-        for i in 0..<a.count {
-            dotProduct += a[i] * b[i]
-            normA += a[i] * a[i]
-            normB += b[i] * b[i]
-        }
+        let dotAB = vDSP.dot(a, b)
+        let normA = vDSP.dot(a, a)
+        let normB = vDSP.dot(b, b)
         let denom = sqrt(normA) * sqrt(normB)
         guard denom > 1.0e-12 else { return 0 }
-        return max(min(dotProduct / denom, 1.0), 0.0)
+        return max(min(dotAB / denom, 1.0), 0.0)
     }
 
     // MARK: - ISO 24443 C-Coefficient Solver
@@ -190,40 +187,32 @@ nonisolated struct SPFCalibration {
     /// Returns C in the valid range [0.1, 5.0], or nil if convergence fails.
     /// The wider range accommodates higher-SPF products where the C-coefficient
     /// needed to bridge raw in-vitro to label SPF can be large.
+    /// Uses vDSP_vsmulD for zero-allocation scalar multiply inside binary search.
     private static func solveCCoefficient(absorbance: [Double], targetSPF: Double) -> Double? {
         guard absorbance.count == 111, targetSPF > 0 else { return nil }
 
-        // Binary search for C in [0.1, 5.0]
-        var lo = 0.1
-        var hi = 5.0
+        // ONE pre-allocated buffer — zero allocations inside the loop
+        var scaledBuffer = absorbance
 
-        let spfAtLo = computeSPFFromAbsorbanceCurve(absorbance.map { $0 * lo })
-        let spfAtHi = computeSPFFromAbsorbanceCurve(absorbance.map { $0 * hi })
-
-        // Check that the target is bracketed
-        guard spfAtLo <= targetSPF || spfAtHi >= targetSPF else { return nil }
-
-        for _ in 0..<50 {  // max 50 iterations for convergence
-            let mid = (lo + hi) / 2.0
-            let spfAtMid = computeSPFFromAbsorbanceCurve(absorbance.map { $0 * mid })
-
-            if abs(spfAtMid - targetSPF) < 0.01 {
-                return mid
-            }
-
-            if spfAtMid < targetSPF {
-                lo = mid
-            } else {
-                hi = mid
-            }
-
-            if hi - lo < 1.0e-6 { break }
+        func spfAt(_ c: Double) -> Double {
+            var scale = c
+            vDSP_vsmulD(absorbance, 1, &scale, &scaledBuffer, 1,
+                        vDSP_Length(absorbance.count))
+            return computeSPFFromAbsorbanceCurve(scaledBuffer)
         }
 
-        let finalC = (lo + hi) / 2.0
-        let finalSPF = computeSPFFromAbsorbanceCurve(absorbance.map { $0 * finalC })
-        // Accept if within 5% of target
-        return abs(finalSPF - targetSPF) / targetSPF < 0.05 ? finalC : nil
+        var lo = 0.1, hi = 5.0
+        guard spfAt(lo) <= targetSPF, spfAt(hi) >= targetSPF else { return nil }
+
+        for _ in 0..<50 {
+            let mid = (lo + hi) / 2.0
+            let s = spfAt(mid)
+            if abs(s - targetSPF) < 0.01 { return mid }
+            s < targetSPF ? (lo = mid) : (hi = mid)
+            if hi - lo < 1.0e-6 { break }
+        }
+        let final = (lo + hi) / 2.0
+        return abs(spfAt(final) - targetSPF) / targetSPF < 0.05 ? final : nil
     }
 
     /// Computes SPF from a 290-400 nm absorbance curve (111 points at 1 nm intervals)

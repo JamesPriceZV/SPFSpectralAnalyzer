@@ -20,7 +20,7 @@ struct PhysicAIApp: App {
     #elseif os(iOS)
     @UIApplicationDelegateAdaptor(iOSAppDelegate.self) private var appDelegate
     #endif
-    @StateObject private var dataStoreController = DataStoreController()
+    @State private var dataStoreController = DataStoreController()
     @StateObject private var instrumentManager = InstrumentManager(driver: MockInstrumentDriver())
     @State private var sharedAuthManager = MSALAuthManager()
 
@@ -164,7 +164,7 @@ struct PhysicAIApp: App {
         WindowGroup {
             RootContentView()
                 .environment(sharedAuthManager)
-                .environmentObject(dataStoreController)
+                .environment(dataStoreController)
                 .environmentObject(instrumentManager)
         }
         #if os(macOS)
@@ -182,7 +182,7 @@ struct PhysicAIApp: App {
         #if os(macOS)
         Window("Diagnostics Console", id: "diagnostics-console") {
             DiagnosticsConsoleView()
-                .environmentObject(dataStoreController)
+                .environment(dataStoreController)
         }
         .windowResizability(.contentSize)
         .windowLevel(.floating)
@@ -195,7 +195,7 @@ struct PhysicAIApp: App {
         Window("Instrument Control", id: "instrument-control") {
             InstrumentControlView()
                 .environmentObject(instrumentManager)
-                .environmentObject(dataStoreController)
+                .environment(dataStoreController)
         }
         .windowResizability(.contentSize)
         .defaultSize(width: 500, height: 600)
@@ -209,7 +209,7 @@ struct PhysicAIApp: App {
         Settings {
             RootSettingsView()
                 .environment(sharedAuthManager)
-                .environmentObject(dataStoreController)
+                .environment(dataStoreController)
         }
         #endif
     }
@@ -352,7 +352,7 @@ struct PhysicAIApp: App {
 }
 
 private struct RootContentView: View {
-    @EnvironmentObject private var dataStoreController: DataStoreController
+    @Environment(DataStoreController.self) private var dataStoreController
     @Environment(\.modelContext) private var modelContext
     @Environment(MSALAuthManager.self) private var authManager
     @State private var isExportingHTML = false
@@ -439,7 +439,7 @@ private struct RootContentView: View {
 }
 
 private struct RootSettingsView: View {
-    @EnvironmentObject private var dataStoreController: DataStoreController
+    @Environment(DataStoreController.self) private var dataStoreController
     @Environment(MSALAuthManager.self) private var authManager
 
     var body: some View {

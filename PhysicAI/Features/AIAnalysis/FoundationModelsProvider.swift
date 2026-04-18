@@ -137,7 +137,7 @@ struct FoundationModelsProvider: AIAnalysisProvider {
     // MARK: - Structured Generation
 
     private func analyzeStructured(fullPrompt: String, instructions: String) async throws -> ParsedAIResponse {
-        let session = LanguageModelSession(instructions: instructions)
+        let session = Self.cachedSession(instructions: instructions)
         do {
             let response = try await session.respond(
                 to: fullPrompt,
@@ -163,7 +163,7 @@ struct FoundationModelsProvider: AIAnalysisProvider {
     // MARK: - Plain Text Generation
 
     private func analyzePlainText(fullPrompt: String, instructions: String) async throws -> ParsedAIResponse {
-        let session = LanguageModelSession(instructions: instructions)
+        let session = Self.cachedSession(instructions: instructions)
         do {
             let response = try await session.respond(to: fullPrompt)
             let text = response.content
@@ -223,7 +223,7 @@ struct FoundationModelsProvider: AIAnalysisProvider {
             and note when providers contradict each other.
             """
 
-        let session = LanguageModelSession(instructions: instructions)
+        let session = Self.cachedSession(instructions: instructions)
         do {
             let response = try await session.respond(
                 to: promptLines.joined(separator: "\n"),
@@ -294,6 +294,29 @@ struct FoundationModelsProvider: AIAnalysisProvider {
         }
 
         return lines.joined(separator: "\n")
+    }
+
+    // MARK: - Session Cache
+
+    /// The primary analysis instruction string, exposed for ANE prewarm at app launch.
+    static let primaryAnalysisInstructions = """
+        You are a spectral analysis assistant for UV/visible spectroscopy data \
+        used in sunscreen (SPF) formulation analysis. Provide clear, actionable \
+        insights about spectral data including UVA/UVB characteristics, critical \
+        wavelength analysis, and formulation recommendations.
+        """
+
+    private static var _sessionCache: [Int: LanguageModelSession] = [:]
+    private static let _lock = NSLock()
+
+    static func cachedSession(instructions: String) -> LanguageModelSession {
+        let key = instructions.hashValue
+        _lock.lock()
+        defer { _lock.unlock() }
+        if let existing = _sessionCache[key] { return existing }
+        let session = LanguageModelSession(instructions: instructions)
+        _sessionCache[key] = session
+        return session
     }
 }
 

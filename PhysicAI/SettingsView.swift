@@ -12,7 +12,7 @@ import WebKit
 #endif
 
 struct SettingsView: View {
-    @EnvironmentObject private var dataStoreController: DataStoreController
+    @Environment(DataStoreController.self) private var dataStoreController
     @AppStorage("aiEnabled") private var aiEnabled = false
     @AppStorage("aiTemperature") private var aiTemperature = 0.3
     @AppStorage("aiMaxTokens") private var aiMaxTokens = 8192

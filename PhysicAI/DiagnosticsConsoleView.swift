@@ -40,7 +40,7 @@ enum DiagnosticsFilterTab: String, CaseIterable, Identifiable, Sendable {
 // MARK: - Diagnostics Console View
 
 struct DiagnosticsConsoleView: View {
-    @EnvironmentObject private var dataStoreController: DataStoreController
+    @Environment(DataStoreController.self) private var dataStoreController
     @Environment(\.dismiss) private var dismiss
 
     @AppStorage("cloudKitSchemaInitOnLaunch") private var cloudKitSchemaInitOnLaunch = false

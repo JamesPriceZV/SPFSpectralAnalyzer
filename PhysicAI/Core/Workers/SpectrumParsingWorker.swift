@@ -3,7 +3,11 @@ import Foundation
 actor SpectrumParsingWorker {
     static let shared = SpectrumParsingWorker()
 
-    func parse(urls: [URL]) async -> ParseBatchResult {
+    /// Callback reporting (parsedSoFar, totalFiles, currentFileName) after each file.
+    typealias ProgressCallback = @Sendable (Int, Int, String) async -> Void
+
+    func parse(urls: [URL],
+               onProgress: ProgressCallback? = nil) async -> ParseBatchResult {
         var loaded: [RawSpectrumInput] = []
         var failures: [String] = []
         var skippedTotal = 0
@@ -11,7 +15,9 @@ actor SpectrumParsingWorker {
         var warnings: [String] = []
         var parsedFiles: [ParsedFileResult] = []
 
-        for url in urls {
+        for (index, url) in urls.enumerated() {
+            // Report progress before parsing each file
+            await onProgress?(index, urls.count, url.lastPathComponent)
             let accessGranted = url.startAccessingSecurityScopedResource()
             defer {
                 if accessGranted { url.stopAccessingSecurityScopedResource() }
@@ -90,6 +96,9 @@ actor SpectrumParsingWorker {
                 failures.append("\(url.lastPathComponent): \(error)")
             }
         }
+
+        // Report parsing complete
+        await onProgress?(urls.count, urls.count, "")
 
         return ParseBatchResult(
             loaded: loaded,

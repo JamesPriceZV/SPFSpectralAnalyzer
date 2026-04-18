@@ -213,7 +213,8 @@ enum PINNScriptInstaller {
                     traced,
                     inputs=[ct.TensorType(name="input", shape=(1, input_shape))],
                     outputs=[ct.TensorType(name="output", shape=output_shape)],
-                    minimum_deployment_target=ct.target.macOS13,
+                    convert_to="mlprogram",
+                    minimum_deployment_target=ct.target.macOS15,
                 )
             except Exception as e:
                 print(f"WARNING: CoreML conversion failed: {e}", flush=True)
@@ -232,18 +233,25 @@ enum PINNScriptInstaller {
                 return
 
             # Step 4: Compile to .mlmodelc via xcrun (use full path for PATH safety)
+            import subprocess as _sp
             compiled_path = output_path + ".mlmodelc"
             try:
-                compile_cmd = f'/usr/bin/xcrun coremlcompiler compile "{package_path}" "{os.path.dirname(output_path)}"'
-                exit_code = os.system(compile_cmd)
+                compile_cmd = ['/usr/bin/xcrun', 'coremlcompiler', 'compile', package_path, os.path.dirname(output_path)]
+                _compile_result = _sp.run(compile_cmd, capture_output=True, text=True, timeout=300)
+                exit_code = _compile_result.returncode
             except Exception as e:
                 print(f"WARNING: xcrun coremlcompiler failed: {e}", flush=True)
                 exit_code = -1
+                _compile_result = None
 
             if os.path.exists(compiled_path):
                 print(f"Model compiled to {compiled_path}", flush=True)
             else:
-                print(f"WARNING: coremlcompiler exited with code {exit_code >> 8 if exit_code > 0 else exit_code}", flush=True)
+                print(f"WARNING: coremlcompiler exited with code {exit_code}", flush=True)
+                if _compile_result and _compile_result.stdout:
+                    print(f"coremlcompiler stdout: {_compile_result.stdout[:1000]}", flush=True)
+                if _compile_result and _compile_result.stderr:
+                    print(f"coremlcompiler stderr: {_compile_result.stderr[:1000]}", flush=True)
                 print(f"The .mlpackage was saved at {package_path}", flush=True)
                 print(f'Compile manually: xcrun coremlcompiler compile "{package_path}" "{os.path.dirname(output_path)}"', flush=True)
 

@@ -467,56 +467,80 @@ final class AnalysisViewModel {
         return points.min(by: { abs($0.x - target) < abs($1.x - target) })
     }
 
+    var isProcessing: Bool = false
+
     // MARK: - Alignment & Processing
 
     func applyAlignmentIfNeeded() {
-        let baseSpectra = spectraForProcessing
-        Instrumentation.log(
-            "Alignment input",
-            area: .processing, level: .info,
-            details: "spectraForProcessing=\(baseSpectra.count) spectra=\(spectra.count) showAllSpectra=\(showAllSpectra) showSelectedOnly=\(showSelectedOnly) selectedIndices=\(selectedSpectrumIndices)"
-        )
-        guard !baseSpectra.isEmpty else {
-            alignedSpectra = []
-            processedSpectra = []
-            rebuildCaches()
-            Instrumentation.log("Alignment skipped", area: .processing, level: .warning, details: "reason=no spectra")
-            return
-        }
+        isProcessing = true
+        Task(priority: .userInitiated) {
+            // Capture all Sendable inputs BEFORE the hop off @MainActor
+            let base = await MainActor.run { self.spectraForProcessing }
+            let useAlign = await MainActor.run { self.useAlignment }
+            let sm = await MainActor.run { self.smoothingMethod }
+            let sw = await MainActor.run { self.smoothingWindow }
+            let sgW = await MainActor.run { self.sgWindow }
+            let sgO = await MainActor.run { self.sgOrder }
+            let bm = await MainActor.run { self.baselineMethod }
+            let nm = await MainActor.run { self.normalizationMethod }
+            let minH = await MainActor.run { self.peakMinHeight }
+            let minD = await MainActor.run { self.peakMinDistance }
+            let shouldDetect = await MainActor.run { self.detectPeaks }
 
-        let result = SpectralProcessingService.align(spectra: baseSpectra, useAlignment: useAlignment)
-        alignedSpectra = result.alignedSpectra
-        Instrumentation.log(
-            "Alignment output",
-            area: .processing, level: .info,
-            details: "aligned=\(alignedSpectra.count) useAlignment=\(useAlignment)"
-        )
-        if let message = result.statusMessage {
-            statusMessage = message
+            guard !base.isEmpty else {
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    self.alignedSpectra = []
+                    self.processedSpectra = []
+                    self.isProcessing = false
+                    self.rebuildCaches()
+                    Instrumentation.log("Alignment skipped", area: .processing, level: .warning, details: "reason=no spectra")
+                }
+                return
+            }
+
+            Instrumentation.log(
+                "Alignment input",
+                area: .processing, level: .info,
+                details: "spectraForProcessing=\(base.count)"
+            )
+
+            // All heavy computation on P-Core, off @MainActor
+            let alignResult = SpectralProcessingService.align(
+                spectra: base, useAlignment: useAlign)
+
+            let source = alignResult.alignedSpectra.isEmpty ? base : alignResult.alignedSpectra
+            let processed = await SpectralProcessingService.processParallel(
+                spectra: source,
+                smoothingMethod: sm, smoothingWindow: sw,
+                sgWindow: sgW, sgOrder: sgO,
+                baselineMethod: bm, normalizationMethod: nm)
+
+            let peaks: [PeakPoint]
+            if shouldDetect, let first = processed.first {
+                peaks = SpectralProcessingService.detectPeaks(
+                    spectrum: first, minHeight: minH, minDistance: minD)
+            } else {
+                peaks = []
+            }
+
+            // ONE main-thread state write at the end — no intermediate redraws
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.alignedSpectra = alignResult.alignedSpectra
+                if let message = alignResult.statusMessage {
+                    self.statusMessage = message
+                }
+                self.processedSpectra = processed
+                self.peaks = peaks
+                self.isProcessing = false
+                self.rebuildCaches()
+            }
         }
-        applyProcessing()
     }
 
     func applyProcessing() {
-        let base = (useAlignment && !alignedSpectra.isEmpty) ? alignedSpectra : spectraForProcessing
-        guard !base.isEmpty else {
-            processedSpectra = []
-            rebuildCaches()
-            Instrumentation.log("Processing skipped", area: .processing, level: .warning, details: "reason=no spectra")
-            return
-        }
-
-        let result = SpectralProcessingService.process(
-            spectra: base,
-            smoothingMethod: smoothingMethod,
-            smoothingWindow: smoothingWindow,
-            sgWindow: sgWindow,
-            sgOrder: sgOrder,
-            baselineMethod: baselineMethod,
-            normalizationMethod: normalizationMethod
-        )
-        processedSpectra = result
-        updatePeaks()
+        applyAlignmentIfNeeded()
     }
 
     func updatePeaks() {
@@ -576,7 +600,7 @@ final class AnalysisViewModel {
             hdrsResults = [:]
         }
 
-        Task {
+        Task(priority: .userInitiated) {
             let result = await SpectralMetricsWorker.shared.compute(
                 selectedSnapshot: selectedSnapshot,
                 selectedSpectraSnapshots: selectedSpectraSnapshots,
