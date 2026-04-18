@@ -2,6 +2,21 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>spc</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>SPC Spectral File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+		</dict>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -24,41 +39,24 @@
 	<array>
 		<string>remote-notification</string>
 		<string>processing</string>
+		<string>fetch</string>
+		<string>external-accessory</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportsMultipleScenes</key>
 	<true/>
-	<key>NSAppleEventsUsageDescription</key>
-	<string>SPF Spectral Analyzer needs to open Terminal to install Python ML packages (PyTorch, coremltools, scikit-learn) required for PINN model training.</string>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeName</key>
-			<string>SPC Spectral File</string>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>spc</string>
-			</array>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
-		</dict>
-	</array>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>
-			<key>UTTypeIdentifier</key>
-			<string>com.thermogalactic.spc</string>
-			<key>UTTypeDescription</key>
-			<string>Thermo Galactic SPC Spectral File</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.data</string>
 			</array>
+			<key>UTTypeDescription</key>
+			<string>Thermo Galactic SPC Spectral File</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.thermogalactic.spc</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>

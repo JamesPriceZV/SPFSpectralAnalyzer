@@ -115,13 +115,15 @@ actor AtomicEmissionSynthesizer {
         // Simplified estimation from spectrum: ionisation fraction from
         // ratio of ion lines (shorter wavelength) to neutral lines (longer wavelength)
         let kT_eV = temperature * 8.617e-5
-        let shortWaveIntegral = zip(grid, a)
-            .filter { $0.0 >= 200 && $0.0 < 400 }
-            .map { $0.1 }.reduce(0, +)
-        let longWaveIntegral = zip(grid, a)
-            .filter { $0.0 >= 500 && $0.0 <= 899 }
-            .map { $0.1 }.reduce(0, +)
-        let totalEmission = a.reduce(0, +)
+        var shortWaveIntegral: Double = 0
+        var longWaveIntegral: Double = 0
+        for i in 0..<gridCount {
+            let wl = grid[i]
+            let val = a[i]
+            if wl >= 200 && wl < 400 { shortWaveIntegral += val }
+            if wl >= 500 && wl <= 899 { longWaveIntegral += val }
+        }
+        let totalEmission: Double = a.reduce(0, +)
 
         let ionNeutralRatio = longWaveIntegral > 1e-12
             ? shortWaveIntegral / longWaveIntegral : 0.0
@@ -157,9 +159,10 @@ actor AtomicEmissionSynthesizer {
         qf["zeeman_excess_broadening_nm"] = zeemanExcess
         // Zeeman splitting: delta_lambda ~ 4.67e-8 * lambda^2 * B (Tesla)
         // Invert: B ~ excess / (4.67e-8 * lambda_avg^2)
-        let lambdaAvg = totalEmission > 0
-            ? zip(grid, a).map { $0.0 * $0.1 }.reduce(0, +) / totalEmission
-            : 550.0
+        var weightedLambdaSum: Double = 0
+        for i in 0..<gridCount { weightedLambdaSum += grid[i] * a[i] }
+        let lambdaAvg: Double = totalEmission > 0
+            ? weightedLambdaSum / totalEmission : 550.0
         let bFieldProxy = zeemanExcess > 0.01
             ? zeemanExcess / (4.67e-8 * lambdaAvg * lambdaAvg)
             : 0.0
@@ -167,12 +170,14 @@ actor AtomicEmissionSynthesizer {
 
         // ── 5. Additional spectral quantum metrics (11 features) ──
         // Boltzmann plot slope proxy (two-region ratio for temperature)
-        let highE_integral = zip(grid, a)
-            .filter { $0.0 >= 200 && $0.0 < 350 }
-            .map { $0.1 }.reduce(0, +)
-        let lowE_integral = zip(grid, a)
-            .filter { $0.0 >= 600 && $0.0 <= 800 }
-            .map { $0.1 }.reduce(0, +)
+        var highE_integral: Double = 0
+        var lowE_integral: Double = 0
+        for i in 0..<gridCount {
+            let wl = grid[i]
+            let val = a[i]
+            if wl >= 200 && wl < 350 { highE_integral += val }
+            if wl >= 600 && wl <= 800 { lowE_integral += val }
+        }
         qf["boltzmann_slope_proxy"] = lowE_integral > 1e-12
             ? log(max(highE_integral, 1e-20) / lowE_integral) : 0.0
 
@@ -183,8 +188,13 @@ actor AtomicEmissionSynthesizer {
             ? maxVal / medianApprox : 0.0
 
         // Spectral entropy of emission distribution
-        let normA = totalEmission > 0 ? a.map { $0 / totalEmission } : a
-        let entropy = -normA.filter { $0 > 1e-15 }.map { $0 * log($0) }.reduce(0, +)
+        var entropy: Double = 0
+        if totalEmission > 0 {
+            for val in a {
+                let p = val / totalEmission
+                if p > 1e-15 { entropy -= p * log(p) }
+            }
+        }
         qf["emission_spectral_entropy"] = entropy
 
         // Number of resolved emission lines (peaks above 10% of max)
@@ -206,16 +216,18 @@ actor AtomicEmissionSynthesizer {
             ? shortWaveIntegral / totalEmission : 0.0
 
         // Visible fraction (400-700 nm)
-        let visIntegral = zip(grid, a)
-            .filter { $0.0 >= 400 && $0.0 < 700 }
-            .map { $0.1 }.reduce(0, +)
+        var visIntegral: Double = 0
+        var nirIntegral: Double = 0
+        for i in 0..<gridCount {
+            let wl = grid[i]
+            let val = a[i]
+            if wl >= 400 && wl < 700 { visIntegral += val }
+            if wl >= 700 && wl <= 899 { nirIntegral += val }
+        }
         qf["visible_emission_fraction"] = totalEmission > 0
             ? visIntegral / totalEmission : 0.0
 
         // NIR fraction (700-900 nm) - low-energy / recombination
-        let nirIntegral = zip(grid, a)
-            .filter { $0.0 >= 700 && $0.0 <= 899 }
-            .map { $0.1 }.reduce(0, +)
         qf["nir_emission_fraction"] = totalEmission > 0
             ? nirIntegral / totalEmission : 0.0
 
@@ -223,9 +235,12 @@ actor AtomicEmissionSynthesizer {
         qf["emission_centroid_nm"] = lambdaAvg
 
         // Emission bandwidth (std dev of weighted distribution)
-        let variance = totalEmission > 0
-            ? zip(grid, a).map { ($0.0 - lambdaAvg) * ($0.0 - lambdaAvg) * $0.1 }.reduce(0, +) / totalEmission
-            : 0.0
+        var varianceSum: Double = 0
+        for i in 0..<gridCount {
+            let diff = grid[i] - lambdaAvg
+            varianceSum += diff * diff * a[i]
+        }
+        let variance: Double = totalEmission > 0 ? varianceSum / totalEmission : 0.0
         qf["emission_bandwidth_nm"] = sqrt(max(variance, 0))
 
         // Element complexity indicator (number of distinct elements detected)

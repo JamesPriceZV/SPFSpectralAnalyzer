@@ -57,8 +57,6 @@ actor HITRANSynthesizer {
             }
         }()
 
-        let massKg = massAMU * 1.66054e-27
-
         // --- 1. Dicke narrowing correction (3 features) ---
         // Dicke narrowing parameter delta = optical diffusion coefficient / (2 * pi * nu_0)
         // Estimate optical diffusion coefficient D from kinetic theory

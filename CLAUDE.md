@@ -101,7 +101,7 @@ LAYER 5 — CoreML Training Bridge (macOS only)
 
 ## FILE STRUCTURE
 
-All paths relative to `SPFSpectralAnalyzer/`:
+All paths relative to `PhysicAI/`:
 
 ```
 Training/

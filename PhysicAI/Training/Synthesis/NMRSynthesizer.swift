@@ -203,7 +203,7 @@ actor NMRSynthesizer {
         let jHalfOmega = spectralDensity(omega / 2.0)
         let j3Omega = spectralDensity(3.0 * omega)
         let jOmegaH_plus_omegaC = spectralDensity(omega + gammaC / gammaH * omega)
-        let jOmegaH_minus_omegaC = spectralDensity(omega - gammaC / gammaH * omega)
+        let _ = spectralDensity(omega - gammaC / gammaH * omega) // omega_H - omega_C (reserved)
 
         d["sdf_j0"] = j0
         d["sdf_j_omega"] = jOmega

@@ -86,7 +86,6 @@ actor XRDSynthesizer {
             let thetaRad = (t2 / 2.0) * Double.pi / 180.0
             let sinTheta = sin(thetaRad)
             let cosTheta = cos(thetaRad)
-            let sin2Theta = sin(2.0 * thetaRad)
             // LP = (1 + cos^2(2theta)) / (sin^2(theta) * cos(theta))
             let cos2Theta = cos(2.0 * thetaRad)
             let denom = sinTheta * sinTheta * cosTheta
@@ -206,9 +205,6 @@ actor XRDSynthesizer {
         //                        + 2 (Wilson) + 2 (anomalous) + 2 (F000/density) = 23
         // Pad remaining 45 features with derived angular statistics
         let patternD = pattern.map { Double($0) }
-        let maxIntensity = patternD.max() ?? 1.0
-        let normPattern = maxIntensity > 1e-12 ? patternD.map { $0 / maxIntensity } : patternD
-
         // Angular moment features (order 1-8) about the centroid
         let centroid: Double
         if totalSum > 1e-12 {
